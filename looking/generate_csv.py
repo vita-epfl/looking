@@ -1,7 +1,7 @@
 from jaad_data import JAAD
 import pickle
 
-jaad_path = '/home/younesbelkada/Travail/JAAD/'
+jaad_path = '/home/romaincaristan/data/romaincaristan-data/JAAD/'
 imdb = JAAD(data_path=jaad_path)
 
 imdb.generate_database()

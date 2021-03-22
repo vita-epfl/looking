@@ -89,7 +89,7 @@ def crop_jaad(img, bbox):
 
 ## paths
 
-path_jaad = "/data/lorenzo-data/JAAD/images/"
+path_jaad = "../data/romaincaristan-data/JAAD/images/"
 path_joints = "./data/output_pifpaf_01_2k30/"
 
 
@@ -138,4 +138,3 @@ for i in tqdm(range(len(data["Y"]))):
 			file_out.write(line)
 file_out.close()
 file.close()
-
