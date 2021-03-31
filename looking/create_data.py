@@ -89,7 +89,7 @@ def crop_jaad(img, bbox):
 
 ## paths
 
-path_jaad = "/data/lorenzo-data/JAAD/images/"
+path_jaad = "/work/vita/datasets/JAAD/"
 path_joints = "./data/output_pifpaf_01_2k30/"
 
 
@@ -100,7 +100,7 @@ path_out = "./data/JAAD_2k30/"
 assert os.path.isdir(dir_out), "directory to save ground-truth not found"
 assert os.path.isdir(path_out), "output directory to save crops not found"
 
-file_out = open(os.path.join(dir_out, "ground_truth_2k30.txt", "w"))
+file_out = open(os.path.join(dir_out, "ground_truth_2k30.txt"), "w+")
 
 # Convert the data
 data = convert_file_to_data(file)
@@ -138,4 +138,3 @@ for i in tqdm(range(len(data["Y"]))):
 			file_out.write(line)
 file_out.close()
 file.close()
-

@@ -11,7 +11,7 @@ import argparse
 
 torch.manual_seed(0)
 
-# Parser 
+# Parser
 
 parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
@@ -96,8 +96,8 @@ print('Device: ', device)
 
 
 
-jaad_train = JAAD_Dataset_new('../data/', 'JAAD_2k30/',"train", split, data_transform)
-jaad_val = JAAD_Dataset_new('../data/', 'JAAD_2k30/', "val", split, data_transform)
+jaad_train = JAAD_Dataset_new('../../data/', 'JAAD_2k30/',"train", split, data_transform)
+jaad_val = JAAD_Dataset_new('../../data/', 'JAAD_2k30/', "val", split, data_transform)
 
 
 if model_type=='resnet18':
@@ -140,7 +140,7 @@ for e in range(EPOCHS):
 			losses = []
 			#break
 	model.eval()
-	torch.cuda.empty_cache() 
+	torch.cuda.empty_cache()
 	acc = 0
 	ap = 0
 	out_lab = torch.Tensor([]).type(torch.float)

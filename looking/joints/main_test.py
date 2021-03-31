@@ -8,7 +8,7 @@ from losses import FocalLoss
 torch.manual_seed(0)
 
 
-# Parser 
+# Parser
 
 parser = argparse.ArgumentParser(description='Training and evaluating on Kitti')
 
@@ -19,7 +19,7 @@ parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate fo
 parser.add_argument('--split', type=str, help='dataset split', default="video")
 parser.add_argument('--kitti', help='evaluate on kitti', action='store_true')
 parser.add_argument('--dropout', type=float, help='dropout rate for training', default=0.2)
-parser.add_argument('--out_path', type=str, help='path for model saving', default='./models/')
+parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
 parser.add_argument('--pose',  type=str, help='pose type', default="full")
 parser.add_argument('--batch_size', '-bs', help='enable focal loss', default=128)
 parser.add_argument('--focal_loss', help='enable focal loss', action='store_true')
@@ -74,6 +74,7 @@ if training:
 	optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 	model.train()
 	for epoch in range(EPOCHS):
+		i = 0
 		model.to(device)
 		running_loss = 0
 		for x_batch, y_batch in train_loader:
@@ -82,10 +83,20 @@ if training:
 				#x_batch.requires_grad=True
 			optimizer.zero_grad()
 			output = model(x_batch.float())
+			print(output.type())
 			loss = criterion(output, y_batch.view(-1, 1))
 			running_loss += loss.item() * x_batch.size(0)
 			loss.backward()
 			optimizer.step()
+			i+=1
+			if i%10 == 0:
+				model.eval()
+				out_pred = output
+				pred_label = torch.round(out_pred)
+				acc = binary_acc(pred_label.type(torch.float).view(-1), y_batch).item()
+				print('step {} , loss :{} | acc:{} '.format(i, l.item(), acc))
+				model.train()
+				#break
 		model.eval()
 		torch.cuda.empty_cache()
 		model.to("cpu")
@@ -118,15 +129,15 @@ if training:
 			best_epoch = epoch
 			best_ap = ap_test
 			best_ac = acc_test
-			torch.save(model, './models/looking_model_jaad_{}_{}_kps.p'.format(video, pose))
+			torch.save(model, './models/looking_model_jaad_{}_{}_kps_romain.p'.format(video, pose))
 
 
 print()
 print(f'Best epoch selected from validation: {best_epoch} with an accuracy of {best_ap*100:.1f}% ')
 print("Starting evaluation ...")
 model = []
-model = torch.load("./models/looking_model_jaad_{}_{}_kps.p".format(video, pose), map_location=torch.device(device))
-model.eval()	
+model = torch.load("./models/looking_model_jaad_{}_{}_kps_romain.p".format(video, pose), map_location=torch.device(device))
+model.eval()
 jaad_test = JAAD_Dataset_joints_new("../data/", "JAAD_2k30/", "test", pose, video)
 
 ap_test, acc_test = jaad_test.evaluate(model, device, 10)
@@ -139,7 +150,7 @@ print("Best AP on JAAD test set : {:.1f}%".format(ap_test*100))
 
 if kitti:
 	model = []
-	model = torch.load("./models/looking_model_jaad_{}_{}_kps.p".format(video, pose), map_location=torch.device(device))
+	model = torch.load("./models/looking_model_jaad_{}_{}_kps_romain.p".format(video, pose), map_location=torch.device(device))
 	jaad_val = Kitti_Dataset_joints("test", pose)
 	model.eval()
 
@@ -150,5 +161,3 @@ if kitti:
 	ap_test = average_precision(out_test.to(device), labels_test.to(device))
 
 	print("Kitti | AP : {} | Acc : {}".format(ap_test, acc_test))
-
-

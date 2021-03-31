@@ -46,7 +46,7 @@ class Kitti_Dataset_joints(Dataset):
 		#normalized_kps = self.preprocess(kps)
 
 		sample = {'image': kps, 'label': torch.Tensor([self.Y[idx]])}
-		
+
 		return sample['image'], sample['label']
 
 	def get_joints(self):
@@ -74,7 +74,7 @@ class Kitti_Dataset_joints(Dataset):
 				else:
 					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-				kps.append(tensor) 
+				kps.append(tensor)
 
 				#X.append(line_s[1])
 				label.append(int(line_s[-1]))
@@ -93,7 +93,7 @@ class JAAD_Dataset_joints(Dataset):
 				on a sample.
 		"""
 		self.data = None
-		self.path = "../data/"
+		self.path = "../../data/"
 		self.split = split
 		self.type = type_
 		self.pose = pose
@@ -124,7 +124,7 @@ class JAAD_Dataset_joints(Dataset):
 		#normalized_kps = self.preprocess(kps)
 
 		sample = {'keypoints':self.kps[idx] ,'label':label}
-		
+
 		return sample['keypoints'], sample['label']
 
 	def get_joints(self):
@@ -149,7 +149,7 @@ class JAAD_Dataset_joints(Dataset):
 				tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
 			else:
 				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-			kps.append(tensor) 
+			kps.append(tensor)
 			tab_Y.append(int(line_s[-1]))
 		return tab_Y, torch.tensor(kps)
 
@@ -197,7 +197,7 @@ class JAAD_Dataset_joints_new(Dataset):
 		#normalized_kps = self.preprocess(kps)
 
 		sample = {'keypoints':self.kps[idx] ,'label':label}
-		
+
 		return sample['keypoints'], sample['label']
 
 	def get_joints(self):
@@ -213,7 +213,7 @@ class JAAD_Dataset_joints_new(Dataset):
 		N_pos = len(idx_Y1)
 		aps = []
 		accs = []
-		
+
 		np.random.shuffle(idx_Y0)
 		neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
 		neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
@@ -243,7 +243,7 @@ class JAAD_Dataset_joints_new(Dataset):
 				tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
 			else:
 				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-			kps.append(tensor) 
+			kps.append(tensor)
 			tab_Y.append(int(line_s[-1]))
 		#if self.split == 'test':
 		#	print(sum(tab_Y))
@@ -299,10 +299,10 @@ class new_Dataset(Dataset):
 		Args:
 			split : train, val and test
 			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
-			transform : data tranformation to be applied 
+			transform : data tranformation to be applied
 		"""
 		self.data = None
-		self.path = "../data/"
+		self.path = "../../data/"
 		#self.path_jaad = path_jaad
 		self.data_x = data_x
 		self.data_y = data_y

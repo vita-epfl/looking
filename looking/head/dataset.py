@@ -24,7 +24,7 @@ class Kitti_Dataset_head(Dataset):
 			transform : image transformation to be applied on every instance
 		"""
 		self.data = None
-		self.path = '../data/'
+		self.path = '../../data/'
 		self.transform = transform
 		self.split = split
 		assert self.split in ['train', 'test']
@@ -72,14 +72,14 @@ class JAAD_Dataset_head_new(Dataset):
 		Args:
 			split : train, val and test
 			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
-			transform : data tranformation to be applied 
+			transform : data tranformation to be applied
 		"""
 		self.data = None
 		self.path = path
 		self.path_jaad = path_jaad
 		self.split = split
 		self.type = type_
-		assert self.type in ['original', 'video'] 
+		assert self.type in ['original', 'video']
 
 		if self.type == 'video':
 			self.txt = open('../splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
@@ -164,7 +164,7 @@ class JAAD_Dataset_head_new(Dataset):
 			#acc /= len(new_data)
 			#rint(torch.round(out_lab).shape)
 			#print(test_lab.shape)
-			
+
 			acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
 			ap = average_precision(out_lab, test_lab)
 			#print(ap)
@@ -197,13 +197,13 @@ class JAAD_Dataset_head(Dataset):
 		Args:
 			split : train, val and test
 			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
-			transform : data tranformation to be applied 
+			transform : data tranformation to be applied
 		"""
 		self.data = None
-		self.path = "../data/"
+		self.path = "../splits/"
 		self.split = split
 		self.type = type_
-		assert self.type in ['original', 'video', 'ped'] 
+		assert self.type in ['original', 'video', 'ped']
 
 		if self.type == 'video':
 			self.txt = open(self.path+'jaad_'+self.split+'_video.txt', "r")
@@ -248,7 +248,7 @@ class new_Dataset(Dataset):
 		Args:
 			split : train, val and test
 			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
-			transform : data tranformation to be applied 
+			transform : data tranformation to be applied
 		"""
 		self.data = None
 		self.path = "../data/"

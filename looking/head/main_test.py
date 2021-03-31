@@ -9,7 +9,7 @@ import argparse
 
 torch.manual_seed(0)
 
-# Parser 
+# Parser
 
 parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
@@ -111,11 +111,11 @@ for e in range(EPOCHS):
 			x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 		optimizer.zero_grad()
 		output = net(x_batch)
-		l = loss(output.view(-1), y_batch.type(torch.float).view(-1)).cuda()
+		l = loss(output.view(-1), y_batch.type(torch.float).view(-1))#.cuda()
 		l.backward()
 		optimizer.step()
 		i += 1
-		
+
 		if i%10 == 0:
 			net.eval()
 			out_pred = output
@@ -125,7 +125,7 @@ for e in range(EPOCHS):
 			net.train()
 			#break
 	net.eval()
-	torch.cuda.empty_cache() 
+	torch.cuda.empty_cache()
 	"""
 	acc = 0
 	ap = 0
@@ -149,6 +149,6 @@ for e in range(EPOCHS):
 		accs_val = acc
 		aps_val = ap
 		if args.save:
-			torch.save(net.state_dict(), '{}{}_head_{}.p'.format(args.pt, model_type, split))
-	print('epoch {} | acc:{} | ap:{}'.format(e, acc,ap))
+			torch.save(net.state_dict(), '{}{}_head_{}_romain.p'.format(args.pt, model_type, split))
+	print('epoch {} | acc:{} | ap:{}'.format(e, acc, ap))
 	net.train()
