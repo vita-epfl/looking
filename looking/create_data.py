@@ -89,7 +89,7 @@ def crop_jaad(img, bbox):
 
 ## paths
 
-path_jaad = "/work/vita/datasets/JAAD/"
+path_jaad = "/work/vita/datasets/JAAD/images/"
 path_joints = "./data/output_pifpaf_01_2k30/"
 
 
