@@ -1,7 +1,7 @@
 from jaad_data import JAAD
 import pickle
 
-jaad_path = '/Volumes/TOSHIBA EXT/PDM/code/JAAD/'
+jaad_path = '/work/vita/datasets/JAAD/'
 imdb = JAAD(data_path=jaad_path)
 
 imdb.generate_database()

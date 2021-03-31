@@ -5,3 +5,4 @@ scikit-learn
 openpifpaf
 numpy
 scikit-image
+tensorboard
