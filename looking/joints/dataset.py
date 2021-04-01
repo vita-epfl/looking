@@ -27,7 +27,7 @@ class Kitti_Dataset_joints(Dataset):
 				on a sample.
 		"""
 		self.data = None
-		self.path = '../data/'
+		self.path = '/home/caristan/code/looking/looking/data/'
 		self.transform = transform
 		self.split = split
 		self.pose = pose
@@ -93,7 +93,7 @@ class JAAD_Dataset_joints(Dataset):
 				on a sample.
 		"""
 		self.data = None
-		self.path = "../../data/"
+		self.path = "/home/caristan/code/looking/looking/data/"
 		self.split = split
 		self.type = type_
 		self.pose = pose
@@ -173,9 +173,9 @@ class JAAD_Dataset_joints_new(Dataset):
 		assert self.pose in ['full', 'head', 'body']
 		assert self.type in ['original', 'video']
 		if self.type == "video":
-			self.txt = open('../splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
+			self.txt = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
 		elif self.type == "original":
-			self.txt = open('../splits/jaad_'+self.split+'_original_2k30.txt', "r")
+			self.txt = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_original_2k30.txt', "r")
 		else:
 			print("please select a valid type of split ")
 			exit(0)
@@ -302,7 +302,7 @@ class new_Dataset(Dataset):
 			transform : data tranformation to be applied
 		"""
 		self.data = None
-		self.path = "../../data/"
+		self.path = "/home/caristan/code/looking/looking/data/"
 		#self.path_jaad = path_jaad
 		self.data_x = data_x
 		self.data_y = data_y

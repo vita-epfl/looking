@@ -82,9 +82,9 @@ class JAAD_Dataset_head_new(Dataset):
 		assert self.type in ['original', 'video']
 
 		if self.type == 'video':
-			self.txt = open('../splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
+			self.txt = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
 		else:
-			self.txt  = open('../splits/jaad_'+self.split+'_original_2k30.txt', "r")
+			self.txt  = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_original_2k30.txt', "r")
 		self.transform = transform
 		self.X, self.Y = self.preprocess()
 
@@ -200,7 +200,7 @@ class JAAD_Dataset_head(Dataset):
 			transform : data tranformation to be applied
 		"""
 		self.data = None
-		self.path = "../splits/"
+		self.path = "/home/caristan/code/looking/looking/splits/"
 		self.split = split
 		self.type = type_
 		assert self.type in ['original', 'video', 'ped']
@@ -251,7 +251,7 @@ class new_Dataset(Dataset):
 			transform : data tranformation to be applied
 		"""
 		self.data = None
-		self.path = "../data/"
+		self.path = "/home/caristan/code/looking/looking/data/"
 		self.path_jaad = path_jaad
 		self.transform = transform
 		self.data_x = data_x

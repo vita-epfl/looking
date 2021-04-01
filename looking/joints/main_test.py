@@ -41,8 +41,8 @@ else:
 	INPUT_SIZE = 51
 
 
-jaad_train = JAAD_Dataset_joints_new("../data/", "JAAD_2k30/", "train", pose, video)
-jaad_val = JAAD_Dataset_joints_new("../data/", "JAAD_2k30/", "val", pose, video)
+jaad_train = JAAD_Dataset_joints_new("/home/caristan/code/looking/looking/data/", "JAAD_2k30/", "train", pose, video)
+jaad_val = JAAD_Dataset_joints_new("/home/caristan/code/looking/looking/data/", "JAAD_2k30/", "val", pose, video)
 
 
 
@@ -129,14 +129,14 @@ if training:
 			best_epoch = epoch
 			best_ap = ap_test
 			best_ac = acc_test
-			torch.save(model, './models/looking_model_jaad_{}_{}_kps_romain.p'.format(video, pose))
+			torch.save(model, '/home/caristan/code/looking/looking/joints/models/looking_model_jaad_{}_{}_kps_romain.p'.format(video, pose))
 
 
 print()
 print(f'Best epoch selected from validation: {best_epoch} with an accuracy of {best_ap*100:.1f}% ')
 print("Starting evaluation ...")
 model = []
-model = torch.load("./models/looking_model_jaad_{}_{}_kps_romain.p".format(video, pose), map_location=torch.device(device))
+model = torch.load("/home/caristan/code/looking/looking/joints/models/looking_model_jaad_{}_{}_kps_romain.p".format(video, pose), map_location=torch.device(device))
 model.eval()
 jaad_test = JAAD_Dataset_joints_new("../data/", "JAAD_2k30/", "test", pose, video)
 
@@ -150,7 +150,7 @@ print("Best AP on JAAD test set : {:.1f}%".format(ap_test*100))
 
 if kitti:
 	model = []
-	model = torch.load("./models/looking_model_jaad_{}_{}_kps_romain.p".format(video, pose), map_location=torch.device(device))
+	model = torch.load("/home/caristan/code/looking/looking/joints/models/looking_model_jaad_{}_{}_kps_romain.p".format(video, pose), map_location=torch.device(device))
 	jaad_val = Kitti_Dataset_joints("test", pose)
 	model.eval()
 

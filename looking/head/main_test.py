@@ -34,7 +34,7 @@ assert model_type in ['resnet18', 'resnet50', 'alexnet']
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:1" if use_cuda else "cpu")
 print('Device: ', device)
-res_18 =False
+res_18 = False
 
 if model_type == "alexnet":
 	data_transform = transforms.Compose([
@@ -88,8 +88,8 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-jaad_train = JAAD_Dataset_head_new("../data/", "JAAD_2k30/", "train", split, data_transform)
-jaad_val = JAAD_Dataset_head_new("../data/", "JAAD_2k30/", "val", split, data_transform)
+jaad_train = JAAD_Dataset_head_new("/home/caristan/code/looking/looking/data/", "JAAD_2k30/", "train", split, data_transform)
+jaad_val = JAAD_Dataset_head_new("/home/caristan/code/looking/looking/data/", "JAAD_2k30/", "val", split, data_transform)
 
 dataset_loader = torch.utils.data.DataLoader(jaad_train, batch_size=64, shuffle=True)
 dataset_loader_test = torch.utils.data.DataLoader(jaad_val, batch_size=8, shuffle=True)
@@ -149,6 +149,6 @@ for e in range(EPOCHS):
 		accs_val = acc
 		aps_val = ap
 		if args.save:
-			torch.save(net.state_dict(), '{}{}_head_{}_romain.p'.format(args.pt, model_type, split))
+			torch.save(net.state_dict(),'/home/caristan/code/looking/looking/joints/models/' + '{}{}_head_{}_romain.p'.format(args.pt, model_type, split))
 	print('epoch {} | acc:{} | ap:{}'.format(e, acc, ap))
 	net.train()
