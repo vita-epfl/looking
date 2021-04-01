@@ -19,9 +19,13 @@ def load_pifpaf():
     openpifpaf.decoder.utils.nms.Keypoints.instance_threshold = 0.2   #main one
     openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold_rel = 0.0
     openpifpaf.decoder.CifCaf.force_complete = True
-    processor = openpifpaf.decoder.factory_decode(net.head_nets, basenet_stride=net.base_net.stride)
-    preprocess = openpifpaf.transforms.Compose([openpifpaf.transforms.NormalizeAnnotations(),openpifpaf.transforms.CenterPadTight(16),openpifpaf.transforms.EVAL_TRANSFORM])
-    return net, processor, preprocess
+    decoder = openpifpaf.decoder.factory([hn.meta for hn in net_cpu.head_nets])
+    preprocess = openpifpaf.transforms.Compose([
+    openpifpaf.transforms.NormalizeAnnotations(),
+    openpifpaf.transforms.CenterPadTight(16),
+    openpifpaf.transforms.EVAL_TRANSFORM,
+])
+    return net, decoder, preprocess
 
 # Parser
 
