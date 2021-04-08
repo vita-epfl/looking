@@ -32,7 +32,7 @@ model_type = args.m
 assert model_type in ['resnet18', 'resnet50', 'alexnet']
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:1" if use_cuda else "cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
 print('Device: ', device)
 res_18 = False
 
