@@ -34,7 +34,7 @@ video = args.split
 assert model_type in ['resnet18', 'resnet50']
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:1" if use_cuda else "cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
 print('Device: ', device)
 
 
@@ -96,14 +96,14 @@ print('Device: ', device)
 
 
 
-jaad_train = JAAD_Dataset_new('../../data/', 'JAAD_2k30/',"train", split, data_transform)
-jaad_val = JAAD_Dataset_new('../../data/', 'JAAD_2k30/', "val", split, data_transform)
+jaad_train = JAAD_Dataset_new('/home/caristan/code/looking/looking/data/', 'JAAD_2k30/',"train", split, data_transform)
+jaad_val = JAAD_Dataset_new('/home/caristan/code/looking/looking/data/', 'JAAD_2k30/', "val", split, data_transform)
 
 
 if model_type=='resnet18':
-    model = LookingNet_early_fusion_18("../head/models/resnet18_head_{}.p".format(split), "../joints/models/looking_model_jaad_{}_full_kps.p".format(split), device).to(device)
+    model = LookingNet_early_fusion_18("/home/caristan/code/looking/looking/joints/models/resnet18_head_{}_romain.p".format(split), "/home/caristan/code/looking/looking/joints/models/looking_model_jaad_{}_full_kps_romain.p".format(split), device).to(device)
 elif model_type=='resnet50':
-    model = LookingNet_early_fusion_50("../head/models/resnet50_head_{}.p".format(split), "../joints/models/looking_model_jaad_{}_full_kps.p".format(split), device).to(device)
+    model = LookingNet_early_fusion_50("/home/caristan/code/looking/looking/joints/models/resnet50_head_{}_romain.p".format(split), "/home/caristan/code/looking/looking/joints/models/looking_model_jaad_{}_full_kps_romain.p".format(split), device).to(device)
 #model = LookingNet_early_fusion_18("../head/models/resnet18_head_video.p", "../joints/models/looking_model_jaad_video_full_kps.p", device).to(device)
 
 
@@ -152,6 +152,6 @@ for e in range(EPOCHS):
 
 	if ap > ap_max:
 		ap_max = ap
-		torch.save(model.state_dict(), "./models/model_combined_{}_{}.p".format(model_type, video))
+		torch.save(model.state_dict(), "/home/caristan/code/looking/looking/head+joints/models/model_combined_{}_{}_romain.p".format(model_type, video))
 	model.train()
 	#break
