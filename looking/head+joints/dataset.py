@@ -151,9 +151,9 @@ class JAAD_Dataset_new(Dataset):
 		self.type = type_
 		assert self.type in ['original', 'video', 'ped', 'video_new'] 
 		if self.type == 'video':
-			self.txt = open('../splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
+			self.txt = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
 		elif self.type == "original":
-			self.txt  = open('../splits/jaad_'+self.split+'_original_2k30.txt', "r")
+			self.txt  = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_original_2k30.txt', "r")
 		self.transform = transform
 		self.X, self.Y, self.kps = self.preprocess()
 
