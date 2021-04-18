@@ -18,7 +18,7 @@ NUM_STAGES=3
 LEARNING_RATE=0.0001
 EPOCHS = 50
 BATCH_SIZE=512
-PATH_MODEL = '/home/caristan/code/looking/annotator/models/'
+PATH_MODEL = '/home/caristan/code/looking/multi_dataset/models/'
 training = True
 normalize = True
 # Cuda
