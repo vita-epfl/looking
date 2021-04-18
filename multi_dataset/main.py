@@ -18,7 +18,7 @@ NUM_STAGES=3
 LEARNING_RATE=0.0001
 EPOCHS = 50
 BATCH_SIZE=512
-PATH_MODEL = './models/'
+PATH_MODEL = '/home/caristan/code/looking/annotator/models/'
 training = True
 normalize = True
 # Cuda
@@ -26,7 +26,7 @@ normalize = True
 np.random.seed(1)
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
 print('Device: ', device)
 
 parser.add_argument('-train_pr', '--tr_pr', type=str, help='proportion for the training', default="kitti,jack,jaad,pie")
@@ -48,7 +48,7 @@ not_random = False
 if args.tr_pr:
 	text_s = parse_str(args.tr_pr)
 	if 'kitti' in text_s:
-		KittiData = Dataset('./data/train_kitti.json', True)
+		KittiData = Dataset('/home/caristan/code/looking/looking/data/train_kitti.json', True)
 
 		joints_kitti = KittiData.get_joints()
 		labels_kitti = KittiData.get_outputs().view(-1,1).type(torch.float)
@@ -59,7 +59,7 @@ if args.tr_pr:
 		train_ += 'kitti '
 
 	if 'jack' in text_s:
-		JackData = Dataset('./data/train_jack.json', True)
+		JackData = Dataset('/home/caristan/code/looking/looking/data/train_jack.json', True)
 
 		joints_JACK = JackData.get_joints()
 		labels_JACK = JackData.get_outputs().view(-1,1).type(torch.float)
@@ -69,7 +69,7 @@ if args.tr_pr:
 		train_ += 'jack '
 
 	if 'nu' in text_s:
-		NuData = Dataset('./data/train_nu.json', True)
+		NuData = Dataset('/home/caristan/code/looking/looking/data/train_nu.json', True)
 
 		joints_NU = NuData.get_joints()
 		labels_NU = NuData.get_outputs().view(-1,1).type(torch.float)
@@ -80,7 +80,7 @@ if args.tr_pr:
 
 	if 'jaad' in text_s:
 		if not_random:
-			LookingData_ = LookingDataset_balanced('./jaad_all.json', 'train', False, normalize, False, False)
+			LookingData_ = LookingDataset_balanced('/home/caristan/code/looking/looking/data/jaad_all.json', 'train', False, normalize, False, False)
 			#LookingData_ = LookingDataset_balanced_random('/home/younesbelkada/Travail/test_looking/data/data_scale1_force.json', 'train', False, normalize, False, False)
 			joints_train_JAAD, outputs_train_JAAD, _ = LookingData_.get_train()
 			in_datas.append(joints_train_JAAD)
@@ -94,7 +94,7 @@ if args.tr_pr:
 				test_ += 'jaad'
 
 		else:
-			LookingData_ = LookingDataset_balanced_random('./data/jaad_all.json', 'train', False, normalize, False, False)
+			LookingData_ = LookingDataset_balanced_random('/home/caristan/code/looking/looking/data/jaad_all.json', 'train', False, normalize, False, False)
 			joints_train_JAAD, outputs_train_JAAD, _ = LookingData_.get_train()
 			in_datas.append(joints_train_JAAD)
 			out_datas.append(outputs_train_JAAD.view(-1,1))
@@ -106,7 +106,7 @@ if args.tr_pr:
 				test_ += 'jaad'
 
 	if 'pie' in text_s:
-		data = PIE_Dataset("./data/pie_all.json")
+		data = PIE_Dataset("/home/caristan/code/looking/looking/data/pie_all.json")
 
 		joints_train_PIE, outputs_train_PIE, _ = data.get_train()
 		
@@ -123,7 +123,7 @@ if args.tr_pr:
 if args.ts_pr:
 	text_s = parse_str(args.ts_pr)
 	if 'kitti' in text_s:
-		KittiData_test = Dataset('./data/test_kitti.json', True)
+		KittiData_test = Dataset('/home/caristan/code/looking/looking/data/test_kitti.json', True)
 
 		joints_kitti_test = KittiData_test.get_joints()
 		labels_kitti_test = KittiData_test.get_outputs().view(-1,1).type(torch.float)
@@ -133,7 +133,7 @@ if args.ts_pr:
 		test_ += "kitti "
 
 	if 'jack' in text_s:
-		JackData_test = Dataset('./data/test_jack.json', True)
+		JackData_test = Dataset('/home/caristan/code/looking/looking/data/test_jack.json', True)
 
 		joints_test_JACK = JackData_test.get_joints()
 		labels_test_JACK = JackData_test.get_outputs().view(-1,1).type(torch.float)
@@ -143,7 +143,7 @@ if args.ts_pr:
 		test_ += "jack "
 
 	if 'nu' in text_s:
-		NuData_test = Dataset('./data/test_nu.json', True)
+		NuData_test = Dataset('/home/caristan/code/looking/looking/data/test_nu.json', True)
 
 		joints_test_NU = NuData_test.get_joints()
 		labels_test_NU = NuData_test.get_outputs().view(-1,1).type(torch.float)
@@ -153,7 +153,7 @@ if args.ts_pr:
 		test_ += "nu "
 
 	if 'jaad' in text_s and 'jaad' not in args.tr_pr.split(','):
-		LookingData_ = LookingDataset_balanced('./data/jaad_all.json', 'train', False, normalize, False, False)
+		LookingData_ = LookingDataset_balanced('/home/caristan/code/looking/looking/data/jaad_all.json', 'train', False, normalize, False, False)
 
 		joints_train_JAAD, outputs_train_JAAD, _ = LookingData_.get_train()
 		joints_test_JAAD, outputs_test_JAAD, _ = LookingData_.get_test()
@@ -166,7 +166,7 @@ if args.ts_pr:
 		test_ += "jaad "
 
 	if 'pie' in text_s and 'pie' not in args.tr_pr.split(','):
-		data = PIE_Dataset("./data/pie_all.json")
+		data = PIE_Dataset("/home/caristan/code/looking/looking/data/pie_all.json")
 
 		joints_test_PIE, outputs_test_PIE, _ = data.get_test()
 
