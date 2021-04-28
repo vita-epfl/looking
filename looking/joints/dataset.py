@@ -18,7 +18,7 @@ np.random.seed(0)
 class Kitti_Dataset_joints(Dataset):
 	"""Face Landmarks dataset."""
 
-	def __init__(self, split, pose="full"):
+	def __init__(self, path, split, pose="full"):
 		"""
 		Args:
 			csv_file (string): Path to the csv file with annotations.
@@ -27,10 +27,10 @@ class Kitti_Dataset_joints(Dataset):
 				on a sample.
 		"""
 		self.data = None
-		self.path = '/home/caristan/code/looking/looking/data/'
 		self.transform = transform
 		self.split = split
 		self.pose = pose
+		self.path = path + 'Kitti/'
 		assert pose in ["head", 'full', 'body']
 		assert self.split in ['train', 'test']
 		self.X, self.Y = self.preprocess()
@@ -61,7 +61,7 @@ class Kitti_Dataset_joints(Dataset):
 			line = line[:-1]
 			line_s = line.split(",")
 			if line_s[2] == self.split:
-				joints = np.array(json.load(open(self.path+'/Kitti/'+line_s[1]+'.json'))["X"])
+				joints = np.array(json.load(open(self.path + line_s[1]+'.json'))["X"])
 				X = joints[:17]
 				Y = joints[17:34]
 				X_new, Y_new = normalize(X, Y, True)
@@ -81,82 +81,11 @@ class Kitti_Dataset_joints(Dataset):
 		file.close()
 		return torch.Tensor(kps), torch.Tensor(label)
 
+
 class JAAD_Dataset_joints(Dataset):
 	"""Face Landmarks dataset."""
 
-	def __init__(self, split, pose="full", type_="original"):
-		"""
-		Args:
-			csv_file (string): Path to the csv file with annotations.
-			root_dir (string): Directory with all the images.
-			transform (callable, optional): Optional transform to be applied
-				on a sample.
-		"""
-		self.data = None
-		self.path = "/home/caristan/code/looking/looking/data/"
-		self.split = split
-		self.type = type_
-		self.pose = pose
-		assert self.pose in ['full', 'head', 'body']
-		assert self.type in ['original', 'ped', 'video']
-		if self.type == "video":
-			self.txt = open(self.path+'jaad_'+self.split+'_video.txt', "r")
-		elif self.type == "original":
-			self.txt = open(self.path+'jaad_'+self.split+'_original.txt', "r")
-		elif self.type == "ped":
-			self.txt = open(self.path+'jaad_'+self.split+'.txt', "r")
-		else:
-			print("please select a valid type of split ")
-			exit(0)
-		self.Y, self.kps = self.preprocess()
-
-	def __len__(self):
-		return len(self.Y)
-
-	def __getitem__(self, idx):
-		if torch.is_tensor(idx):
-			idx = idx.tolist()
-		#inp = np.array(Image.open(self.path+split+'/'+self.X[idx])).astype(np.uint8)
-		#kps = np.array(json.load(open(self.path+split+'/'+self.X[idx][:-4]+'.json')))
-		label = self.Y[idx]
-		#kps = np.array(self.data['keypoints'])[idx]
-
-		#normalized_kps = self.preprocess(kps)
-
-		sample = {'keypoints':self.kps[idx] ,'label':label}
-
-		return sample['keypoints'], sample['label']
-
-	def get_joints(self):
-		return self.kps, torch.Tensor(self.Y)
-
-	def preprocess(self):
-		tab_Y = []
-		kps = []
-		for line in self.txt:
-			line = line[:-1]
-			line_s = line.split(",")
-			joints = np.array(json.load(open(self.path+self.path_jaad+line_s[-2]+'.json'))["X"])
-			#print(joints)
-			X = joints[:17]
-			Y = joints[17:34]
-			X_new, Y_new = normalize(X, Y, True)
-			if self.pose == "head":
-				X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
-				tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
-			elif self.pose == 'body':
-				X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
-				tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
-			else:
-				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-			kps.append(tensor)
-			tab_Y.append(int(line_s[-1]))
-		return tab_Y, torch.tensor(kps)
-
-class JAAD_Dataset_joints_new(Dataset):
-	"""Face Landmarks dataset."""
-
-	def __init__(self, path, path_jaad, split, pose="full", type_="original"):
+	def __init__(self, path, path_jaad, split, split_path, pose="full", type_="original", cluster=False):
 		"""
 		Args:
 			csv_file (string): Path to the csv file with annotations.
@@ -167,21 +96,22 @@ class JAAD_Dataset_joints_new(Dataset):
 		self.data = None
 		self.path = path
 		self.path_jaad = path_jaad
+		self.split_path = split_path
 		self.split = split
 		self.type = type_
 		self.pose = pose
+		self.cluster = cluster
 		assert self.pose in ['full', 'head', 'body']
 		assert self.type in ['original', 'video']
 		if self.type == "video":
-			self.txt = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
+			self.txt = open(self.split_path + 'jaad_' + self.split + '_scenes_2k30.txt', "r")
 		elif self.type == "original":
-			self.txt = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_original_2k30.txt', "r")
+			self.txt = open(self.split_path + 'jaad_'+self.split + '_original_2k30.txt', "r")
 		else:
 			print("please select a valid type of split ")
 			exit(0)
 		self.Y, self.kps = self.preprocess()
-		#if self.split == 'train':
-		#	self.equilibrate()
+
 
 	def __len__(self):
 		return len(self.Y)
@@ -189,12 +119,7 @@ class JAAD_Dataset_joints_new(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		#inp = np.array(Image.open(self.path+split+'/'+self.X[idx])).astype(np.uint8)
-		#kps = np.array(json.load(open(self.path+split+'/'+self.X[idx][:-4]+'.json')))
 		label = self.Y[idx]
-		#kps = np.array(self.data['keypoints'])[idx]
-
-		#normalized_kps = self.preprocess(kps)
 
 		sample = {'keypoints':self.kps[idx] ,'label':label}
 
@@ -231,7 +156,6 @@ class JAAD_Dataset_joints_new(Dataset):
 			line = line[:-1]
 			line_s = line.split(",")
 			joints = np.array(json.load(open(self.path+self.path_jaad+line_s[-2]+'.json'))["X"])
-			#print(joints)
 			X = joints[:17]
 			Y = joints[17:34]
 			X_new, Y_new = normalize(X, Y, True)
@@ -245,9 +169,6 @@ class JAAD_Dataset_joints_new(Dataset):
 				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 			kps.append(tensor)
 			tab_Y.append(int(line_s[-1]))
-		#if self.split == 'test':
-		#	print(sum(tab_Y))
-		#	exit(0)
 		return tab_Y, torch.tensor(kps)
 
 	def evaluate(self, model, device, it=1):
@@ -286,7 +207,6 @@ class JAAD_Dataset_joints_new(Dataset):
 				out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
 			acc /= len(new_data)
 			ap = average_precision(out_lab, test_lab)
-			#print(ap)
 			accs.append(acc)
 			aps.append(ap)
 		return np.mean(aps), np.mean(accs)
@@ -302,8 +222,6 @@ class new_Dataset(Dataset):
 			transform : data tranformation to be applied
 		"""
 		self.data = None
-		self.path = "/home/caristan/code/looking/looking/data/"
-		#self.path_jaad = path_jaad
 		self.data_x = data_x
 		self.data_y = data_y
 

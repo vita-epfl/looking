@@ -8,9 +8,9 @@ import matplotlib
 import sklearn.metrics
 
 
-path_anno_kitti = "/home/younesbelkada/Travail/Project/Kitti/others/data_object_label_2/training/label_2/"
-path_anno_pifpaf = "/home/younesbelkada/Travail/Project/Kitti/annotated/Testset/"
-path_anno = "/home/younesbelkada/Travail/Project/Kitti/annotated/v012_scale_2/"
+path_anno_kitti = "./label_2/"
+path_anno_pifpaf = "./Testset_roms_2k30/"
+path_anno = "./Testset_roms_2k30/out_Testset_roms_2k30/"
 
 def enlarge_bbox(bb, enlarge=1):
 	delta_h = (bb[3]) / (7 * enlarge)
@@ -50,7 +50,6 @@ def convert_bb(bb):
 
 
 def load_gt(im):
-	#print(im)
 	txt_file = open(path_anno_kitti+im[:-4]+'.txt', 'r')
 	bboxes = []
 	for line in txt_file:
@@ -70,6 +69,7 @@ def compute_ious(boxes_gt, boxes_pred):
 		i[i< np.max(i)] = 0
 		ious.append(i)
 	return np.sum(np.array(ious), axis=0)
+
 def load_anno(im):
 	new_data = []
 	data = json.load(open(path_anno+im+'.predictions.json', 'r'))

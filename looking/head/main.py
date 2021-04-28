@@ -15,12 +15,12 @@ parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
 # parameters
 
-parser.add_argument('-epochs', '--e', type=int, help='number of epochs for training', default=20)
-parser.add_argument('-learning_rate', '--lr', type=float, help='learning rate for training', default=0.0001)
-parser.add_argument('-split', '--s', type=str, help='dataset split', default="original")
-parser.add_argument('-model', '--m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
-parser.add_argument('-path', '--pt', type=str, help='path for model saving', default='./models/')
-parser.add_argument('-save', help='save the model', action='store_true')
+parser.add_argument('--epochs', '-e', type=int, help='number of epochs for training', default=50)
+parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate for training', default=0.0001)
+parser.add_argument('--split', '-s', type=str, help='dataset split', default="original")
+parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
+parser.add_argument('--save', help='save the model', action='store_true')
+parser.add_argument('--cluster', help='run in the cluster', action='store_true')
 
 args = parser.parse_args()
 
@@ -28,13 +28,22 @@ args = parser.parse_args()
 EPOCHS = args.e
 split = args.s
 model_type = args.m
+cluster = args.cluster
 
+if cluster:
+	DATA_PATH = '/home/caristan/code/looking/looking/data/'
+	SPLIT_PATH_JAAD = '/home/caristan/code/looking/looking/splits/'
+	PATH_MODEL = '/home/caristan/code/looking/looking/head/models/'
+else:
+	DATA_PATH = '../../data/'
+	SPLIT_PATH_JAAD = '../splits/'
+	PATH_MODEL = './models/'
 assert model_type in ['resnet18', 'resnet50', 'alexnet']
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:1" if use_cuda else "cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
 print('Device: ', device)
-res_18 =False
+
 
 if model_type == "alexnet":
 	data_transform = transforms.Compose([
@@ -88,8 +97,8 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-jaad_train = JAAD_Dataset_head("train", split, data_transform)
-jaad_val = JAAD_Dataset_head("val", split, data_transform)
+jaad_train = JAAD_Dataset_head(DATA_PATH, "JAAD_2k30/", "train", SPLIT_PATH_JAAD, split, data_transform)
+jaad_val = JAAD_Dataset_head(DATA_PATH, "JAAD_2k30/", "val", SPLIT_PATH_JAAD, split, data_transform)
 
 dataset_loader = torch.utils.data.DataLoader(jaad_train, batch_size=64, shuffle=True)
 dataset_loader_test = torch.utils.data.DataLoader(jaad_val, batch_size=8, shuffle=True)
@@ -111,7 +120,7 @@ for e in range(EPOCHS):
 			x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 		optimizer.zero_grad()
 		output = net(x_batch)
-		l = loss(output.view(-1), y_batch.type(torch.float).view(-1)).cuda()
+		l = loss(output.view(-1), y_batch.type(torch.float).view(-1))
 		l.backward()
 		optimizer.step()
 		i += 1
@@ -123,47 +132,15 @@ for e in range(EPOCHS):
 			acc = binary_acc(pred_label.type(torch.float).view(-1), y_batch).item()
 			print('step {} , loss :{} | acc:{} '.format(i, l.item(), acc))
 			net.train()
-			#break
+
 	net.eval()
 	torch.cuda.empty_cache()
-	acc = 0
-	ap = 0
-	out_lab = torch.Tensor([]).type(torch.float)
-	test_lab = torch.Tensor([])
-	for x_test, y_test in dataset_loader_test:
-		if use_cuda:
-			x_test, y_test = x_test.to(device), y_test.to(device)
-		output = net(x_test)
-		out_pred = output
-		pred_label = torch.round(out_pred)
-		le = x_test.shape[0]
-		acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
-		test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
-		out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-	acc /= len(jaad_val)
-	ap = average_precision(out_lab, test_lab)
+
+	ap, ac = jaad_val.evaluate(net, device, 1)
 	if ap > aps_val:
 		accs_val = acc
 		aps_val = ap
 		if args.save:
-			torch.save(net.state_dict(), '{}{}_head_{}.p'.format(args.pt, model_type, split))
-		"""
-		if res_18:
-			if video:
-				torch.save(net.state_dict(), "./models/resnet18_head_video.p")
-			else:
-				if original:
-					torch.save(net.state_dict(), "./models/resnet18_head_original.p")
-				else:
-					torch.save(net.state_dict(), "./models/resnet18_head.p")
-		else:
-			if video:
-				torch.save(net.state_dict(), "./models/resnet50_head_video.p")
-			else:
-				if original:
-					torch.save(net.state_dict(), "./models/resnet50_head_original.p")
-				else:
-					torch.save(net.state_dict(), "./models/resnet50_head.p")
-		"""
-	print('epoch {} | acc:{} | ap:{}'.format(e, acc,ap))
+			torch.save(net.state_dict(), PATH_MODEL + '{}_head_{}_romain.pkl'.format(model_type, split))
+	print('epoch {} | acc:{} | ap:{}'.format(e, acc, ap))
 	net.train()

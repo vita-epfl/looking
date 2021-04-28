@@ -11,6 +11,7 @@ class LookingModel(nn.Module):
         self.num_stage = num_stage
         self.bce = bce
         self.relu = nn.ReLU(inplace=True)
+        self.dropout = nn.Dropout(self.p_dropout)
 
         # process input to linear size
         self.w1 = nn.Linear(self.input_size, self.linear_size)
@@ -23,11 +24,8 @@ class LookingModel(nn.Module):
 
         # post processing
         self.w2 = nn.Linear(self.linear_size, self.output_size)
-        self.dropout = nn.Dropout(self.p_dropout)
         self.sigmoid = nn.Sigmoid()
-        self.softmax = nn.Softmax()
-        #self.relu = nn.ReLU(inplace=True)
-        #self.dropout = nn.Dropout(self.p_dropout)
+
 
     def forward(self, x):
         # pre-processing
@@ -39,10 +37,9 @@ class LookingModel(nn.Module):
         for i in range(self.num_stage):
             y = self.linear_stages[i](y)
         y = self.w2(y)
-        y = self.dropout(y)
-        if not self.bce:
-       	    y = self.sigmoid(y)
+        y = self.sigmoid(y)
         return y
+
 
 class Linear(nn.Module):
     def __init__(self, linear_size=256, p_dropout=0.2):
@@ -64,7 +61,7 @@ class Linear(nn.Module):
 
         self.l2 = nn.Linear(self.linear_size, self.linear_size)
         self.bn2 = nn.BatchNorm1d(self.linear_size)
-        
+
     def forward(self, x):
         # stage I
 
@@ -75,7 +72,7 @@ class Linear(nn.Module):
 
         # stage II
 
-        
+
         y = self.l2(y)
         y = self.bn2(y)
         y = self.relu(y)

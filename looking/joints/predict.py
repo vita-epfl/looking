@@ -12,7 +12,7 @@ torch.manual_seed(0)
 
 def load_pifpaf():
     print('Loading Pifpaf')
-    net_cpu, _ = openpifpaf.network.factory.Factory(checkpoint='shufflenetv2k16', download_progress=False).factory()
+    net_cpu, _ = openpifpaf.network.factory.Factory(checkpoint='shufflenetv2k30', download_progress=False).factory()
     net = net_cpu.to(device)
     openpifpaf.decoder.utils.CifSeeds.threshold = 0.5
     openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold = 0.0
@@ -46,7 +46,7 @@ args = parser.parse_args()
 pose = args.pose
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
 print('Device: ', device)
 
 if pose == "head":
@@ -86,5 +86,5 @@ if args.add_kps:
     img_pred = run_and_kps(img_pred, tab_predict)
 basename, _ = os.path.splitext(os.path.basename(args.image))
 path_out = args.out + basename + '.prediction.png'
-print(f'saved image in {path_out}')
+print(f'Saved image in {path_out}')
 cv2.imwrite(args.out+args.image[:-4]+'.prediction.png', img_pred)

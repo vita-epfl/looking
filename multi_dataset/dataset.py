@@ -6,6 +6,246 @@ from torch.utils.data import Dataset, DataLoader
 from utils import normalize
 from sklearn.utils import shuffle
 
+from __future__ import print_function, division
+import os
+import torch
+from skimage import io, transform
+import numpy as np
+import matplotlib.pyplot as plt
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
+import json
+from glob import glob
+from PIL import Image
+from utils import *
+
+np.random.seed(0)
+
+
+
+class Kitti_Dataset_joints(Dataset):
+	"""Face Landmarks dataset."""
+
+	def __init__(self, split, pose="full"):
+		"""
+		Args:
+			csv_file (string): Path to the csv file with annotations.
+			root_dir (string): Directory with all the images.
+			transform (callable, optional): Optional transform to be applied
+				on a sample.
+		"""
+		self.data = None
+		self.path = '../../data/'
+		self.transform = transform
+		self.split = split
+		self.pose = pose
+		assert pose in ["head", 'full', 'body']
+		assert self.split in ['train', 'test']
+		self.X, self.Y = self.preprocess()
+
+	def __len__(self):
+		return len(self.Y)
+
+	def __getitem__(self, idx):
+		if torch.is_tensor(idx):
+			idx = idx.tolist()
+		kps = self.X[idx, :]
+
+		#normalized_kps = self.preprocess(kps)
+
+		sample = {'image': kps, 'label': torch.Tensor([self.Y[idx]])}
+
+		return sample['image'], sample['label']
+
+	def get_joints(self):
+		return self.X, self.Y
+
+	def preprocess(self):
+		output = []
+		kps = []
+		label = []
+		file = open(self.path+'Kitti/kitti_gt.txt', "r")
+		for line in file:
+			line = line[:-1]
+			line_s = line.split(",")
+			if line_s[2] == self.split:
+				joints = np.array(json.load(open(self.path+'/Kitti/'+line_s[1]+'.json'))["X"])
+				X = joints[:17]
+				Y = joints[17:34]
+				X_new, Y_new = normalize(X, Y, True)
+				if self.pose == "head":
+					X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+					tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+				elif self.pose == 'body':
+					X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+					tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+				else:
+					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+				kps.append(tensor)
+
+				#X.append(line_s[1])
+				label.append(int(line_s[-1]))
+		file.close()
+		return torch.Tensor(kps), torch.Tensor(label)
+
+
+class JAAD_Dataset_joints_new(Dataset):
+	"""Face Landmarks dataset."""
+
+	def __init__(self, path, path_jaad, split, pose="full", type_="original"):
+		"""
+		Args:
+			csv_file (string): Path to the csv file with annotations.
+			root_dir (string): Directory with all the images.
+			transform (callable, optional): Optional transform to be applied
+				on a sample.
+		"""
+		self.data = None
+		self.path = path
+		self.path_jaad = path_jaad
+		self.split = split
+		self.type = type_
+		self.pose = pose
+		assert self.pose in ['full', 'head', 'body']
+		assert self.type in ['original', 'video']
+		if self.type == "video":
+			self.txt = open('../splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
+		elif self.type == "original":
+			self.txt = open('../splits/jaad_'+self.split+'_original_2k30.txt', "r")
+		else:
+			print("please select a valid type of split ")
+			exit(0)
+		self.Y, self.kps = self.preprocess()
+
+
+	def __len__(self):
+		return len(self.Y)
+
+	def __getitem__(self, idx):
+		if torch.is_tensor(idx):
+			idx = idx.tolist()
+		label = self.Y[idx]
+		sample = {'keypoints':self.kps[idx] ,'label':label}
+		return sample['keypoints'], sample['label']
+
+	def get_joints(self):
+		return self.kps, torch.Tensor(self.Y)
+
+	def equilibrate(self):
+		np.random.seed(0)
+		tab_X, tab_Y = self.kps.cpu().detach().numpy(), self.Y
+		idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
+		idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
+		positive_samples = np.array(tab_X)[idx_Y1]
+		positive_samples_labels = np.array(tab_Y)[idx_Y1]
+		N_pos = len(idx_Y1)
+		aps = []
+		accs = []
+
+		np.random.shuffle(idx_Y0)
+		neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
+		neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
+		total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
+		total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
+
+		self.kps = torch.tensor(total_samples)
+		self.Y = total_labels
+
+
+	def preprocess(self):
+		tab_Y = []
+		kps = []
+		for line in self.txt:
+			line = line[:-1]
+			line_s = line.split(",")
+			joints = np.array(json.load(open(self.path+self.path_jaad+line_s[-2]+'.json'))["X"])
+			X = joints[:17]
+			Y = joints[17:34]
+			X_new, Y_new = normalize(X, Y, True)
+			if self.pose == "head":
+				X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+				tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+			elif self.pose == 'body':
+				X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+				tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+			else:
+				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+			kps.append(tensor)
+			tab_Y.append(int(line_s[-1]))
+		return tab_Y, torch.tensor(kps)
+
+	def evaluate(self, model, device, it=1):
+		assert self.split in ["test", "val"]
+		model.eval()
+		model.to(device)
+		tab_X, tab_Y = self.kps.cpu().detach().numpy(), self.Y
+		idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
+		idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
+		positive_samples = np.array(tab_X)[idx_Y1]
+		positive_samples_labels = np.array(tab_Y)[idx_Y1]
+		N_pos = len(idx_Y1)
+		aps = []
+		accs = []
+		for i in range(it):
+			np.random.seed(i)
+			np.random.shuffle(idx_Y0)
+			neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
+			neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
+
+			total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
+			total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
+			new_data = new_Dataset(total_samples, total_labels)
+			data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
+			acc = 0
+			out_lab = torch.Tensor([]).type(torch.float)
+			test_lab = torch.Tensor([])
+			for x_test, y_test in data_loader:
+				x_test, y_test = x_test.to(device), y_test.to(device)
+				output = model(x_test)
+				out_pred = output
+				pred_label = torch.round(out_pred)
+				le = x_test.shape[0]
+				acc += le*binary_acc(pred_label.type(torch.float), y_test.view(-1,1)).item()
+				test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+				out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
+			acc /= len(new_data)
+			ap = average_precision(out_lab, test_lab)
+			#print(ap)
+			accs.append(acc)
+			aps.append(ap)
+		return np.mean(aps), np.mean(accs)
+
+class new_Dataset(Dataset):
+	"""JAAD dataset for training and inference"""
+
+	def __init__(self, data_x, data_y):
+		"""
+		Args:
+			split : train, val and test
+			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
+			transform : data tranformation to be applied
+		"""
+		self.data = None
+		self.path = "../../data/"
+		self.data_x = data_x
+		self.data_y = data_y
+
+	def __len__(self):
+		return len(self.data_y)
+
+	def __getitem__(self, idx):
+		if torch.is_tensor(idx):
+			idx = idx.tolist()
+		label = self.data_y[idx]
+		label = torch.Tensor([label])
+		sample = {'image': self.data_x[idx], 'label':label}
+		return torch.Tensor(sample['image']), sample['label']
+
+
+
+
+"""---------------------------------------"""
 class Dataset():
     def __init__(self, joints, normalize):
         with open(joints, 'r') as f:
@@ -54,8 +294,8 @@ class Dataset():
         Y = []
         for x in range(len(self.inputs_all)):
             if self.inputs_all[x] != []:
-                X.append(self.inputs_all[x]) 
-                Y.append(self.outputs_all[x]) 
+                X.append(self.inputs_all[x])
+                Y.append(self.outputs_all[x])
         return X, Y
 
     def get_joints(self):
@@ -82,7 +322,7 @@ class LookingDataset():
         self.inputs_all = torch.tensor(dic_jo[phase]['X'])
         if self.normalize:
             self.inputs_all = torch.tensor(self.preprocess())
-        self.names_all = dic_jo[phase]['names'] 
+        self.names_all = dic_jo[phase]['names']
         if sig:
             self.outputs_all = torch.tensor([dic_jo[phase]['Y'][i][0] for i in range(len(dic_jo[phase]['Y']))]).to(torch.long)
             self.outputs_all = torch.nn.functional.one_hot(self.outputs_all, 2).to(torch.float)
@@ -125,7 +365,7 @@ class LookingDataset():
 
 
         #self.names_all = dic_jo[phase]['names']
-        
+
     def __len__(self):
         """
         :return: number of samples (m)
@@ -242,11 +482,11 @@ class LookingDataset_balanced():
         self.names_all = np.concatenate((dic_jo[phase[0]]['names'], dic_jo[phase[1]]['names'], dic_jo[phase[2]]['names']))
         if self.normalize:
             self.inputs_all = torch.tensor(self.preprocess())
-        
+
         # shuffle the data
 
         self.inputs_all, self.outputs_all, self.names_all = shuffle(self.inputs_all, self.outputs_all, self.names_all)
-        
+
         ## Finding the number of positive samples
 
         nb_pos = len(self.outputs_all[self.outputs_all == 1.0])
@@ -264,7 +504,7 @@ class LookingDataset_balanced():
         mask2 = self.outputs_all == 1.0
         idx2 = np.argwhere(np.asarray(mask2))
         idx2 = idx2[:, 0]
-        
+
         # the mask for positive samples is idx2
 
         inputs_sampled = self.inputs_all[idx][:nb_pos, :]
@@ -286,8 +526,8 @@ class LookingDataset_balanced():
         assert sum(self.outputs_all) == self.outputs_all.shape[0]/2 # check that we have as many positive as negatives
 
 
-        
-        
+
+
         names = np.unique(self.names_all)
 
         rate_train = int(0.6*len(names))
@@ -392,11 +632,11 @@ class LookingDataset_balanced_random():
         self.names_all = np.concatenate((dic_jo[phase[0]]['names'], dic_jo[phase[1]]['names'], dic_jo[phase[2]]['names']))
         if self.normalize:
             self.inputs_all = torch.tensor(self.preprocess())
-        
+
         # shuffle the data
 
         self.inputs_all, self.outputs_all, self.names_all = shuffle(self.inputs_all, self.outputs_all, self.names_all)
-        
+
         ## Finding the number of positive samples
 
         nb_pos = len(self.outputs_all[self.outputs_all == 1.0])
@@ -414,7 +654,7 @@ class LookingDataset_balanced_random():
         mask2 = self.outputs_all == 1.0
         idx2 = np.argwhere(np.asarray(mask2))
         idx2 = idx2[:, 0]
-        
+
         # the mask for positive samples is idx2
 
         inputs_sampled = self.inputs_all[idx][:nb_pos, :]
@@ -432,8 +672,8 @@ class LookingDataset_balanced_random():
         assert sum(self.outputs_all) == self.outputs_all.shape[0]/2 # check that we have as many positive as negatives
 
         self.inputs_all, self.outputs_all, self.names_all = shuffle(self.inputs_all, self.outputs_all, self.names_all)
-        
-        
+
+
         names = np.unique(self.names_all)
 
         rate_train = int(0.6*len(self.inputs_all))
@@ -512,7 +752,7 @@ class PIE_Dataset():
 
         with open(joints, 'r') as f:
             dic_jo = json.load(f)
-        
+
         inputs_all = np.array(dic_jo["X"])
         outputs_all = np.array(dic_jo["Y"])
         names_all = np.array(dic_jo["names"])
@@ -550,10 +790,10 @@ class PIE_Dataset():
 
         self.inputs_balanced = np.concatenate((inputs_all[mask_look],inputs_not_look[:len(mask_look)]))
         self.outputs_balanced = np.concatenate((outputs_all[mask_look],outputs_not_look[:len(mask_look)]))
-        
+
         #print(len(inputs_balanced))
         #exit(0)
-        
+
         self.inputs_balanced = self.preprocess(True)
 
         names_all_balanced = np.concatenate((names_all[mask_look],names_not_look[:len(mask_look)]))

@@ -22,6 +22,7 @@ parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate fo
 parser.add_argument('--split', '-s', type=str, help='dataset split', default="original")
 parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50]', default="resnet18")
 parser.add_argument('--path', '-pt', type=str, help='path for model saving', default='./models/')
+parser.add_argument('--cluster', help='running on the izar cluster', action='store_true')
 
 args = parser.parse_args()
 
@@ -30,6 +31,16 @@ EPOCHS = args.epochs
 split = args.split
 model_type = args.model
 video = args.split
+cluster = args.cluster
+
+if cluster:
+	DATA_PATH = '/home/caristan/code/looking/looking/data/'
+	SPLIT_PATH_JAAD = '/home/caristan/code/looking/looking/splits/'
+	PATH_MODEL = '/home/caristan/code/looking/looking/head+joints/models/'
+else:
+	DATA_PATH = '../../data/'
+	SPLIT_PATH_JAAD = '../splits/'
+	PATH_MODEL = './models/'
 
 assert model_type in ['resnet18', 'resnet50']
 
@@ -96,15 +107,14 @@ print('Device: ', device)
 
 
 
-jaad_train = JAAD_Dataset_new('/home/caristan/code/looking/looking/data/', 'JAAD_2k30/',"train", split, data_transform)
-jaad_val = JAAD_Dataset_new('/home/caristan/code/looking/looking/data/', 'JAAD_2k30/', "val", split, data_transform)
+jaad_train = JAAD_Dataset_new(DATA_PATH, 'JAAD_2k30/',"train", SPLIT_PATH_JAAD, split, data_transform)
+jaad_val = JAAD_Dataset_new(DATA_PATH, 'JAAD_2k30/', "val", SPLIT_PATH_JAAD, split, data_transform)
 
 
 if model_type=='resnet18':
-    model = LookingNet_early_fusion_18("/home/caristan/code/looking/looking/joints/models/resnet18_head_{}_romain.p".format(split), "/home/caristan/code/looking/looking/joints/models/looking_model_jaad_{}_full_kps_romain.p".format(split), device).to(device)
+    model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}_romain.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps_romain.pkl".format(split), device).to(device)
 elif model_type=='resnet50':
-    model = LookingNet_early_fusion_50("/home/caristan/code/looking/looking/joints/models/resnet50_head_{}_romain.p".format(split), "/home/caristan/code/looking/looking/joints/models/looking_model_jaad_{}_full_kps_romain.p".format(split), device).to(device)
-#model = LookingNet_early_fusion_18("../head/models/resnet18_head_video.p", "../joints/models/looking_model_jaad_video_full_kps.p", device).to(device)
+    model = LookingNet_early_fusion_50(PATH_MODEL + "resnet50_head_{}_romain.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps_romain.pkl".format(split), device).to(device)
 
 
 dataset_loader = torch.utils.data.DataLoader(jaad_train, batch_size=64, shuffle=True)
@@ -113,7 +123,6 @@ dataset_loader_val = torch.utils.data.DataLoader(jaad_val, batch_size=32, shuffl
 loss = nn.BCELoss()
 optimizer = torch.optim.SGD(list(model.encoder_head.parameters()) + list(model.final.parameters()), lr=0.0001, momentum=0.9, weight_decay=0.0005)
 
-#print(model)
 i = 0
 accs = []
 losses = []
@@ -138,7 +147,6 @@ for e in range(EPOCHS):
 			print('step {} , m_loss :{} | m_acc:{} '.format(i, np.mean(losses), np.mean(accs)))
 			accs = []
 			losses = []
-			#break
 	model.eval()
 	torch.cuda.empty_cache()
 	acc = 0
@@ -152,6 +160,6 @@ for e in range(EPOCHS):
 
 	if ap > ap_max:
 		ap_max = ap
-		torch.save(model.state_dict(), "/home/caristan/code/looking/looking/head+joints/models/model_combined_{}_{}_romain.p".format(model_type, video))
+		torch.save(model.state_dict(), PATH_MODEL + "model_combined_{}_{}_romain.pkl".format(model_type, video))
 	model.train()
 	#break

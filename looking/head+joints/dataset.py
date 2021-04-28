@@ -18,7 +18,7 @@ np.random.seed(0)
 class Kitti_Dataset(Dataset):
 	"""Face Landmarks dataset."""
 
-	def __init__(self, split, transform=None):
+	def __init__(self, path, split, transform=None):
 		"""
 		Args:
 			csv_file (string): Path to the csv file with annotations.
@@ -27,7 +27,7 @@ class Kitti_Dataset(Dataset):
 				on a sample.
 		"""
 		self.data = None
-		self.path = '../data/'
+		self.path = path + 'Kitti/'
 		self.transform = transform
 		self.split = split
 		assert self.split in ['train', 'test']
@@ -39,14 +39,10 @@ class Kitti_Dataset(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		inp = Image.open(self.path+'/Kitti/'+self.X[idx])
-
-		#kps = np.array(self.data['keypoints'])[idx]
-
-		#normalized_kps = self.preprocess(kps)
+		inp = Image.open(self.path + self.X[idx])
 
 		sample = {'image': inp, 'keypoints':self.kps[idx], 'label': torch.Tensor([self.Y[idx]])}
-		
+
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
 		return sample['image'], sample['keypoints'], sample['label']
@@ -62,81 +58,23 @@ class Kitti_Dataset(Dataset):
 			line_s = line.split(",")
 			if line_s[2] == self.split:
 				X.append(line_s[1])
-				joints = np.array(json.load(open(self.path+'/Kitti/'+line_s[1]+'.json'))["X"])
-				#print(joints)
+				joints = np.array(json.load(open(self.path + line_s[1]+'.json'))["X"])
 				Xs = joints[:17]
 				Ys = joints[17:34]
 				X_new, Y_new = normalize(Xs, Ys, True)
 				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-				kps.append(tensor) 
+				kps.append(tensor)
 				Y.append(int(line_s[-1]))
 		file.close()
 		return X, torch.tensor(kps), Y
 
 
+
+
 class JAAD_Dataset(Dataset):
 	"""Face Landmarks dataset."""
 
-	def __init__(self, split, video=False, transform=None):
-		"""
-		Args:
-			csv_file (string): Path to the csv file with annotations.
-			root_dir (string): Directory with all the images.
-			transform (callable, optional): Optional transform to be applied
-				on a sample.
-		"""
-		self.data = None
-		self.path = "../data/"
-		self.split = split
-		if video:
-			self.txt = open(self.path+'jaad_'+self.split+'_video.txt', "r")
-		else:
-			self.txt = open(self.path+'jaad_'+self.split+'.txt', "r")
-		self.transform = transform
-		self.X, self.Y, self.kps = self.preprocess()
-
-	def __len__(self):
-		return len(self.Y)
-
-	def __getitem__(self, idx):
-		if torch.is_tensor(idx):
-			idx = idx.tolist()
-		#inp = np.array(Image.open(self.path+split+'/'+self.X[idx])).astype(np.uint8)
-		#kps = np.array(json.load(open(self.path+split+'/'+self.X[idx][:-4]+'.json')))
-		label = self.Y[idx]
-		#kps = np.array(self.data['keypoints'])[idx]
-
-		#normalized_kps = self.preprocess(kps)
-
-		sample = {'image': Image.open(self.path+'/JAAD/'+self.X[idx]), 'keypoints':self.kps[idx] ,'label':label}
-		
-		if self.transform:
-			sample['image'] = self.transform(sample['image'])
-		return sample['image'], sample['keypoints'], sample['label']
-
-	def preprocess(self):
-		tab_X = []
-		tab_Y = []
-		kps = []
-		for line in self.txt:
-			line = line[:-1]
-			line_s = line.split(",")
-			tab_X.append(line_s[-2])
-			joints = np.array(json.load(open(self.path+'/JAAD/'+line_s[-2]+'.json'))["X"])
-			#print(joints)
-			X = joints[:17]
-			Y = joints[17:34]
-			X_new, Y_new = normalize(X, Y, True)
-			tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-			kps.append(tensor) 
-			tab_Y.append(int(line_s[-1]))
-		return tab_X, tab_Y, torch.tensor(kps)
-
-
-class JAAD_Dataset_new(Dataset):
-	"""Face Landmarks dataset."""
-
-	def __init__(self, path, path_jaad,split, type_="video_new", transform=None):
+	def __init__(self, path, path_jaad, split, split_path, type_="video_new", transform=None):
 		"""
 		Args:
 			csv_file (string): Path to the csv file with annotations.
@@ -149,11 +87,12 @@ class JAAD_Dataset_new(Dataset):
 		self.path_jaad = path_jaad
 		self.split = split
 		self.type = type_
-		assert self.type in ['original', 'video', 'ped', 'video_new'] 
+		self.split_path = split_path
+		assert self.type in ['original', 'video', 'ped', 'video_new']
 		if self.type == 'video':
-			self.txt = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_scenes_2k30.txt', "r")
+			self.txt = open(self.split_path + 'jaad_'+self.split+'_scenes_2k30.txt', "r")
 		elif self.type == "original":
-			self.txt  = open('/home/caristan/code/looking/looking/splits/jaad_'+self.split+'_original_2k30.txt', "r")
+			self.txt  = open(self.split_path + 'jaad_'+self.split+'_original_2k30.txt', "r")
 		self.transform = transform
 		self.X, self.Y, self.kps = self.preprocess()
 
@@ -163,15 +102,10 @@ class JAAD_Dataset_new(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		#inp = np.array(Image.open(self.path+split+'/'+self.X[idx])).astype(np.uint8)
-		#kps = np.array(json.load(open(self.path+split+'/'+self.X[idx][:-4]+'.json')))
 		label = self.Y[idx]
-		#kps = np.array(self.data['keypoints'])[idx]
-
-		#normalized_kps = self.preprocess(kps)
 
 		sample = {'image': Image.open(self.path+self.path_jaad+self.X[idx]), 'keypoints':self.kps[idx] ,'label':label}
-		
+
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
 		return sample['image'], sample['keypoints'], sample['label']
@@ -185,12 +119,11 @@ class JAAD_Dataset_new(Dataset):
 			line_s = line.split(",")
 			tab_X.append(line_s[-2])
 			joints = np.array(json.load(open(self.path+self.path_jaad+line_s[-2]+'.json'))["X"])
-			#print(joints)
 			X = joints[:17]
 			Y = joints[17:34]
 			X_new, Y_new = normalize(X, Y, True)
 			tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-			kps.append(tensor) 
+			kps.append(tensor)
 			tab_Y.append(int(line_s[-1]))
 		return tab_X, tab_Y, torch.tensor(kps)
 
@@ -198,7 +131,6 @@ class JAAD_Dataset_new(Dataset):
 		assert self.split in ["test", "val"]
 		model.eval()
 		model.to(device)
-		#print("Starting evalutation ..")
 		tab_X, tab_Y, kps = self.X, self.Y, self.kps.cpu().detach().numpy()
 		idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
 		idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -209,11 +141,11 @@ class JAAD_Dataset_new(Dataset):
 		N_pos = len(idx_Y1)
 		aps = []
 		accs = []
-		
+
 		for i in range(it):
 			np.random.seed(i)
 			np.random.shuffle(idx_Y0)
-		
+
 			neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
 			neg_samples_kps = np.array(kps)[idx_Y0[:N_pos]]
 			neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
@@ -221,10 +153,10 @@ class JAAD_Dataset_new(Dataset):
 			total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
 			total_samples_kps = np.concatenate((positive_samples_kps, neg_samples_kps)).tolist()
 			total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-			
+
 			new_data = new_Dataset(self.path, self.path_jaad, total_samples, total_labels, total_samples_kps, self.transform)
 			data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
-			
+
 			acc = 0
 			out_lab = torch.Tensor([]).type(torch.float)
 			test_lab = torch.Tensor([])
@@ -239,8 +171,7 @@ class JAAD_Dataset_new(Dataset):
 
 			acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
 			ap = average_precision(out_lab, test_lab)
-			#print(ap)
-			accs.append(acc.item()*100)
+			accs.append(acc.item())
 			aps.append(ap)
 		return np.mean(aps), np.mean(accs)
 
@@ -253,7 +184,7 @@ class new_Dataset(Dataset):
 		Args:
 			split : train, val and test
 			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
-			transform : data tranformation to be applied 
+			transform : data tranformation to be applied
 		"""
 		self.data = None
 		self.path = path

@@ -11,23 +11,27 @@ import PIL
 
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
 print('Device: ', device)
 
 
 
 def load_pifpaf():
 	print('Loading Pifpaf')
-	net_cpu, _ = openpifpaf.network.factory(checkpoint='shufflenetv2k16w', download_progress=False)
+	net_cpu, _ = openpifpaf.network.factory.Factory(checkpoint='shufflenetv2k30', download_progress=False).factory()
 	net = net_cpu.to(device)
-	openpifpaf.decoder.CifSeeds.threshold = 0.5
-	openpifpaf.decoder.nms.Keypoints.keypoint_threshold = 0.0
-	openpifpaf.decoder.nms.Keypoints.instance_threshold = 0.2
-	openpifpaf.decoder.nms.Keypoints.keypoint_threshold_rel = 0.0
+	openpifpaf.decoder.utils.CifSeeds.threshold = 0.5
+	openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold = 0.0
+	openpifpaf.decoder.utils.nms.Keypoints.instance_threshold = 0.2
+	openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold_rel = 0.0
 	openpifpaf.decoder.CifCaf.force_complete = True
-	processor = openpifpaf.decoder.factory_decode(net.head_nets, basenet_stride=net.base_net.stride)
-	preprocess = openpifpaf.transforms.Compose([openpifpaf.transforms.NormalizeAnnotations(),openpifpaf.transforms.CenterPadTight(16),openpifpaf.transforms.EVAL_TRANSFORM])
-	return net, processor, preprocess
+	decoder = openpifpaf.decoder.factory([hn.meta for hn in net_cpu.head_nets])
+	preprocess = openpifpaf.transforms.Compose([
+	openpifpaf.transforms.NormalizeAnnotations(),
+	openpifpaf.transforms.CenterPadTight(16),
+	openpifpaf.transforms.EVAL_TRANSFORM,
+	])
+	return net, decoder, preprocess
 
 class Ui_MainWindow(object):
 	def setupUi(self, MainWindow):
@@ -101,7 +105,7 @@ class Predictor():
 	def __init__(self, path):
 		self.path = path
 
-		self.model = torch.load("./models/looking_model_jack.pkl", map_location=torch.device(device))
+		self.model = torch.load("./models/looking_model_jaad_video_full_kps_romain.p", map_location=torch.device(device))
 		self.model.eval()
 
 		self.net, self.processor, self.preprocess = load_pifpaf()
@@ -161,6 +165,3 @@ if __name__ == "__main__":
     sys.exit(app.exec_())
 
 #Predictor(path)
-
-
-
