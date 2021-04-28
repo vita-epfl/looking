@@ -17,22 +17,25 @@ import openpifpaf
 import PIL
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda" if use_cuda else "cpu")
+device = torch.device("cuda:0" if use_cuda else "cpu")
 _translate = QtCore.QCoreApplication.translate
 #device = torch.device("cpu")
 print('Device: ', device)
 
 def load_pifpaf():
     print('Loading Pifpaf')
-    net_cpu, _ = openpifpaf.network.factory(checkpoint='shufflenetv2k16w', download_progress=False)
+    net_cpu, _ = openpifpaf.network.factory(checkpoint='shufflenetv2k30', download_progress=False)
     net = net_cpu.to(device)
     openpifpaf.decoder.CifSeeds.threshold = 0.5
     openpifpaf.decoder.nms.Keypoints.keypoint_threshold = 0.0
-    openpifpaf.decoder.nms.Keypoints.instance_threshold = 0.2
+    openpifpaf.decoder.nms.Keypoints.instance_threshold = 0.1
     openpifpaf.decoder.nms.Keypoints.keypoint_threshold_rel = 0.0
     openpifpaf.decoder.CifCaf.force_complete = True
     processor = openpifpaf.decoder.factory_decode(net.head_nets, basenet_stride=net.base_net.stride)
-    preprocess = openpifpaf.transforms.Compose([openpifpaf.transforms.NormalizeAnnotations(),openpifpaf.transforms.CenterPadTight(16),openpifpaf.transforms.EVAL_TRANSFORM])
+    preprocess = openpifpaf.transforms.Compose([openpifpaf.transforms.NormalizeAnnotations(),
+                                                openpifpaf.transforms.CenterPadTight(16),
+                                                openpifpaf.transforms.RescaleAbsolute(long_edge=2500),
+                                                openpifpaf.transforms.EVAL_TRANSFORM])
     return net, processor, preprocess
 
 
@@ -79,7 +82,7 @@ class Ui_MainWindow(object):
         self.pushButton = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton.setObjectName("pushButton")
         self.verticalLayout.addWidget(self.pushButton)
-        
+
         self.pushButton_hide = QtWidgets.QPushButton(self.centralwidget)
         self.pushButton_hide.setObjectName("pushButton_hide")
         self.verticalLayout.addWidget(self.pushButton_hide)
@@ -94,7 +97,7 @@ class Ui_MainWindow(object):
 
         self.pushButton_6 = QtWidgets.QLabel("Centre")
         self.pushButton_6.setText("Test")
-        self.pushButton_6.setAlignment(Qt.AlignCenter) 
+        self.pushButton_6.setAlignment(Qt.AlignCenter)
         self.verticalLayout.addWidget(self.pushButton_6)
         self.verticalLayout.addStretch()
 
@@ -102,7 +105,7 @@ class Ui_MainWindow(object):
         #self.pushButton_5 = QtWidgets.QPushButton(self.centralwidget)
         #self.pushButton_5.setObjectName("pushButton_5")
         #self.verticalLayout.addWidget(#self.pushButton_5)
-        
+
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.photo = QtWidgets.QLabel(self.centralwidget)
         self.photo.setMaximumSize(QtCore.QSize(self.size[0], self.size[1]))
@@ -125,7 +128,7 @@ class Ui_MainWindow(object):
         self.actionOpen = QtWidgets.QAction(MainWindow)
         self.actionOpen.setObjectName("actionOpen")
         self.menuFile.addAction(self.actionOpen)
-        
+
         self.actionOpenF = QtWidgets.QAction(MainWindow)
         self.actionOpenF.setObjectName("actionOpenFile")
         self.menuFile.addAction(self.actionOpenF)
@@ -151,14 +154,14 @@ class Ui_MainWindow(object):
         self.pushButton.setShortcut(QtGui.QKeySequence("Space"))
         self.pushButton.setShortcut(QtGui.QKeySequence("6"))
         self.pushButton_4.setShortcut(QtGui.QKeySequence("4"))
-        
+
         self.pushButton.setShortcut(QtGui.QKeySequence("d"))
         self.pushButton_4.setShortcut(QtGui.QKeySequence("a"))
         self.pushButton_hide.setShortcut(QtGui.QKeySequence("s"))
         self.pushButton_3.setShortcut(QtGui.QKeySequence("w"))
 
 
-        
+
 
         self.actionOpen.triggered.connect(self.click_directory)
         self.actionOpenF.triggered.connect(self.click_file_image)
@@ -180,7 +183,7 @@ class Ui_MainWindow(object):
             alert = QtWidgets.QMessageBox()
             alert.setText('Please Load a model before')
             alert.exec_()
-        
+
     def hide(self):
         if len(self.tab_im) != 0:
             self.hide_ = 1 - self.hide_
@@ -199,7 +202,7 @@ class Ui_MainWindow(object):
         directory_anno = self.path+'/anno_'+self.path.split('/')[-1]
         if not os.path.exists(directory_anno):
             os.makedirs(directory_anno)
-        if self.X != None:    
+        if self.X != None:
             data = {'X':self.X, 'Y':self.Y, 'bbox':self.bboxes}
             print(data)
             with open(directory_anno+'/'+self.get_image().split('/')[-1]+'.json', 'w') as file:
@@ -211,7 +214,7 @@ class Ui_MainWindow(object):
         self.last_y = e.y()
         #print(self.last_y, self.last_x)
         if self.X != None:
-            
+
             size_true = self.img.shape
 
             resize_ratio = min(self.size[0]/size_true[0], self.size[1]/size_true[1])
@@ -348,8 +351,8 @@ class Ui_MainWindow(object):
 	                tab_predict = [p.json_data() for p in predictions]
 	            with open(directory_out+'/{}.predictions.json'.format(self.get_image().split('/')[-1]), 'w') as outfile:
 	                json.dump(tab_predict, outfile)
-            
-            
+
+
 
 
 
@@ -475,7 +478,7 @@ class Ui_MainWindow(object):
                 pixmap = pixmap.scaled(self.size[1], self.size[0], QtCore.Qt.KeepAspectRatio)
                 self.photo.setPixmap(pixmap)
                 #self.photo.setMaximumSize(QtCore.QSize(self.size[1], self.size[0]))
-                
+
             else:
                 self.i = 0
                 alert = QtWidgets.QMessageBox()
@@ -562,4 +565,3 @@ if __name__ == "__main__":
     ui.setupUi(MainWindow)
     MainWindow.show()
     sys.exit(app.exec_())
-

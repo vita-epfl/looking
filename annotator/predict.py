@@ -22,12 +22,13 @@ def load_pifpaf():
 	net = net_cpu.to(device)
 	openpifpaf.decoder.utils.CifSeeds.threshold = 0.5
 	openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold = 0.0
-	openpifpaf.decoder.utils.nms.Keypoints.instance_threshold = 0.2
+	openpifpaf.decoder.utils.nms.Keypoints.instance_threshold = 0.1
 	openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold_rel = 0.0
 	openpifpaf.decoder.CifCaf.force_complete = True
 	decoder = openpifpaf.decoder.factory([hn.meta for hn in net_cpu.head_nets])
 	preprocess = openpifpaf.transforms.Compose([
 	openpifpaf.transforms.NormalizeAnnotations(),
+	openpifpaf.transforms.RescaleAbsolute(long_edge=2500),
 	openpifpaf.transforms.CenterPadTight(16),
 	openpifpaf.transforms.EVAL_TRANSFORM,
 	])
