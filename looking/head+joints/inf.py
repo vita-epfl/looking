@@ -7,34 +7,35 @@ from torchvision import transforms, datasets
 from torchvision import datasets, models, transforms
 import argparse
 
+# Parser
+
 parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
 # parameters
 
-parser.add_argument('--epochs', '-e', type=int, help='number of epochs for training', default=20)
-parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate for training', default=0.0001)
-parser.add_argument('--split', '-s', type=str, help='dataset split', default="original")
-parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50]', default="resnet18")
-parser.add_argument('--path', '-pt', type=str, help='path for model saving', default='./models/')
-parser.add_argument('--cluster', help='running on the izar cluster', action='store_true')
+parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
+parser.add_argument('--split', type=str, help='dataset split', default="video")
+parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
+parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
 
 args = parser.parse_args()
 
-
-EPOCHS = args.epochs
 split = args.split
 model_type = args.model
-cluster = args.cluster
 
-if cluster:
-	DATA_PATH = '/home/caristan/code/looking/looking/data/'
-	SPLIT_PATH_JAAD = '/home/caristan/code/looking/looking/splits/'
-	PATH_MODEL = '/home/caristan/code/looking/looking/head+joints/models/'
-else:
-	DATA_PATH = '../../data/'
-	SPLIT_PATH_JAAD = '../splits/'
-	PATH_MODEL = './models/'
+DATA_PATH = args.data_path
+SPLIT_PATH_JAAD = args.split_path
+PATH_MODEL = args.path
+
+"""
+My local paths
+DATA_PATH = '../../data/'
+SPLIT_PATH_JAAD = '../splits/'
+PATH_MODEL = './models/'
+"""
 
 assert model_type in ['resnet18', 'resnet50', 'alexnet']
 

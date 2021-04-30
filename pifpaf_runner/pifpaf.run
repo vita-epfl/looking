@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --account=caristan
-#SBATCH --chdir /home/caristan/code/looking/looking/joints
+#SBATCH --account=vita
+#SBATCH --chdir /home/caristan/code/pifpaf
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --gres=gpu:1
 #SBATCH --time 10:00:00
 #SBATCH --mem 8G
 echo STARTING AT `date`
-module load python/3.7.7
-python main_test.py --s original
+python run_pifpaf.py -p /scratch/izar/caristan/data/Testset_romain
 echo FINISHED at `date`
+

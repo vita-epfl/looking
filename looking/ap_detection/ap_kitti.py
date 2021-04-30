@@ -9,8 +9,8 @@ import sklearn.metrics
 
 
 path_anno_kitti = "./label_2/"
-path_anno_pifpaf = "./Testset_roms_2k30/"
-path_anno = "./Testset_roms_2k30/out_Testset_roms_2k30/"
+path_anno_pifpaf = "./T/"
+path_anno = "./v012_scale_2/"
 
 def enlarge_bbox(bb, enlarge=1):
 	delta_h = (bb[3]) / (7 * enlarge)

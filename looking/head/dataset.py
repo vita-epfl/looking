@@ -67,7 +67,7 @@ class Kitti_Dataset_head(Dataset):
 class JAAD_Dataset_head(Dataset):
 	"""JAAD dataset for training and inference"""
 
-	def __init__(self, path, path_jaad, split, split_path, type_="original", transform=None):
+	def __init__(self, path, path_jaad, split, split_path, type_="video", transform=None):
 		"""
 		Args:
 			split : train, val and test
@@ -127,7 +127,7 @@ class JAAD_Dataset_head(Dataset):
 
 			total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
 			total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-			new_data = new_Dataset(self.path_jaad, total_samples, total_labels, self.transform)
+			new_data = new_Dataset(self.path, self.path_jaad, total_samples, total_labels, self.transform)
 			data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
 			acc = 0
@@ -169,7 +169,7 @@ class JAAD_Dataset_head(Dataset):
 class new_Dataset(Dataset):
 	"""JAAD dataset for training and inference"""
 
-	def __init__(self, path_jaad, data_x, data_y, transform=None):
+	def __init__(self, path, path_jaad, data_x, data_y, transform=None):
 		"""
 		Args:
 			split : train, val and test

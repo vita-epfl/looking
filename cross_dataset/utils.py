@@ -7,15 +7,13 @@ from sklearn.metrics import confusion_matrix
 
 def binary_acc(y_pred, y_test):
     y_pred_tag = torch.round(y_pred)
-    #print(confusion_matrix(y_test.cpu().detach().numpy(), y_pred_tag.cpu().detach().numpy()))
     correct_results_sum = (y_pred_tag == y_test).sum().float()
     acc = correct_results_sum/y_test.shape[0]
-    acc = acc * 100
+    acc = acc
     return acc
 
 def acc_per_class(y_pred, y_test):
     y_pred_tag = torch.round(y_pred)
-    #matrix = confusion_matrix(y_test.cpu().detach().numpy(), y_pred_tag.cpu().detach().numpy())
     tn, fp, fn, tp = confusion_matrix(y_test.cpu().detach().numpy(), y_pred_tag.cpu().detach().numpy()).ravel()
     acc0 = tn/(tn+fn)
     acc1 = tp/(tp+fp)
@@ -25,7 +23,6 @@ def acc_per_class(y_pred, y_test):
 
 def acc_rec_per_class(y_pred, y_test):
     y_pred_tag = torch.round(y_pred)
-    #matrix = confusion_matrix(y_test.cpu().detach().numpy(), y_pred_tag.cpu().detach().numpy())
     tn, fp, fn, tp = confusion_matrix(y_test.cpu().detach().numpy(), y_pred_tag.cpu().detach().numpy()).ravel()
     acc0 = tn/(tn+fn)
     acc1 = tp/(tp+fp)
@@ -42,19 +39,13 @@ def save_results(y_pred):
 
 def normalize(X, Y, divide=True):
     center_p = (int((X[11]+X[12])/2), int((Y[11]+Y[12])/2))
-    #X_new = np.array(X)-center_p[0]
     X_new = np.array(X)
     Y_new = np.array(Y)-center_p[1]
     width = abs(np.max(X_new)-np.min(X_new))
     height = abs(np.max(Y_new)-np.min(Y_new))
-    #print(X_new)
     if divide:
         Y_new /= max(width, height)
         X_new /= max(width, height)
-        #Y_new /= max(abs(np.min(Y_new)), abs(np.max(Y_new)))
-        #X_new /= max(abs(np.min(X_new)), abs(np.max(X_new)))
-    #print(X_new)
-    #exit(0)
     return X_new, Y_new
 
 def val_kitti(output, labels):

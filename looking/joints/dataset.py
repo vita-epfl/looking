@@ -85,7 +85,7 @@ class Kitti_Dataset_joints(Dataset):
 class JAAD_Dataset_joints(Dataset):
 	"""Face Landmarks dataset."""
 
-	def __init__(self, path, path_jaad, split, split_path, pose="full", type_="original", cluster=False):
+	def __init__(self, path, path_jaad, split, split_path, pose="full", type_="video", cluster=False):
 		"""
 		Args:
 			csv_file (string): Path to the csv file with annotations.

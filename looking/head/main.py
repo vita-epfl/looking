@@ -15,29 +15,36 @@ parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
 # parameters
 
-parser.add_argument('--epochs', '-e', type=int, help='number of epochs for training', default=50)
-parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate for training', default=0.0001)
-parser.add_argument('--split', '-s', type=str, help='dataset split', default="original")
 parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
 parser.add_argument('--save', help='save the model', action='store_true')
-parser.add_argument('--cluster', help='run in the cluster', action='store_true')
+parser.add_argument('--epochs', '-e', type=int, help='number of epochs for training', default=100)
+parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate for training', default=0.0001)
+parser.add_argument('--split', type=str, help='dataset split', default="video")
+parser.add_argument('--kitti', help='evaluate on kitti', action='store_true')
+parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
+parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
+
 
 args = parser.parse_args()
 
+EPOCHS = args.epochs
+split = args.split
+model_type = args.model
+kitti = args.kitti
 
-EPOCHS = args.e
-split = args.s
-model_type = args.m
-cluster = args.cluster
+DATA_PATH = args.data_path
+SPLIT_PATH_JAAD = args.split_path
+PATH_MODEL = args.path
 
-if cluster:
-	DATA_PATH = '/home/caristan/code/looking/looking/data/'
-	SPLIT_PATH_JAAD = '/home/caristan/code/looking/looking/splits/'
-	PATH_MODEL = '/home/caristan/code/looking/looking/head/models/'
-else:
-	DATA_PATH = '../../data/'
-	SPLIT_PATH_JAAD = '../splits/'
-	PATH_MODEL = './models/'
+"""
+My local paths
+DATA_PATH = '../../data/'
+SPLIT_PATH_JAAD = '../splits/'
+PATH_MODEL = './models/'
+"""
+
 assert model_type in ['resnet18', 'resnet50', 'alexnet']
 
 use_cuda = torch.cuda.is_available()
@@ -141,6 +148,21 @@ for e in range(EPOCHS):
 		accs_val = acc
 		aps_val = ap
 		if args.save:
-			torch.save(net.state_dict(), PATH_MODEL + '{}_head_{}_romain.pkl'.format(model_type, split))
+			torch.save(net.state_dict(), PATH_MODEL + '{}_head_{}.pkl'.format(model_type, split))
 	print('epoch {} | acc:{} | ap:{}'.format(e, acc, ap))
 	net.train()
+
+
+if kitti:
+	model = []
+	model = torch.load(PATH_MODEL + "{}_head_{}_.pkl".format(video, pose), map_location=torch.device(device))
+	jaad_val = Kitti_Dataset_head(DATA_PATH, "test", pose)
+	model.eval()
+
+	joints_test, labels_test = jaad_val.get_joints()
+
+	out_test = model(joints_test.to(device))
+	acc_test = binary_acc(out_test.to(device), labels_test.view(-1,1).to(device))
+	ap_test = average_precision(out_test.to(device), labels_test.to(device))
+
+	print("Kitti | AP : {} | Acc : {}".format(ap_test, acc_test))

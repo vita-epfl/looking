@@ -15,26 +15,29 @@ parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
 # parameters
 
-parser.add_argument('--split', '-s', type=str, help='dataset split', default="original")
 parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
-parser.add_argument('--save', help='save the model', action='store_true')
-parser.add_argument('--cluster', help='run in the cluster', action='store_true')
+parser.add_argument('--split', type=str, help='dataset split', default="video")
+parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
+parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
 
 args = parser.parse_args()
 
+split = args.split
+model_type = args.model
 
-split = args.s
-model_type = args.m
-cluster =args.cluster
-if cluster:
-	DATA_PATH = '/home/caristan/code/looking/looking/data/'
-	SPLIT_PATH_JAAD = '/home/caristan/code/looking/looking/splits/'
-	PATH_MODEL = '/home/caristan/code/looking/looking/head/models/'
-else:
-	DATA_PATH = '../../data/'
-	SPLIT_PATH_JAAD = '../splits/'
-	PATH_MODEL = './models/'
+DATA_PATH = args.data_path
+SPLIT_PATH_JAAD = args.split_path
+PATH_MODEL = args.path
+
+"""
+My local paths
+DATA_PATH = '../../data/'
+SPLIT_PATH_JAAD = '../splits/'
+PATH_MODEL = './models/'
+"""
 
 assert model_type in ['resnet18', 'resnet50', 'alexnet']
 
@@ -95,10 +98,10 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-model.load_state_dict(torch.load('{}{}_head_{}.pkl'.format(model_path, model_type, split)))
+model.load_state_dict(torch.load('{}{}_head_{}.pkl'.format(PATH_MODEL, model_type, split)))
 model.eval()
 
-jaad_test = JAAD_Dataset_head(data_path, "JAAD_2k30/", "test", SPLIT_PATH_JAAD, split, data_transform)
+jaad_test = JAAD_Dataset_head(DATA_PATH, "JAAD_2k30/", "test", SPLIT_PATH_JAAD, split, data_transform)
 ap, acc = jaad_test.evaluate(model.to(device), device, 10)
 
 print("AP JAAD : {} | Acc JAAD : {}".format(ap, acc))

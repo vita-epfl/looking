@@ -16,31 +16,36 @@ torch.manual_seed(0)
 parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
 # parameters
-
-parser.add_argument('--epochs', '-e', type=int, help='number of epochs for training', default=20)
+arser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
+parser.add_argument('--save', help='save the model', action='store_true')
+parser.add_argument('--epochs', '-e', type=int, help='number of epochs for training', default=100)
 parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate for training', default=0.0001)
-parser.add_argument('--split', '-s', type=str, help='dataset split', default="original")
-parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50]', default="resnet18")
-parser.add_argument('--path', '-pt', type=str, help='path for model saving', default='./models/')
-parser.add_argument('--cluster', help='running on the izar cluster', action='store_true')
+parser.add_argument('--split', type=str, help='dataset split', default="video")
+parser.add_argument('--kitti', help='evaluate on kitti', action='store_true')
+parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
+parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
+
 
 args = parser.parse_args()
-
 
 EPOCHS = args.epochs
 split = args.split
 model_type = args.model
-video = args.split
-cluster = args.cluster
+kitti = args.kitti
 
-if cluster:
-	DATA_PATH = '/home/caristan/code/looking/looking/data/'
-	SPLIT_PATH_JAAD = '/home/caristan/code/looking/looking/splits/'
-	PATH_MODEL = '/home/caristan/code/looking/looking/head+joints/models/'
-else:
-	DATA_PATH = '../../data/'
-	SPLIT_PATH_JAAD = '../splits/'
-	PATH_MODEL = './models/'
+DATA_PATH = args.data_path
+SPLIT_PATH_JAAD = args.split_path
+PATH_MODEL = args.path
+
+"""
+My local paths
+DATA_PATH = '../../data/'
+SPLIT_PATH_JAAD = '../splits/'
+PATH_MODEL = './models/'
+"""
+
 
 assert model_type in ['resnet18', 'resnet50']
 
@@ -107,14 +112,14 @@ print('Device: ', device)
 
 
 
-jaad_train = JAAD_Dataset_new(DATA_PATH, 'JAAD_2k30/',"train", SPLIT_PATH_JAAD, split, data_transform)
-jaad_val = JAAD_Dataset_new(DATA_PATH, 'JAAD_2k30/', "val", SPLIT_PATH_JAAD, split, data_transform)
+jaad_train = JAAD_Dataset(DATA_PATH, 'JAAD_2k30/',"train", SPLIT_PATH_JAAD, split, data_transform)
+jaad_val = JAAD_Dataset(DATA_PATH, 'JAAD_2k30/', "val", SPLIT_PATH_JAAD, split, data_transform)
 
 
 if model_type=='resnet18':
-    model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}_romain.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps_romain.pkl".format(split), device).to(device)
+    model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
 elif model_type=='resnet50':
-    model = LookingNet_early_fusion_50(PATH_MODEL + "resnet50_head_{}_romain.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps_romain.pkl".format(split), device).to(device)
+    model = LookingNet_early_fusion_50(PATH_MODEL + "resnet50_head_{}.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
 
 
 dataset_loader = torch.utils.data.DataLoader(jaad_train, batch_size=64, shuffle=True)
@@ -160,6 +165,19 @@ for e in range(EPOCHS):
 
 	if ap > ap_max:
 		ap_max = ap
-		torch.save(model.state_dict(), PATH_MODEL + "model_combined_{}_{}_romain.pkl".format(model_type, video))
+		torch.save(model.state_dict(), PATH_MODEL + "model_combined_{}_{}.pkl".format(model_type, video))
 	model.train()
-	#break
+
+if kitti:
+	model = []
+	model = torch.load(PATH_MODEL + "model_combined_{}_{}.pkl".format(video, pose), map_location=torch.device(device))
+	jaad_val = Kitti_Dataset(DATA_PATH, "test", pose)
+	model.eval()
+
+	joints_test, labels_test = jaad_val.get_joints()
+
+	out_test = model(joints_test.to(device))
+	acc_test = binary_acc(out_test.to(device), labels_test.view(-1,1).to(device))
+	ap_test = average_precision(out_test.to(device), labels_test.to(device))
+
+	print("Kitti | AP : {} | Acc : {}".format(ap_test, acc_test))

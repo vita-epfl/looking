@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --account=vita
+#SBATCH --chdir /home/caristan/code/looking/cross_dataset/
+#SBATCH --nodes 1
+#SBATCH --ntasks 1
+#SBATCH --gres=gpu:1
+#SBATCH --time 01:00:00
+#SBATCH --mem 8G
+echo STARTING AT `date`
+
+python cross_test_jaad.py -t jaad,nu,kitti,jack -jsp new_JAAD_2k30/ -dp ../data/
+
+echo FINISHED at `date`

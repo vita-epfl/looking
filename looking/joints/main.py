@@ -23,7 +23,9 @@ parser.add_argument('--path', type=str, help='path for model saving', default='.
 parser.add_argument('--pose',  type=str, help='pose type', default="full")
 parser.add_argument('--batch_size', '-bs', help='enable focal loss', default=128)
 parser.add_argument('--focal_loss', help='enable focal loss', action='store_true')
-parser.add_argument('--cluster', help='running on the izar cluster', action='store_true')
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
+parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
 
 args = parser.parse_args()
@@ -31,7 +33,7 @@ args = parser.parse_args()
 EPOCHS = args.epochs
 video = args.split
 pose = args.pose
-cluster = args.cluster
+
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -43,14 +45,16 @@ elif pose == "body":
 else:
 	INPUT_SIZE = 51
 
-if cluster:
-	DATA_PATH = '/home/caristan/code/looking/looking/data/'
-	SPLIT_PATH_JAAD = '/home/caristan/code/looking/looking/splits/'
-	PATH_MODEL = '/home/caristan/code/looking/looking/joints/models/'
-else:
-	DATA_PATH = '../../data/'
-	SPLIT_PATH_JAAD = '../splits/'
-	PATH_MODEL = './models/'
+DATA_PATH = args.data_path
+SPLIT_PATH_JAAD = args.split_path
+PATH_MODEL = args.path
+
+"""
+My local paths
+DATA_PATH = '../../data/'
+SPLIT_PATH_JAAD = '../splits/'
+PATH_MODEL = './models/'
+"""
 
 jaad_train = JAAD_Dataset_joints(DATA_PATH, "JAAD_2k30/", "train", SPLIT_PATH_JAAD, pose, video)
 jaad_val = JAAD_Dataset_joints(DATA_PATH, "JAAD_2k30/", "val", SPLIT_PATH_JAAD, pose, video)
@@ -132,14 +136,14 @@ if training:
 			best_epoch = epoch
 			best_ap = ap_test
 			best_ac = acc_test
-			torch.save(model, PATH_MODEL + 'looking_model_jaad_{}_{}_kps_romain.pkl'.format(video, pose))
+			torch.save(model, PATH_MODEL + 'looking_model_jaad_{}_{}_kps.pkl'.format(video, pose))
 
 
 print()
 print(f'Best epoch selected from validation: {best_epoch} with an accuracy of {best_ap*100:.1f}% ')
 print("Starting evaluation ...")
 model = []
-model = torch.load(PATH_MODEL + "looking_model_jaad_{}_{}_kps_romain.pkl".format(video, pose), map_location=torch.device(device))
+model = torch.load(PATH_MODEL + "looking_model_jaad_{}_{}_kps.pkl".format(video, pose), map_location=torch.device(device))
 model.eval()
 jaad_test = JAAD_Dataset_joints(DATA_PATH, "JAAD_2k30/", "test", SPLIT_PATH_JAAD, pose, video)
 
@@ -150,7 +154,7 @@ print("Best AP on JAAD test set : {:.1f}%".format(ap_test))
 
 if kitti:
 	model = []
-	model = torch.load(PATH_MODEL + "/looking_model_jaad_{}_{}_kps_romain.pkl".format(video, pose), map_location=torch.device(device))
+	model = torch.load(PATH_MODEL + "looking_model_jaad_{}_{}_kps.pkl".format(video, pose), map_location=torch.device(device))
 	jaad_val = Kitti_Dataset_joints(DATA_PATH, "test", pose)
 	model.eval()
 
