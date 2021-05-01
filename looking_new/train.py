@@ -6,3 +6,6 @@ config.read('config.ini')
 
 parser = Parser(config)
 parser.parse()
+
+trainer = Trainer(parser)
+trainer.train()

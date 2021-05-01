@@ -1,7 +1,12 @@
 import torch.nn as nn
 import torch
+import numpy as np
+import torchvision.transforms.functional as F
 from torchvision import transforms, datasets
 from torchvision import datasets, models, transforms
+
+torch.manual_seed(0)
+np.random.seed(0)
 
 class SquarePad:
 	def __call__(self, image):
