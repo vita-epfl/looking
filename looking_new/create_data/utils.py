@@ -6,6 +6,8 @@ import numpy as np
 from jaad_data import JAAD
 import json
 from tqdm import tqdm
+import errno
+from glob import glob
 from PIL import Image, ImageFile
 import numpy as np
 
@@ -45,6 +47,17 @@ def enlarge_bbox(bb, enlarge=1):
 	bb[2] += delta_w
 	bb[3] += delta_h
 	return bb
+
+def crop_kitti(img, bbox):
+	for i in range(len(bbox)):
+		if bbox[i] < 0:
+			bbox[i] = 0
+		else:
+			bbox[i] = int(bbox[i])
+	x1, y1, w, h = bbox
+	h /= 3
+	return img[int(y1):int(y1+h), x1:int(x1+w)]
+
 
 def convert_bb(bb):
 	return [bb[0], bb[1], bb[0]+bb[2], bb[1]+bb[3]]
@@ -278,3 +291,72 @@ class JAAD_splitter():
 		file_val.close()
 		file_test.close()
 
+class Kitti_creator():
+	"""
+		Wrapper class for Kitti dataset creation 
+	"""
+	def __init__(self, path_images_train, path_annotation_train, path_images_test, path_annotation_test, path_out, path_out_txt):
+		self.path_images_train = path_images_train
+		self.path_annotation_train = path_annotation_train
+		self.path_images_test = path_images_test
+		self.path_annotation_test = path_annotation_test
+		self.path_out = path_out
+		self.path_out_txt = path_out_txt
+
+		try:
+			os.makedirs(self.path_out_txt)
+		except OSError as e:
+			if e.errno != errno.EEXIST:
+				raise
+
+	def create(self):
+		"""
+			Create the Kitti dataset
+		"""
+		print('Creating the Kitti dataset...')
+		name_pic = 0
+		file_out = open(os.path.join(self.path_out_txt,"ground_truth_kitti.txt"), "w")
+		for file in tqdm(glob(os.path.join(self.path_annotation_train,'*.json'))):
+			data = json.loads(open(file, 'r').read())
+			name = file.split('/')[-1][:-5]
+			pil_im = Image.open(os.path.join(self.path_images_train,name)).convert('RGB')
+			im = np.asarray(pil_im)
+			for d in range(len(data["Y"])):
+				name_head = str(name_pic).zfill(10)+'.png'
+				keypoints = data["X"][d]
+				
+				label = data["Y"][d]
+				
+				bbox = enlarge_bbox(data['bbox'][d])
+				head = crop_kitti(im, bbox)
+
+				file_out.write(name+','+name_head+',train,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
+
+				di = {"X":keypoints}
+				json.dump(di, open(os.path.join(self.path_out,name_head+".json"), 'w'))
+
+				Image.fromarray(head).convert('RGB').save(os.path.join(self.path_out,name_head))
+				name_pic += 1
+		for file in tqdm(glob(os.path.join(self.path_annotation_test,'*.json'))):
+			data = json.loads(open(file, 'r').read())
+			name = file.split('/')[-1][:-5]
+			pil_im = Image.open(os.path.join(self.path_images_test,name)).convert('RGB')
+			im = np.asarray(pil_im)
+			for d in range(len(data["Y"])):
+				name_head = str(name_pic).zfill(10)+'.png'
+				keypoints = data["X"][d]
+				
+				label = data["Y"][d]
+				
+				bbox = enlarge_bbox(data['bbox'][d])
+				head = crop_kitti(im, bbox)
+
+				file_out.write(name+','+name_head+',test,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
+
+				di = {"X":keypoints}
+				json.dump(di, open(os.path.join(self.path_out,name_head+".json"), 'w'))
+
+				Image.fromarray(head).convert('RGB').save(os.path.join(self.path_out,name_head))
+				name_pic += 1
+		file_out.close()
+	
