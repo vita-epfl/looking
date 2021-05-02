@@ -23,7 +23,7 @@ path_kitti_anno = args.p_a_kt
 data = args.d
 
 if 'JAAD' in data:
-    jaad_loader = JAAD_loader(jaad_path)
+    jaad_loader = JAAD_loader(jaad_path, txt_out)
     dict_annotation = jaad_loader.generate()
 
     jaad_creator = JAAD_creator(txt_out, dir_out, path_joints, os.path.join(jaad_path, 'images'))

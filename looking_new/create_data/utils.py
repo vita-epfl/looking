@@ -48,6 +48,15 @@ def enlarge_bbox(bb, enlarge=1):
 	bb[3] += delta_h
 	return bb
 
+def enlarge_bbox_kitti(bb, enlarge=1):
+	delta_h = (bb[3]) / (7.5 * enlarge)
+	delta_w = (bb[2]) / (3.5 * enlarge)
+	bb[0] -= delta_w
+	bb[1] -= delta_h
+	bb[2] += delta_w
+	bb[3] += delta_h
+	return bb
+
 def crop_kitti(img, bbox):
 	for i in range(len(bbox)):
 		if bbox[i] < 0:
@@ -134,10 +143,11 @@ class JAAD_loader():
 	"""
 		Class definition for JAAD annotation processing
 	"""
-	def __init__(self, path_jaad):
+	def __init__(self, path_jaad, folder_txt):
 		self.imdb = JAAD(data_path=path_jaad)
 		self.imdb.generate_database()
 		self.data = pickle.load(open(os.path.join(path_jaad,'data_cache/jaad_database.pkl'), 'rb'))
+		self.folder_txt = folder_txt
 	
 	def generate(self):
 		"""
@@ -159,6 +169,54 @@ class JAAD_loader():
 						data['names'].append(d)
 						data["video"].append(videos)
 		return data
+	
+	def generate_ap_gt_test(self):
+		di_gt = {}
+
+		file_test = open(os.path.join(self.folder_txt, 'test.txt'), 'r')
+		test_videos = extract_scenes(file_test)
+		for videos in self.data.keys():
+			if videos in test_videos:
+				ped_anno = self.data[videos]["ped_annotations"]
+				for d in ped_anno:
+					if 'look' in ped_anno[d]['behavior'].keys():
+						for i in range(len(ped_anno[d]['frames'])):
+							name = os.path.join(videos,str(ped_anno[d]['frames'][i]).zfill(5)+'.png')
+							bbox = [ped_anno[d]['bbox'][i][0], ped_anno[d]['bbox'][i][1], ped_anno[d]['bbox'][i][2], ped_anno[d]['bbox'][i][3]]
+							if name not in di_gt:
+								di_gt[name] = []
+							di_gt[name].append(bbox)
+		return di_gt
+	
+	def generate_ap_test(self, enlarge=3):
+		if not os.path.isfile(os.path.join(self.folder_txt, 'ground_truth.txt')):
+			print('ERROR: Ground truth file not found, please create the JAAD dataset first')
+			exit(0)
+
+		file_gt = open(os.path.join(self.folder_txt, 'ground_truth.txt'), 'r')
+		file_test = open(os.path.join(self.folder_txt, 'test.txt'), 'r')
+		data = {"path": [], "names": [], "bb": [], "im": [], "label": [], "video": [], "iou": [], "sc":[]}
+
+		test_videos =  extract_scenes(file_test)
+		di = {}
+		scores = {}
+		for line in file_gt:
+			line = line[:-1]
+			line_s = line.split(",")
+			video = line_s[0].split("/")[0]
+			if video in test_videos:
+				path = line_s[0]
+				if path not in di:
+					di[path] = []
+					scores[path] = []
+		
+				bbox = [float(line_s[2]), float(line_s[3]), float(line_s[4]), float(line_s[5])]
+				score = float(line_s[-3])
+
+				#bbox = enlarge_bbox(bbox, enlarge)
+				di[path].append(bbox)
+				scores[path].append(score)
+		return di, scores
 
 class JAAD_creator():
 	"""
@@ -362,4 +420,94 @@ class Kitti_creator():
 				Image.fromarray(head).convert('RGB').save(os.path.join(self.path_out,name_head))
 				name_pic += 1
 		file_out.close()
+
+class Kitti_label_loader():
+	"""
+		Class definition for Kitti gt annotation loader
+	"""
+	def __init__(self, path_anno_gt, path_anno, path_predicted):
+		self.path_anno_gt = path_anno_gt
+		self.path_anno = path_anno
+		self.path_predicted = path_predicted
 	
+	def load_annotation_im_gt(self, im_name):
+		txt_file = open(os.path.join(self.path_anno_gt, im_name[:-4]+'.txt'), 'r')
+		bboxes = []
+		for line in txt_file:
+			line_s = line.split(" ")
+			if line_s[0] == 'Pedestrian' or line_s[0] == "Cyclist":
+				bb = [float(line_s[4]), float(line_s[5]), float(line_s[6]), float(line_s[7])]
+				bboxes.append(bb)
+		return bboxes
+	
+	def load_annotation_im(self, im, enlarge=1):
+		new_data = []
+		data = json.load(open(os.path.join(self.path_anno,im+'.predictions.json'), 'r'))
+		data_ = [d["bbox"] for d in data]
+		scores_ = [d["score"] for d in data]
+		for d in data_:
+			new_data.append(convert_bb(enlarge_bbox_kitti(d,enlarge)))
+		return new_data, scores_
+	
+	def create_dicts(self, enlarge=1):
+		di_gt = {}
+		di_predicted = {}
+		scores = {}
+		for im in glob(os.path.join(self.path_predicted, '*.png')):
+			if os.path.isfile(os.path.join(self.path_anno,im.split('/')[-1]+'.predictions.json')):
+				name = im.split('/')[-1]
+				if name not in di_gt:
+					di_gt[name] = []
+					di_predicted[name] = []
+					scores[name] = []
+				di_gt[name].extend(self.load_annotation_im_gt(name))
+				pred_bb, pred_scores = self.load_annotation_im(name, enlarge)
+
+				di_predicted[name].extend(pred_bb)
+				scores[name].extend(pred_scores)
+		return di_gt, di_predicted, scores
+
+
+class AP_computer():
+	"""
+		Class definition to easily compute AP
+	"""
+	def __init__(self, di_gt, di_predicted_bboxes, di_scores, name='JAAD'):
+		self.di_gt = di_gt
+		self.di_predicted_bboxes = di_predicted_bboxes
+		self.di_scores = di_scores
+
+		self.path_out_txt = './input_{}'.format(name)
+		self.path_out_txt_pred = os.path.join(self.path_out_txt, 'detection-results')
+		self.path_out_txt_gt = os.path.join(self.path_out_txt, 'ground-truth')
+		try:
+			os.makedirs(self.path_out_txt)
+		except OSError as e:
+			if e.errno != errno.EEXIST:
+				raise
+		
+		try:
+			os.makedirs(self.path_out_txt_pred)
+		except OSError as e:
+			if e.errno != errno.EEXIST:
+				raise
+		
+		try:
+			os.makedirs(self.path_out_txt_gt)
+		except OSError as e:
+			if e.errno != errno.EEXIST:
+				raise
+	def create_txt(self):
+		for name in self.di_predicted_bboxes.keys():
+			name_processed = name.replace('/', '_')
+			with open(os.path.join(self.path_out_txt_gt,name_processed+'.txt'), 'w') as file:
+				bboxes = self.di_gt[name]
+				for b in bboxes:
+					file.write('person '+str(b[0])+' '+str(b[1])+' '+str(b[2])+' '+str(b[3])+'\n')
+			file.close()
+			with open(os.path.join(self.path_out_txt_pred, name_processed+'.txt'), 'w') as file:
+				anno = self.di_predicted_bboxes[name]
+				scores_ = self.di_scores[name]
+				for i in range(len(anno)):
+					file.write('person '+str(scores_[i])+' '+str(anno[i][0])+' '+str(anno[i][1])+' '+str(anno[i][2])+' '+str(anno[i][3])+'\n')
+			file.close()
