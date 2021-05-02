@@ -316,7 +316,7 @@ class Kitti_creator():
 		print('Creating the Kitti dataset...')
 		name_pic = 0
 		file_out = open(os.path.join(self.path_out_txt,"ground_truth_kitti.txt"), "w")
-		for file in tqdm(glob(os.path.join(self.path_annotation_train,'*.json'))):
+		for idx_line, file in enumerate(tqdm(glob(os.path.join(self.path_annotation_train,'*.json')))):
 			data = json.loads(open(file, 'r').read())
 			name = file.split('/')[-1][:-5]
 			pil_im = Image.open(os.path.join(self.path_images_train,name)).convert('RGB')
@@ -330,7 +330,10 @@ class Kitti_creator():
 				bbox = enlarge_bbox(data['bbox'][d])
 				head = crop_kitti(im, bbox)
 
-				file_out.write(name+','+name_head+',train,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
+				if idx_line > int(0.95*len(glob(os.path.join(self.path_annotation_train,'*.json')))):
+					file_out.write(name+','+name_head+',val,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
+				else:
+					file_out.write(name+','+name_head+',train,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
 
 				di = {"X":keypoints}
 				json.dump(di, open(os.path.join(self.path_out,name_head+".json"), 'w'))
