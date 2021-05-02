@@ -56,7 +56,7 @@ class JAAD_Dataset(Dataset):
         return sample['input'], float(sample['label'])
 
     def get_joints(self):
-        return self.kps, torch.Tensor(self.Y)
+        return self.X, torch.Tensor(self.Y).unsqueeze(1)
 
     def preprocess(self):
         if self.type == 'joints':

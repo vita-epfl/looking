@@ -3,6 +3,9 @@ from utils.dataset import *
 from utils.network import *
 from utils.losses import *
 import os, errno
+import seaborn as sns
+import matplotlib.pyplot as plt
+import copy
 
 class Parser():
     """
@@ -35,6 +38,7 @@ class Parser():
         
         model_type = self.model_type['type']
         pose = self.general['pose']
+        self.grad_map = None
 
         assert model_type in ['joints', 'heads', 'heads+joints']
         assert pose in ['head', 'body', 'full']
@@ -237,6 +241,7 @@ class Trainer():
     """
     def __init__(self, parser):
         self.parser = parser
+        self.get_grads = parser.grad_map
     
     def train(self):
         self.parser.model = self.parser.model.to(self.parser.device).train()
@@ -244,7 +249,11 @@ class Trainer():
         running_loss = 0
         i = 0
         best_ap = 0
+        grads_x = []
+        grads = []
+        
         for epoch in range(self.parser.epochs):
+            #self.parser.model = self.parser.model.train().to(self.parser.device)
             losses = []
             accuracies = []
 
@@ -264,19 +273,44 @@ class Trainer():
 
                 if i%10 == 0:
                     print_summary_step(i, np.mean(losses), np.mean(accuracies))
-                    #print('step {} , loss :{} | acc:{} '.format(i, np.mean(losses), np.mean(accuracies)))
                     losses = []
                     accuracies = []
-                    
             i = 0
             best_ap, ap_val, acc_val = self.eval_epoch(best_ap)
             print('')
             print('Epoch {} | mAP_val : {} | mAcc_val :{}'.format(epoch+1, ap_val, acc_val))
+            self.parser.optimizer.zero_grad()
+            if self.get_grads:
+                grads_x = []
+                model = copy.deepcopy(self.parser.model).to('cpu').eval()
+                for joints, labels in DataLoader(self.parser.dataset_train, batch_size=len(self.parser.dataset_train)):
+                    joints, labels = joints.to('cpu'), labels.unsqueeze(1).to('cpu').type(torch.float)
+                    break
+                joints.requires_grad=True
+                error = nn.BCELoss()(model(joints), labels)
+                error.backward()
+                for g in joints.grad.data:
+                    grads_x.append(g)
+                outs1 = torch.stack(grads_x,1)
+                grads.append(torch.mean(outs1, axis=1))
+                joints, labels = None, None
+                error = None
+                model = None
+                torch.cuda.empty_cache()
+        if self.get_grads:
+            res = torch.stack(grads,1)
+            y_labels = ['nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle','nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle','nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle']
+            grads_magnitude = abs(res)
+            grads_magnitude = grads_magnitude[:17, :]+grads_magnitude[17:34, :]+grads_magnitude[34:, :]
+            ax = sns.heatmap(grads_magnitude, linewidth=0.5, yticklabels=y_labels[:17])
+            plt.savefig('test.png')
 
-    
+
     def eval_epoch(self, best_ap):
+        self.parser.model = self.parser.model.eval()
         aps, accs = self.parser.dataset_val.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)
         if aps > best_ap:
             best_ap = aps
             torch.save(self.parser.model.state_dict(), self.parser.path_model)
+        #self.parser.model = self.parser.model.train().to(self.parser.device)
         return best_ap, aps, accs
