@@ -293,6 +293,10 @@ def print_summary(i, EPOCHS, train_loss, acc, acc_val, ap, val_ap, acc1, acc0):
            "acc1 : %0.1f | acc0 : %0.1f" % (train_loss, acc, acc_val, ap*100, val_ap*100, acc1*100, acc0*100)
     print('{}'.format(text), end="\r")
 
+def print_summary_step(step, train_loss, acc):
+    text = "Step : {} | ".format(step) + "m_step_loss : %.3f | m_step_acc : %.1f " % (train_loss, acc)
+    print('{}'.format(text), end="\r")
+
 
 def parse_str(text):
     text_s = text.split(",")

@@ -18,7 +18,7 @@ class SquarePad:
 		return F.pad(image, padding, 0, 'constant')
 
 class LookingModel(nn.Module):
-    def __init__(self, input_size, output_size=1, linear_size=256, p_dropout=0.2, num_stage=3, bce=False):
+    def __init__(self, input_size, p_dropout=0.2, output_size=1, linear_size=256, num_stage=3, bce=False):
         super(LookingModel, self).__init__()
 
         self.input_size = input_size
@@ -149,3 +149,133 @@ class ResNet50_head(nn.Module):
     
     def forward(self, x):
         return self.net(x)
+
+class LookingNet_early_fusion_18(nn.Module):
+    def __init__(self, PATH, PATH_look, device, fine_tune=True):
+        super(LookingNet_early_fusion_18, self).__init__()
+        self.backbone = models.resnet18(pretrained=False)
+        self.backbone.fc  = nn.Sequential(
+            nn.Linear(in_features=512, out_features=1, bias=True),
+            nn.Sigmoid()
+        )
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH))
+            for m in self.backbone.parameters():
+                m.requires_grad = False
+        self.backbone.eval()
+
+        self.looking_model = LookingModel(51)
+        if fine_tune:
+            self.looking_model = torch.load(PATH_look, map_location=torch.device(device))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+
+        self.encoder_head = nn.Sequential(
+            nn.Linear(512, 64, bias=False),
+            nn.BatchNorm1d(64),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, 16),
+            nn.BatchNorm1d(16),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+        self.final = nn.Sequential(
+            nn.Linear(272, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        def get_activation2(name):
+            def hook(model, input, output):
+                activation[name] = output.detach()
+            return hook
+
+        self.backbone.avgpool.register_forward_hook(get_activation('avgpool'))
+        self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
+
+        #x = torch.randn(1, 25)
+        output_head = self.backbone(head)
+        out_kps = self.looking_model(keypoint)
+
+        layer_look = activation["look"]
+        layer_resnet = activation["avgpool"]
+
+        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
+
+        return self.final(out_final)
+
+class LookingNet_early_fusion_50(nn.Module):
+    def __init__(self, PATH, PATH_look, device, fine_tune=True):
+        super(LookingNet_early_fusion_50, self).__init__()
+        self.backbone = models.resnext50_32x4d(pretrained=False)
+        self.backbone.fc  = nn.Sequential(
+            nn.Linear(in_features=2048, out_features=1, bias=True),
+            nn.Sigmoid()
+        )
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH))
+            for m in self.backbone.parameters():
+                m.requires_grad = False
+            self.backbone = self.backbone.eval()
+
+        self.looking_model = LookingModel(51)
+        if fine_tune:
+            self.looking_model = torch.load(PATH_look, map_location=torch.device(device))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model = self.looking_model.eval()
+
+
+
+        self.encoder_head = nn.Sequential(
+            nn.Linear(2048, 64, bias=False),
+            nn.BatchNorm1d(64),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, 16),
+            nn.BatchNorm1d(16),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+        self.final = nn.Sequential(
+            nn.Linear(272, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        def get_activation2(name):
+            def hook(model, input, output):
+                activation[name] = output.detach()
+            return hook
+
+        self.backbone.avgpool.register_forward_hook(get_activation('avgpool'))
+        self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
+
+        #x = torch.randn(1, 25)
+        output_head = self.backbone(head)
+        out_kps = self.looking_model(keypoint)
+
+        layer_look = activation["look"]
+        layer_resnet = activation["avgpool"]
+
+        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
+
+        return self.final(out_final)
