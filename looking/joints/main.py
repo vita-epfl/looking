@@ -23,8 +23,8 @@ parser.add_argument('--path', type=str, help='path for model saving', default='.
 parser.add_argument('--pose',  type=str, help='pose type', default="full")
 parser.add_argument('--batch_size', '-bs', help='enable focal loss', default=128)
 parser.add_argument('--focal_loss', help='enable focal loss', action='store_true')
-parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
-parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="JAAD_2k30/")
+parser.add_argument('--split_path', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
 parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
 
@@ -46,18 +46,20 @@ else:
 	INPUT_SIZE = 51
 
 DATA_PATH = args.data_path
-SPLIT_PATH_JAAD = args.split_path
+SPLIT_PATH = args.split_path
+JAAD_PATH = args.jaad_split_path
 PATH_MODEL = args.path
+
 
 """
 My local paths
 DATA_PATH = '../../data/'
-SPLIT_PATH_JAAD = '../splits/'
+SPLIT_PATH = '../splits/'
 PATH_MODEL = './models/'
 """
 
-jaad_train = JAAD_Dataset_joints(DATA_PATH, "JAAD_2k30/", "train", SPLIT_PATH_JAAD, pose, video)
-jaad_val = JAAD_Dataset_joints(DATA_PATH, "JAAD_2k30/", "val", SPLIT_PATH_JAAD, pose, video)
+jaad_train = JAAD_Dataset_joints(DATA_PATH, JAAD_PATH, "train", SPLIT_PATH, pose, video)
+jaad_val = JAAD_Dataset_joints(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH, pose, video)
 
 
 P_DROPOUT=args.dropout
@@ -106,7 +108,7 @@ if training:
 				out_pred = output
 				pred_label = torch.round(out_pred)
 				acc = binary_acc(pred_label.type(torch.float).view(-1), y_batch).item()
-				print('step {} , loss :{} | acc:{} '.format(i, l.item(), acc))
+				print('step {} , loss :{} | acc:{} '.format(i, loss.item(), acc))
 				model.train()
 				#break
 		model.eval()
@@ -145,7 +147,7 @@ print("Starting evaluation ...")
 model = []
 model = torch.load(PATH_MODEL + "looking_model_jaad_{}_{}_kps.pkl".format(video, pose), map_location=torch.device(device))
 model.eval()
-jaad_test = JAAD_Dataset_joints(DATA_PATH, "JAAD_2k30/", "test", SPLIT_PATH_JAAD, pose, video)
+jaad_test = JAAD_Dataset_joints(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, pose, video)
 
 ap_test, acc_test = jaad_test.evaluate(model, device, 10)
 

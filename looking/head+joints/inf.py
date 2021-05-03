@@ -27,7 +27,8 @@ split = args.split
 model_type = args.model
 
 DATA_PATH = args.data_path
-SPLIT_PATH_JAAD = args.split_path
+SPLIT_PATH = args.split_path
+JAAD_PATH = args.jaad_split_path
 PATH_MODEL = args.path
 
 """
@@ -104,7 +105,7 @@ model.eval()
 
 model.cuda()
 
-data_test_jaad = JAAD_Dataset(DATA_PATH, 'JAAD_2k30/', "test", SPLIT_PATH_JAAD, split, data_transform)
+data_test_jaad = JAAD_Dataset(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH_JAAD, split, data_transform)
 
 data_test= Kitti_Dataset(DATA_PATH, "test", data_transform)
 dataset_loader_test = torch.utils.data.DataLoader(data_test, batch_size=8, shuffle=True)

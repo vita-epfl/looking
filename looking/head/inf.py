@@ -18,8 +18,8 @@ parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
 parser.add_argument('--split', type=str, help='dataset split', default="video")
 parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
-parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
-parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="JAAD_2k30/")
+parser.add_argument('--split_path', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
 parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
 
@@ -29,7 +29,8 @@ split = args.split
 model_type = args.model
 
 DATA_PATH = args.data_path
-SPLIT_PATH_JAAD = args.split_path
+SPLIT_PATH = args.split_path
+JAAD_PATH = args.jaad_split_path
 PATH_MODEL = args.path
 
 """
@@ -101,7 +102,7 @@ print("model type {} | split type : {}".format(model_type, split))
 model.load_state_dict(torch.load('{}{}_head_{}.pkl'.format(PATH_MODEL, model_type, split)))
 model.eval()
 
-jaad_test = JAAD_Dataset_head(DATA_PATH, "JAAD_2k30/", "test", SPLIT_PATH_JAAD, split, data_transform)
+jaad_test = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH_JAAD, split, data_transform)
 ap, acc = jaad_test.evaluate(model.to(device), device, 10)
 
 print("AP JAAD : {} | Acc JAAD : {}".format(ap, acc))

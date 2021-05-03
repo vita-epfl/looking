@@ -24,7 +24,7 @@ parser.add_argument('--split', type=str, help='dataset split', default="video")
 parser.add_argument('--kitti', help='evaluate on kitti', action='store_true')
 parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
 parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
-parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
+parser.add_argument('--split_path', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
 parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
 
@@ -36,7 +36,8 @@ model_type = args.model
 kitti = args.kitti
 
 DATA_PATH = args.data_path
-SPLIT_PATH_JAAD = args.split_path
+SPLIT_PATH = args.split_path
+JAAD_PATH = args.jaad_split_path
 PATH_MODEL = args.path
 
 """
@@ -112,8 +113,8 @@ print('Device: ', device)
 
 
 
-jaad_train = JAAD_Dataset(DATA_PATH, 'JAAD_2k30/',"train", SPLIT_PATH_JAAD, split, data_transform)
-jaad_val = JAAD_Dataset(DATA_PATH, 'JAAD_2k30/', "val", SPLIT_PATH_JAAD, split, data_transform)
+jaad_train = JAAD_Dataset(DATA_PATH, JAAD_PATH,"train", SPLIT_PATH_JAAD, split, data_transform)
+jaad_val = JAAD_Dataset(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH_JAAD, split, data_transform)
 
 
 if model_type=='resnet18':
