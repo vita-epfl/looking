@@ -92,7 +92,7 @@ def main(train_file, test_file, name_, out_txt, out, path_txt):
 	
 	for raw in test:
 		path = create_path(raw)
-		#print(raw)
+		print(os.path.join(path,'*.json'))
 		for anno in glob(os.path.join(path,'*.json')):
 			name_im = os.path.join(raw,anno.split('/')[-1][:-5])
 			im = Image.open(name_im)

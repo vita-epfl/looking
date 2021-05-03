@@ -13,3 +13,13 @@ First clone [JAAD repo](https://github.com/ykotseruba/JAAD) in your machine and 
 
 * ```chmod +x create_kitti.sh```
 * ```./create_kitti.sh```
+
+## Create JackRabbot dataset
+
+* ```chmod +x create_jr.sh```
+* ```./create_jr.sh```
+
+## Create Nuscenes dataset
+
+* ```chmod +x create_nu.sh```
+* ```./create_nu.sh```
