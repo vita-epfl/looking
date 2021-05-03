@@ -5,7 +5,7 @@ import torchvision.transforms.functional as F
 from torchvision import transforms, datasets
 from torchvision import datasets, models, transforms
 
-torch.manual_seed(0)
+torch.manual_seed(1)
 np.random.seed(0)
 
 class SquarePad:
@@ -128,8 +128,8 @@ class AlexNet_head(nn.Module):
 class ResNet18_head(nn.Module):
     def __init__(self, device):
         super(ResNet18_head, self).__init__()
-        net = models.resnet18(pretrained=True)
-        net.fc  = nn.Sequential(
+        self.net = models.resnet18(pretrained=True)
+        self.net.fc  = nn.Sequential(
             nn.Linear(in_features=512, out_features=1, bias=True),
             nn.Sigmoid()
         ).to(device)

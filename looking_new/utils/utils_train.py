@@ -222,7 +222,13 @@ def extract_body(X, Y, C):
 ### Metrics
 
 def binary_acc(y_pred, y_test):
-    y_pred_tag = torch.round(y_pred)
+    y_pred_tag = torch.round(torch.flatten(y_pred))
+    y_test = torch.flatten(y_test)
+    #print(y_pred_tag.shape)
+    #print(y_test.shape)
+
+    #y_pred_tag = y_pred_tag
+    #y_test = y_test
     # print(confusion_matrix(y_test.cpu().detach().numpy(), y_pred_tag.cpu().detach().numpy()))
     correct_results_sum = (y_pred_tag == y_test).sum().float()
     acc = correct_results_sum / y_test.shape[0]

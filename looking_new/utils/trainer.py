@@ -6,6 +6,7 @@ import os, errno
 import seaborn as sns
 import matplotlib.pyplot as plt
 import copy
+from torch.utils.data.sampler import WeightedRandomSampler
 
 class Parser():
     """
@@ -16,6 +17,11 @@ class Parser():
         self.model_type = config['Model_type']
         self.eval_params = config['Eval']
         self.data_args = config['Dataset']
+        self.multi_args = config['Multi_Dataset']
+        self.jaad_args = config['JAAD_dataset']
+        self.kitti_args = config['Kitti_dataset']
+        self.nu_args = config['Nuscenes_dataset']
+        self.jack_args = config['JackRabbot_dataset']
         use_cuda = torch.cuda.is_available()
         self.device = torch.device("cuda:{}".format(self.general['device']) if use_cuda else "cpu")
         print('Device: ', self.device)
@@ -27,6 +33,8 @@ class Parser():
         self.grad_map = False
         self.eval_it = int(self.general['eval_it'])
         self.dropout = float(self.general['dropout'])
+        self.multi_dataset = self.general.getboolean('multi_dataset')
+        self.weighted = self.multi_args.getboolean('weighted')
         assert criterion_type in ['BCE', 'focal_loss']
         assert optimizer_type in ['adam', 'sgd']
         if criterion_type == 'BCE':
@@ -107,10 +115,10 @@ class Parser():
             else:
                 name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__])+'.p'
 
-            path_output_model_backbone = os.path.join(self.general['path'], 'Heads')
+            path_output_model_backbone = os.path.join(self.general['path'], self.data_args['trained_on'], 'Heads')
             path_backbone = os.path.join(path_output_model_backbone, name_model_backbone)
 
-            path_output_model_joints = os.path.join(self.general['path'], 'Joints')
+            path_output_model_joints = os.path.join(self.general['path'], self.data_args['trained_on'], 'Joints')
             path_model_joints = os.path.join(path_output_model_joints, name_model_joints)
             if fine_tune:
                 if not os.path.isfile(path_backbone):
@@ -124,8 +132,6 @@ class Parser():
                 model = LookingNet_early_fusion_18(path_backbone, path_output_model_joints, self.device, fine_tune)
             else:
                 model = LookingNet_early_fusion_50(path_backbone, path_output_model_joints, self.device, fine_tune)
-            
-
 
         self.model_type_ = model_type
         self.pose = pose
@@ -141,52 +147,109 @@ class Parser():
 
     def get_data(self, data_type):
         split_strategy = self.data_args['split']
-        path_txt = os.path.join(self.data_args['path_txt'], 'splits_'+data_type.lower())
-        dataset_train = []
-        dataset_val = []
+        if self.multi_dataset:
+            dataset_names = data_type.split(',')
+            paths_txt = [os.path.join(self.data_args['path_txt'], 'splits_'+data_name.lower()) for data_name in dataset_names]
+            dataset_train = []
+            dataset_val = []
+            for path_txt in paths_txt:
+                if 'nu' in path_txt:
+                    path_data = self.nu_args['path_data']
+                    dataset_train.append(Jack_Nu_dataset('nu', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
+                    dataset_val.append(Jack_Nu_dataset('nu', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
+                elif 'jack' in path_txt:
+                    path_data = self.jack_args['path_data']
+                    dataset_train.append(Jack_Nu_dataset('jack', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
+                    dataset_val.append(Jack_Nu_dataset('jack', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
+                elif 'jaad' in path_txt:
+                    path_data = self.jaad_args['path_data']
+                    dataset_train.append(JAAD_Dataset(path_data, self.model_type_, 'train', self.pose, split_strategy, self.data_transform, path_txt, self.device))
+                    dataset_val.append(JAAD_Dataset(path_data, self.model_type_, 'val', self.pose, split_strategy, self.data_transform, path_txt, self.device))
+                elif 'kitti' in path_txt:
+                    path_data = self.kitti_args['path_data']
+                    dataset_train.append(Kitti_dataset('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
+                    dataset_val.append(Kitti_dataset('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
+            return dataset_train, dataset_val
+                 
+        else:
+            path_txt = os.path.join(self.data_args['path_txt'], 'splits_'+data_type.lower())
+            dataset_train = []
+            dataset_val = []
 
-        if data_type == 'JAAD':
-            path_data = self.data_args['path_data']
-            dataset_train = JAAD_Dataset(path_data, self.model_type_, 'train', self.pose, split_strategy, self.data_transform, path_txt, self.device)
-            dataset_val = JAAD_Dataset(path_data, self.model_type_, 'val', self.pose, split_strategy, self.data_transform, path_txt, self.device)
-        elif data_type == 'Kitti':
-            path_data = self.data_args['path_data']
-            dataset_train = Kitti_dataset('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-            dataset_val = Kitti_dataset('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-        return dataset_train, dataset_val
+            if data_type == 'JAAD':
+                path_data = self.data_args['path_data']
+                dataset_train = JAAD_Dataset(path_data, self.model_type_, 'train', self.pose, split_strategy, self.data_transform, path_txt, self.device)
+                dataset_val = JAAD_Dataset(path_data, self.model_type_, 'val', self.pose, split_strategy, self.data_transform, path_txt, self.device)
+            elif data_type == 'Kitti':
+                path_data = self.data_args['path_data']
+                dataset_train = Kitti_dataset('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+                dataset_val = Kitti_dataset('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+            return dataset_train, dataset_val
     
     def get_data_test(self, data_type):
         split_strategy = self.eval_params['split']
         path_txt = os.path.join(self.data_args['path_txt'], 'splits_'+data_type.lower())
+        print(path_txt)
         dataset_test = []
-
+        path_data = self.eval_params['path_data_eval']
         if data_type == 'JAAD':
-            path_data = self.eval_params['path_data_eval']
             dataset_test = JAAD_Dataset(path_data, self.model_type_, 'test', self.pose, split_strategy, self.data_transform, path_txt, self.device)
         elif data_type == 'Kitti':
-            path_data = self.eval_params['path_data_eval']
             dataset_test = Kitti_dataset('test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+        elif data_type == 'Jack':
+            dataset_test = Jack_Nu_dataset('jack', 'test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+        elif data_type == 'NU':
+            dataset_test = Jack_Nu_dataset('nu', 'test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
         return dataset_test
 
     def parse(self):
         self.model, self.criterion, self.optimizer, self.data_transform = self.get_model()
-        self.dataset_train, self.dataset_val = self.get_data(self.data_args['name'])
-        self.path_output = os.path.join(self.general['path'], self.data_args['name'], self.model_type['type'].title())
-        try:
-            os.makedirs(self.path_output)
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        
-        additional_features = ''
-        if 'JAAD' in self.data_args['name']:
-            additional_features += '{}'.format(self.data_args['split'])
+        if self.multi_dataset:
+            names = '+'.join(self.multi_args['train_datasets'].split(','))
 
-        if self.model_type['type'] != 'joints':
-            name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, additional_features])+'.p'
+            self.path_output = os.path.join(self.general['path'], names, self.model_type['type'].title())
+            self.dataset_train, self.dataset_val = self.get_data(self.multi_args['train_datasets'])
+            self.path_output = os.path.join(self.general['path'], names, self.model_type['type'].title())
+            try:
+                os.makedirs(self.path_output)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+            
+            features = [self.model.__class__.__name__, self.criterion.__class__.__name__]
+            if self.model_type['type'] == 'joints':
+                features.append(self.general['pose'])
+
+            if 'JAAD' in names:
+                features.append('{}'.format(self.data_args['split']))
+            
+            if self.weighted:
+                features.append('weighted')
+
+            
+            
+            name_model = '_'.join(features)+'.p'
+            #else:
+            #    name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose']].extend(additional_features))+'.p'
+            self.path_model = os.path.join(self.path_output, name_model)
         else:
-            name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose'], additional_features])+'.p'
-        self.path_model = os.path.join(self.path_output, name_model)
+            self.dataset_train, self.dataset_val = self.get_data(self.data_args['name'])
+            self.path_output = os.path.join(self.general['path'], self.data_args['name'], self.model_type['type'].title())
+            try:
+                os.makedirs(self.path_output)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+            
+            additional_features = ''
+            if 'JAAD' in self.data_args['name']:
+                additional_features += '{}'.format(self.data_args['split'])
+
+            if self.model_type['type'] != 'joints':
+                name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, additional_features])+'.p'
+            else:
+                name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose'], additional_features])+'.p'
+            self.path_model = os.path.join(self.path_output, name_model)
     
     def load_model_for_eval(self):
         self.model.load_state_dict(torch.load(self.path_model))
@@ -198,6 +261,7 @@ class Evaluator():
     """
     def __init__(self, parser):
         self.parser = parser
+        print(self.parser.path_model)
         if os.path.isfile(self.parser.path_model):
             print('Model file exists.. Loading model file ...')
             self.parser.load_model_for_eval()
@@ -210,8 +274,8 @@ class Evaluator():
         """
         data_to_evaluate = self.parser.eval_params['eval_on']
         data_test = self.parser.get_data_test(data_to_evaluate)
-        data_loader_test = DataLoader(data_test, 1, shuffle=False)
-        if data_to_evaluate != 'JAAD':
+        """data_loader_test = DataLoader(data_test, 1, shuffle=False)
+        if data_to_evaluate not in ['JAAD', 'NU']:
             acc = 0
             ap = 0
 
@@ -229,8 +293,8 @@ class Evaluator():
 
             ap = average_precision(output_all, labels_all)
             acc = binary_acc(output_all.type(torch.float).view(-1), labels_all).item()
-        else:
-            ap, acc = data_test.evaluate(self.parser.model, self.parser.device, 10)
+        else:"""
+        ap, acc = data_test.evaluate(self.parser.model, self.parser.device, 10)
         print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
         
 
@@ -242,13 +306,33 @@ class Trainer():
     def __init__(self, parser):
         self.parser = parser
         self.get_grads = parser.grad_map
-    
+    def get_sampler(self, concat_dataset):
+        weigths = 1./ torch.Tensor([len(data) for data in concat_dataset])
+        di = {}
+        for i, data in enumerate(self.parser.dataset_train):
+            di[data.name] = weigths[i]
+        weigths_samples = []
+        for data in self.parser.dataset_train:
+            for _ in data:
+                weigths_samples.append(di[data.name])
+        sampler = WeightedRandomSampler(torch.Tensor(weigths_samples), len(weigths_samples))
+        return sampler
+
     def train(self):
         self.parser.model = self.parser.model.to(self.parser.device).train()
-        train_loader = DataLoader(self.parser.dataset_train, batch_size=self.parser.batch_size, shuffle=True)
+        if self.parser.multi_dataset:
+            concat_dataset = torch.utils.data.ConcatDataset(self.parser.dataset_train)
+            if self.parser.weighted:
+                sampler = self.get_sampler(concat_dataset)
+                train_loader = DataLoader(concat_dataset, batch_size=self.parser.batch_size, sampler=sampler)
+            else:
+                train_loader = DataLoader(concat_dataset, batch_size=self.parser.batch_size, shuffle=True)
+        else:
+            train_loader = DataLoader(self.parser.dataset_train, batch_size=self.parser.batch_size, shuffle=True)
         running_loss = 0
         i = 0
         best_ap = 0
+        best_ac = 0
         grads_x = []
         grads = []
         
@@ -261,12 +345,12 @@ class Trainer():
                 y_batch = y_batch.to(self.parser.device)
                 self.parser.optimizer.zero_grad()
                 output = self.parser.model(x_batch)
-                loss = self.parser.criterion(output, y_batch.view(-1, 1).float())
+                loss = self.parser.criterion(output, y_batch.float())
                 running_loss += loss.item()
                 
                 loss.backward()
                 losses.append(loss.item())
-                accuracies.append(binary_acc(output.type(torch.float).view(-1), y_batch).item())
+                accuracies.append(binary_acc(output.type(torch.float), y_batch).item())
 
                 self.parser.optimizer.step()
                 i += 1
@@ -275,13 +359,15 @@ class Trainer():
                     print_summary_step(i, np.mean(losses), np.mean(accuracies))
                     losses = []
                     accuracies = []
+
             i = 0
-            best_ap, ap_val, acc_val = self.eval_epoch(best_ap)
+            best_ap, best_ac, ap_val, acc_val = self.eval_epoch(best_ap, best_ac)
             print('')
             print('Epoch {} | mAP_val : {} | mAcc_val :{}'.format(epoch+1, ap_val, acc_val))
-            self.parser.optimizer.zero_grad()
+            
             if self.get_grads:
                 grads_x = []
+                self.parser.optimizer.zero_grad()
                 model = copy.deepcopy(self.parser.model).to('cpu').eval()
                 for joints, labels in DataLoader(self.parser.dataset_train, batch_size=len(self.parser.dataset_train)):
                     joints, labels = joints.to('cpu'), labels.unsqueeze(1).to('cpu').type(torch.float)
@@ -292,7 +378,7 @@ class Trainer():
                 for g in joints.grad.data:
                     grads_x.append(g)
                 outs1 = torch.stack(grads_x,1)
-                grads.append(torch.mean(outs1, axis=1))
+                grads.append(torch.mean(abs(outs1), axis=1))
                 joints, labels = None, None
                 error = None
                 model = None
@@ -300,17 +386,33 @@ class Trainer():
         if self.get_grads:
             res = torch.stack(grads,1)
             y_labels = ['nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle','nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle','nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle']
-            grads_magnitude = abs(res)
-            grads_magnitude = grads_magnitude[:17, :]+grads_magnitude[17:34, :]+grads_magnitude[34:, :]
-            ax = sns.heatmap(grads_magnitude, linewidth=0.5, yticklabels=y_labels[:17])
+            grads_magnitude = res
+            grads_magnitude_ = grads_magnitude[:17, :]+grads_magnitude[17:34, :]+grads_magnitude[34:, :]
+            ax = sns.heatmap(grads_magnitude_, linewidth=0.5, yticklabels=y_labels[:17])
             plt.savefig('test.png')
+            plt.close()
+            ax = sns.heatmap(grads_magnitude, linewidth=0.5, yticklabels=y_labels)
+            plt.savefig('test2.png')
+            plt.close()
 
 
-    def eval_epoch(self, best_ap):
+    def eval_epoch(self, best_ap, best_ac):
         self.parser.model = self.parser.model.eval()
-        aps, accs = self.parser.dataset_val.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)
+        if self.parser.multi_dataset:
+            tab_ap = []
+            tab_acc = []
+            for data in self.parser.dataset_val:
+                aps, accs = data.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)
+                tab_ap.append(aps)
+                tab_acc.append(accs)
+            #exit(0)
+            aps, accs = np.mean(tab_ap), np.mean(tab_acc)
+        else:
+            aps, accs = self.parser.dataset_val.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)
+        
         if aps > best_ap:
             best_ap = aps
+            best_ac = accs
             torch.save(self.parser.model.state_dict(), self.parser.path_model)
         #self.parser.model = self.parser.model.train().to(self.parser.device)
-        return best_ap, aps, accs
+        return best_ap, best_ac, aps, accs

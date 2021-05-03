@@ -70,7 +70,8 @@ def main(train_file, test_file, name_, out_txt, out, path_txt):
 	for raw in train:
 		path = create_path(raw)
 		print(os.path.join(path,'*.json'))
-		for anno in glob(os.path.join(path,'*.json')):
+
+		for k, anno in enumerate(glob(os.path.join(path,'*.json'))):
 			name_im = os.path.join(raw,anno.split('/')[-1][:-5])
 			im = Image.open(name_im)
 
@@ -85,7 +86,10 @@ def main(train_file, test_file, name_, out_txt, out, path_txt):
 				
 				di = {"X":json_di["X"][i]}
 				json.dump(di, open(os.path.join(out,out_name), "w"))
-				line = ','.join([anno[:-5], 'train', out_name, str(json_di["bbox"][i][0]), str(json_di["bbox"][i][1]), str(json_di["bbox"][i][0]+json_di["bbox"][i][2]),str(json_di["bbox"][i][1]+json_di["bbox"][i][-1]), str(json_di["Y"][i])+'\n'])
+				if k > int(0.9*len(glob(os.path.join(path,'*.json')))):
+				    line = ','.join([anno[:-5], 'val', out_name, str(json_di["bbox"][i][0]), str(json_di["bbox"][i][1]), str(json_di["bbox"][i][0]+json_di["bbox"][i][2]),str(json_di["bbox"][i][1]+json_di["bbox"][i][-1]), str(json_di["Y"][i])+'\n'])
+				else:
+				    line = ','.join([anno[:-5], 'train', out_name, str(json_di["bbox"][i][0]), str(json_di["bbox"][i][1]), str(json_di["bbox"][i][0]+json_di["bbox"][i][2]),str(json_di["bbox"][i][1]+json_di["bbox"][i][-1]), str(json_di["Y"][i])+'\n'])
 				file_out.write(line)
 				j += 1
 			file.close()
@@ -93,6 +97,7 @@ def main(train_file, test_file, name_, out_txt, out, path_txt):
 	for raw in test:
 		path = create_path(raw)
 		print(os.path.join(path,'*.json'))
+		#print(tes
 		for anno in glob(os.path.join(path,'*.json')):
 			name_im = os.path.join(raw,anno.split('/')[-1][:-5])
 			im = Image.open(name_im)
