@@ -16,14 +16,14 @@ torch.manual_seed(0)
 parser = argparse.ArgumentParser(description='Training the head model on JAAD')
 
 # parameters
-arser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
+parser.add_argument('--model', '-m', type=str, help='model type [resnet18, resnet50, alexnet]', default="resnet50")
 parser.add_argument('--save', help='save the model', action='store_true')
 parser.add_argument('--epochs', '-e', type=int, help='number of epochs for training', default=100)
 parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate for training', default=0.0001)
 parser.add_argument('--split', type=str, help='dataset split', default="video")
 parser.add_argument('--kitti', help='evaluate on kitti', action='store_true')
 parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
-parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="new_JAAD_2k30/")
+parser.add_argument('--jaad_split_path', '-jsp', type=str, help='proportion for the training', default="JAAD_2k30/")
 parser.add_argument('--split_path', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
 parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
@@ -113,8 +113,8 @@ print('Device: ', device)
 
 
 
-jaad_train = JAAD_Dataset(DATA_PATH, JAAD_PATH,"train", SPLIT_PATH_JAAD, split, data_transform)
-jaad_val = JAAD_Dataset(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH_JAAD, split, data_transform)
+jaad_train = JAAD_Dataset(DATA_PATH, JAAD_PATH,"train", SPLIT_PATH, split, data_transform)
+jaad_val = JAAD_Dataset(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH, split, data_transform)
 
 
 if model_type=='resnet18':

@@ -22,7 +22,7 @@ parser.add_argument('--learning_rate', '-lr', type=float, help='learning rate fo
 parser.add_argument('--split', type=str, help='dataset split', default="video")
 parser.add_argument('--kitti', help='evaluate on kitti', action='store_true')
 parser.add_argument('--path', type=str, help='path for model saving', default='./models/')
-parser.add_argument('--jaad_path', type=str, help='proportion for the training', default="JAAD_2k30/")
+parser.add_argument('--jaad_split_path', type=str, help='proportion for the training', default="JAAD_2k30/")
 parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/splits/")
 parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
@@ -107,14 +107,14 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-jaad_train = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "train", SPLIT_PATH_JAAD, split, data_transform)
-jaad_val = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH_JAAD, split, data_transform)
+jaad_train = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "train", SPLIT_PATH, split, data_transform)
+jaad_val = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH, split, data_transform)
 
 dataset_loader = torch.utils.data.DataLoader(jaad_train, batch_size=64, shuffle=True)
 dataset_loader_test = torch.utils.data.DataLoader(jaad_val, batch_size=8, shuffle=True)
 
 loss = nn.BCELoss()
-optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=0.9)
+optimizer = torch.optim.SGD(net.parameters(), lr=args.learning_rate, momentum=0.9)
 
 i = 0
 aps_val = 0

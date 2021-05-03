@@ -152,7 +152,7 @@ jaad_test = JAAD_Dataset_joints(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, pose, 
 ap_test, acc_test = jaad_test.evaluate(model, device, 10)
 
 
-print("Best AP on JAAD test set : {:.1f}%".format(ap_test))
+print("Best AP on JAAD test set : {:.1f}%".format(100*ap_test))
 
 if kitti:
 	model = []
