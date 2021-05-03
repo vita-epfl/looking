@@ -9,6 +9,8 @@ First clone [JAAD repo](https://github.com/ykotseruba/JAAD) in your machine and 
 * Run ```python3 dataset.py --path [path_to_JAAD_repo] --path_joints [path_to_extracted_joints_folder] --dir_out [path_to_the_directory_to_store_the_images_and_the_keypoints]```. This process can take up to an hour
 * Run ```python3 split.py --gt_name [name_of_gt_txt_file] --txt_out [folder_of_txt_files]``` to create the splits
 
+Add paths
+
 ## Create the Kitti dataset
 
 * ```chmod +x create_kitti.sh```

@@ -232,6 +232,7 @@ class Parser():
             #else:
             #    name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose']].extend(additional_features))+'.p'
             self.path_model = os.path.join(self.path_output, name_model)
+            
         else:
             self.dataset_train, self.dataset_val = self.get_data(self.data_args['name'])
             self.path_output = os.path.join(self.general['path'], self.data_args['name'], self.model_type['type'].title())
@@ -250,7 +251,9 @@ class Parser():
             else:
                 name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose'], additional_features])+'.p'
             self.path_model = os.path.join(self.path_output, name_model)
-    
+            if self.grad_map:
+                self.out_grad = self.path_model[:-2]+'_grads.png'
+ 
     def load_model_for_eval(self):
         self.model.load_state_dict(torch.load(self.path_model))
         self.model = self.model.to(self.device).eval()
@@ -370,7 +373,7 @@ class Trainer():
                 self.parser.optimizer.zero_grad()
                 model = copy.deepcopy(self.parser.model).to('cpu').eval()
                 for joints, labels in DataLoader(self.parser.dataset_train, batch_size=len(self.parser.dataset_train)):
-                    joints, labels = joints.to('cpu'), labels.unsqueeze(1).to('cpu').type(torch.float)
+                    joints, labels = joints.to('cpu'), labels.to('cpu').type(torch.float)
                     break
                 joints.requires_grad=True
                 error = nn.BCELoss()(model(joints), labels)
@@ -388,11 +391,20 @@ class Trainer():
             y_labels = ['nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle','nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle','nose', 'left_eye','right_eye','left_ear','right_ear','left_shoulder','right_shoulder','left_elbow','right_elbow','left_wrist','right_wrist','left_hip','right_hip','left_knee','right_knee','left_ankle','right_ankle']
             grads_magnitude = res
             grads_magnitude_ = grads_magnitude[:17, :]+grads_magnitude[17:34, :]+grads_magnitude[34:, :]
-            ax = sns.heatmap(grads_magnitude_, linewidth=0.5, yticklabels=y_labels[:17])
-            plt.savefig('test.png')
+            ax = sns.heatmap(grads_magnitude_, linewidth=0.5, yticklabels=y_labels[:17], xticklabels=list(range(1, self.parser.epochs+1)))
+            #for i, x in enumerate(ax.get_xticklabels()):
+            #    if i%5 == 0:
+            #        x_ticks.append(x)
+            ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize = 6)
+            ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 6)
+            plt.xlabel("# Epochs")
+            plt.savefig(self.parser.out_grad)
             plt.close()
-            ax = sns.heatmap(grads_magnitude, linewidth=0.5, yticklabels=y_labels)
-            plt.savefig('test2.png')
+            ax = sns.heatmap(grads_magnitude, linewidth=0.5, yticklabels=y_labels, xticklabels=list(range(1, self.parser.epochs+1)))
+            ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize = 6)
+            ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 6)
+            plt.xlabel("# Epochs")
+            plt.savefig(self.parser.out_grad[:-5]+'_all.png')
             plt.close()
 
 
