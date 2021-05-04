@@ -2,7 +2,7 @@ torch
 Pillow
 opencv-python
 scikit-learn
-openpifpaf==0.11.9
+openpifpaf
 numpy
 scikit-image
 tensorboard

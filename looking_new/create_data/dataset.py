@@ -2,8 +2,8 @@ from utils import JAAD_loader, JAAD_creator, Kitti_creator
 import os
 import argparse
 
-parser = argparse.ArgumentParser(description='Parsing the JAAD dataset and creating the data')
-parser.add_argument('--dataset', dest='d', type=str, required=True, help='which dataset to create', default="JAAD")
+parser = argparse.ArgumentParser(description='Parsing the datasets and creating the data')
+parser.add_argument('--dataset', dest='d', type=str, help='which dataset to create', default="JAAD")
 parser.add_argument('--path', dest='p', type=str, help='path to JAAD repository', default="/home/younesbelkada/Travail/JAAD")
 parser.add_argument('--path_joints', dest='pj', type=str, help='path to the joints', default="/home/younesbelkada/Travail/data/output_pifpaf_01_2k30")
 parser.add_argument('--txt_out', dest='to', type=str, help='path to the output txt file', default="./splits_jaad")
