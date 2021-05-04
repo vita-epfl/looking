@@ -82,7 +82,7 @@ class Predictor():
             out_labels = []
         return out_labels
     
-    def render_image(self, image, bbox, pred_labels, image_name):
+    def render_image(self, image, bbox, keypoints, pred_labels, image_name):
         open_cv_image = np.array(image) 
         open_cv_image = open_cv_image[:, :, ::-1].copy()
         
@@ -94,11 +94,13 @@ class Predictor():
 
         mask = np.zeros(open_cv_image.shape, dtype=np.uint8)
         for i, label in enumerate(pred_labels):
+
             if label > 0.5:
                 color = (0,255,0)
             else:
                 color = (0,0,255)
-            start_point = (int(bbox[i][0]), int(bbox[i][1]))
+            
+            """start_point = (int(bbox[i][0]), int(bbox[i][1]))
             end_point = (int(bbox[i][2]), int(bbox[i][3]))
 
             #w = int(0.75*abs(int(bbox[i][2])-int(bbox[i][0])))
@@ -114,7 +116,8 @@ class Predictor():
             mask = cv2.rectangle(mask, start_point, end_point, color, 1)
             mask = cv2.rectangle(mask, small_rect_start, small_rect_end, color, -1)
 
-            mask = cv2.putText(mask, str("%.2f" % label), small_text_start, FONT, font_scale, (255,255,255), 1)
+            mask = cv2.putText(mask, str("%.2f" % label), small_text_start, FONT, font_scale, (255,255,255), 1)"""
+            mask = run_and_kps(open_cv_image, keypoints, label)
         open_cv_image = cv2.addWeighted(open_cv_image, 0.8, mask, 0.4, 1.0)
         cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.predictions.png'), open_cv_image)
 
@@ -147,7 +150,7 @@ class Predictor():
             #print(boxes, keypoints)
             pred_labels = self.predict_look(boxes, keypoints)
             #print(im_name, pred_labels)
-            self.render_image(pifpaf_outs['image'], boxes, pred_labels, im_name)
+            self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name)
             #exit(0)
 
     

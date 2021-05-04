@@ -6,6 +6,19 @@ import os
 from openpifpaf.predict import processor_factory, preprocess_factory
 from openpifpaf import decoder, network, visualizer, show, logger
 
+def convert(data):
+    X = []
+    Y = []
+    C = []
+    A = []
+    i = 0
+    while i < 51:
+        X.append(data[i])
+        Y.append(data[i+1])
+        C.append(data[i+2])
+        i += 3
+    A = np.array([X, Y, C]).flatten().tolist()
+    return X, Y, C, A
 
 def prepare_pif_kps(kps_in):
     """Convert from a list of 51 to a list of 3, 17"""
@@ -80,6 +93,18 @@ def filecreation(dirname):
         if e.errno != errno.EEXIST:
             raise  # This was not a "directory exist" error..
     return mydir
+
+def run_and_kps(img, kps, label):
+    blk = np.zeros(img.shape, np.uint8)
+    X, Y, C, _ = convert(kps)
+    if label > 0.5:
+        color = (0, 255, 0)
+    else:
+        color = (0,0,255)
+    for i in range(len(Y)):
+        blk =cv2.circle(blk, (int(X[i]), int(Y[i])), 1, color, 2)
+    #img = cv2.addWeighted(img, 1.0, blk, 0.55, 1)
+    return blk
 
 def load_pifpaf(args):
     args.figure_width = 10
