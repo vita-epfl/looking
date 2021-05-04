@@ -1,11 +1,12 @@
 #!/bin/sh
 BASE_PATH=$(pwd)
-PATH_OUTPUT_DATA="/home/younesbelkada/Travail/data/Kitti"
+PATH_OUTPUT_DATA="/data/younes-data/Kitti"
 PATH_KITTI_GT_OUT="./splits_kitti"
 ID_ANNO='1kjmWOdyNP-us8SCNoPq6fRWTToli4FNo'
 ID_IM='1Lr_RAkpAswnoYF7ZcYoLstMsTFiMy8Pm'
 
 mkdir -p $PATH_OUTPUT_DATA
+mkdir -p $PATH_KITTI_GT_OUT
 
 echo "Downloading Kitti annotations ..."
 gdown --id $ID_ANNO 
