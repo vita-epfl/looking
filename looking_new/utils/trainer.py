@@ -47,7 +47,6 @@ class Parser():
         model_type = self.model_type['type']
         pose = self.general['pose']
         self.grad_map = None
-
         assert model_type in ['joints', 'heads', 'heads+joints']
         assert pose in ['head', 'body', 'full']
         if model_type == 'joints':

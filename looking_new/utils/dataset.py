@@ -61,6 +61,7 @@ class JAAD_Dataset(Dataset):
         return self.X, torch.Tensor(self.Y).unsqueeze(1)
 
     def preprocess(self):
+        self.heights = []
         if self.type == 'joints':
             tab_Y = []
             kps = []
@@ -70,7 +71,7 @@ class JAAD_Dataset(Dataset):
                 joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
                 X = joints[:17]
                 Y = joints[17:34]
-                X_new, Y_new = normalize(X, Y, True)
+                X_new, Y_new, height = normalize(X, Y, True, True)
                 if self.pose == "head":
                     X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
                     tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
@@ -81,6 +82,7 @@ class JAAD_Dataset(Dataset):
                     tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
                 kps.append(tensor)
                 tab_Y.append(int(line_s[-1]))
+                self.heights.append(height)
             return torch.tensor(kps), tab_Y
         elif self.type == 'heads':
             tab_X = []
@@ -109,7 +111,33 @@ class JAAD_Dataset(Dataset):
                 tab_Y.append(int(line_s[-1]))
             return tab_X, torch.tensor(kps), tab_Y
     
-    def evaluate(self, model, device, it=1):
+    def eval_ablation(self, heights, preds, ground_truths):
+        """
+            Evaluate using the ablation study
+        """
+        preds = preds.detach().cpu().numpy()
+        ground_truths = ground_truths.detach().cpu().numpy()
+
+        perc_1 = np.percentile(heights, 33)
+        perc_2 = np.percentile(heights, 66)
+
+        preds_1 = preds[heights <= perc_1]
+        ground_truths_1 = ground_truths[heights <= perc_1]
+
+        preds_2 = preds[(heights > perc_1) & (heights <= perc_2)]
+        ground_truths_2 = ground_truths[(heights > perc_1) & (heights <= perc_2)]
+
+        preds_3 = preds[heights > perc_2]
+        ground_truths_3 = ground_truths[heights > perc_2]
+
+        ap_1, ap_2, ap_3 = average_precision_score(ground_truths_1, preds_1), average_precision_score(ground_truths_2, preds_2), average_precision_score(ground_truths_3, preds_3)
+
+        #print('Far :{} | Middle : {} | Close : {}'.format(ap_1, ap_2, ap_3))
+
+        return ap_1, ap_2, ap_3
+
+
+    def evaluate(self, model, device, it=1, heights_=False):
         assert self.split in ["test", "val"]
         model = model.eval()
         model = model.to(device)
@@ -121,16 +149,25 @@ class JAAD_Dataset(Dataset):
             positive_samples = np.array(tab_X)[idx_Y1]
             positive_samples_labels = np.array(tab_Y)[idx_Y1]
             N_pos = len(idx_Y1)
+            #print(N_pos)
             aps = []
             accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
                 neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
                 neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
 
+
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
+
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
+
                 new_data = Eval_Dataset_joints(total_samples, total_labels)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
                 acc = 0
@@ -142,13 +179,25 @@ class JAAD_Dataset(Dataset):
                     out_pred = output
                     pred_label = torch.round(out_pred)
                     le = x_test.shape[0]
-                    acc += le*binary_acc(pred_label.type(torch.float), y_test.view(-1)).item()
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    acc += le*binary_acc(pred_label.type(torch.float), y_test.type(torch.float).view(-1)).item()
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
+                if heights_:
+                    ap_1, ap_2, ap_3 = self.eval_ablation(heights, out_lab, test_lab)
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+
+                
+                
                 acc /= len(new_data)
                 ap = average_precision(out_lab, test_lab)
+                
+
                 accs.append(acc)
                 aps.append(ap)
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3)
             return np.mean(aps), np.mean(accs)
         elif self.type == 'heads':
             tab_X, tab_Y = self.X, self.Y
@@ -183,16 +232,17 @@ class JAAD_Dataset(Dataset):
 
                     le = x_test.shape[0]
                     acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-                #acc /= len(new_data)
+                acc /= len(new_data)
                 #rint(torch.round(out_lab).shape)
                 #print(test_lab.shape)
 
-                acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                #acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                #print(acc)
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
-                accs.append(acc.item())
+                accs.append(acc)
                 aps.append(ap)
             return np.mean(aps), np.mean(accs)
         else:
@@ -234,20 +284,23 @@ class JAAD_Dataset(Dataset):
                     out_pred = output
                     pred_label = torch.round(out_pred)
                     le = x_test.shape[0]
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    acc += le*binary_acc(test_lab.type(torch.float).view(-1), y_test).item()
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
 
-                acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                acc /= len(new_data)
+                #acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
-                accs.append(acc.item()*100)
+                accs.append(acc)
                 aps.append(ap)
             return np.mean(aps), np.mean(accs)
 
 class Eval_Dataset_joints(Dataset):
     """JAAD dataset for training and inference"""
 
-    def __init__(self, data_x, data_y):
+    def __init__(self, data_x, data_y, heights=None):
         """
         Args:
             split : train, val and test
@@ -258,6 +311,7 @@ class Eval_Dataset_joints(Dataset):
         #self.path_jaad = path_jaad
         self.data_x = data_x
         self.data_y = data_y
+        self.heights = heights
 
     def __len__(self):
         return len(self.data_y)
@@ -272,7 +326,7 @@ class Eval_Dataset_joints(Dataset):
 class Eval_Dataset_heads(Dataset):
     """JAAD dataset for training and inference"""
 
-    def __init__(self, path_jaad, data_x, data_y, transform=None):
+    def __init__(self, path_jaad, data_x, data_y, transform=None, heights=None):
         """
         Args:
             split : train, val and test
@@ -284,6 +338,8 @@ class Eval_Dataset_heads(Dataset):
         self.transform = transform
         self.data_x = data_x
         self.data_y = data_y
+        self.heights = heights
+
 
     def __len__(self):
         return len(self.data_y)
@@ -313,7 +369,7 @@ class Eval_Dataset_heads(Dataset):
 class Eval_Dataset_heads_joints(Dataset):
 	"""JAAD dataset for training and inference"""
 
-	def __init__(self, path_data, data_x, data_y, kps, transform):
+	def __init__(self, path_data, data_x, data_y, kps, transform, heights=None):
 		"""
 		Args:
 			split : train, val and test
@@ -326,6 +382,8 @@ class Eval_Dataset_heads_joints(Dataset):
 		self.data_y = data_y
 		self.kps = kps
 		self.transform = transform
+		self.heights = heights
+
 	def __len__(self):
 		return len(self.data_y)
 
@@ -371,6 +429,7 @@ class Kitti_dataset(Dataset):
         return self.X, self.Y
 
     def preprocess(self):
+        self.heights = []
         if self.type == 'joints':
             output = []
             kps = []
@@ -394,6 +453,7 @@ class Kitti_dataset(Dataset):
                         tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
                     kps.append(tensor)
                     label.append(int(line_s[-1]))
+                    self.heights.append(int(line_s[-2]))
             self.file.close()
             return torch.Tensor(kps), torch.Tensor(label)
         elif self.type == 'heads':
@@ -406,6 +466,7 @@ class Kitti_dataset(Dataset):
                 if line_s[2] == self.split:
                     X.append(line_s[1])
                     Y.append(int(line_s[-1]))
+                    self.heights.append(int(line_s[-2]))
             self.file.close()
             return X, Y
         else:
@@ -425,6 +486,7 @@ class Kitti_dataset(Dataset):
                     tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
                     kps.append(tensor) 
                     Y.append(int(line_s[-1]))
+                    self.heights.append(int(line_s[-2]))
             self.file.close()
             return X, torch.tensor(kps), Y
     
