@@ -119,7 +119,7 @@ class JAAD_Dataset_joints(Dataset):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
 		label = self.Y[idx]
-		file_n = [self.files[idx]]
+		file_n = self.files[idx]
 
 		sample = {'keypoints':self.kps[idx] ,'label':label, 'file_name': file_n}
 
@@ -311,19 +311,22 @@ class new_Dataset_qualitative(Dataset):
 		self.data = None
 		self.path = path
 		self.path_jaad = path_jaad
-		self.data_x = data_x
-		self.data_y = data_y
+		self.kps = data_x
+		self.Y = data_y
 		self.files = files
 
 	def __len__(self):
-		return len(self.data_y)
+		return len(self.Y)
+
+	def __len__(self):
+		return len(self.Y)
 
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		file_n = [self.files[idx]]
-		label = self.data_y[idx]
-		label = torch.Tensor([label])
-		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}
+		label = self.Y[idx]
+		file_n = self.files[idx]
 
-		return sample['image'], sample['label'], sample['file_name']
+		sample = {'keypoints':self.kps[idx] ,'label':label, 'file_name': file_n}
+
+		return sample['keypoints'], sample['label'], sample['file_name']
