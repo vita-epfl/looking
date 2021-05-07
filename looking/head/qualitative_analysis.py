@@ -103,29 +103,14 @@ model.load_state_dict(torch.load('{}{}_head_{}.pkl'.format(PATH_MODEL, model_typ
 model.eval()
 
 jaad_test = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH_JAAD, split, data_transform)
-ap, acc = jaad_test.evaluate(model.to(device), device, 10)
+ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model.to(device), device)
+
+with open("false_pos_head.txt", "w") as output:
+    for row in f_pos:
+        output.write(str(row)+'\n')
+with open("false_neg_head.txt", "w") as output:
+    for row in f_neg:
+        output.write(str(row)+'\n')
 
 print("AP JAAD : {} | Acc JAAD : {}".format(ap, acc))
-
-"""data_test = Kitti_Dataset_head(DATA_PATH, "test", data_transform)
-
-dataset_loader_test = torch.utils.data.DataLoader(data_test,batch_size=8, shuffle=True)
-
-acc = 0
-ap = 0
-out_lab = torch.Tensor([]).type(torch.float).to(device)
-test_lab = torch.Tensor([]).to(device)
-for x_test, y_test in dataset_loader_test:
-    if use_cuda:
-        x_test, y_test = x_test.cuda(), y_test.cuda()
-    output = model(x_test)
-    out_pred = output
-    le = x_test.shape[0]
-    pred_label = torch.round(out_pred)
-    test_lab = torch.cat((test_lab.detach().cpu(), y_test.detach().cpu().view(-1)), dim=0)
-    out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-
-ap = average_precision(out_lab, test_lab)
-acc = binary_acc(torch.round(out_lab).type(torch.float).view(-1), test_lab).item()
-print('Kitti {} | acc:{} | ap:{}'.format(0, acc,ap))
-"""
+print(f"False positives: {len(f_pos)}, False negatives: {len(f_neg)}")
