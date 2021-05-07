@@ -27,7 +27,6 @@ class Kitti_Dataset_joints(Dataset):
 				on a sample.
 		"""
 		self.data = None
-		self.transform = transform
 		self.split = split
 		self.pose = pose
 		self.path = path + 'Kitti/'
@@ -241,7 +240,7 @@ class JAAD_Dataset_joints(Dataset):
 		total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
 		total_filenames = np.concatenate((pos_files, neg_files)).tolist()
 
-		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, self.transform)
+		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames)
 		data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
 		acc = 0
@@ -303,7 +302,7 @@ class new_Dataset(Dataset):
 class new_Dataset_qualitative(Dataset):
 	"""JAAD dataset for training and inference"""
 
-	def __init__(self, path, path_jaad, data_x, data_y, files, transform=None):
+	def __init__(self, path, path_jaad, data_x, data_y, files):
 		"""
 		Args:
 			split : train, val and test
@@ -313,7 +312,6 @@ class new_Dataset_qualitative(Dataset):
 		self.data = None
 		self.path = path
 		self.path_jaad = path_jaad
-		self.transform = transform
 		self.data_x = data_x
 		self.data_y = data_y
 		self.files = files
@@ -329,6 +327,5 @@ class new_Dataset_qualitative(Dataset):
 		label = self.data_y[idx]
 		label = torch.Tensor([label])
 		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}
-		if self.transform:
-			sample['image'] = self.transform(sample['image'])
+
 		return sample['image'], sample['label'], sample['file_name']
