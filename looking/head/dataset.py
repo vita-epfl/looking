@@ -102,7 +102,7 @@ class JAAD_Dataset_head(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		file_n = self.files[idx]
+		file_n = [self.files[idx]]
 		label = self.data_y[idx]
 		label = torch.Tensor([label])
 		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}
@@ -300,7 +300,7 @@ class new_Dataset_qualitative(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		file_n = self.files[idx]
+		file_n = [self.files[idx]]
 		label = self.data_y[idx]
 		label = torch.Tensor([label])
 		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}
