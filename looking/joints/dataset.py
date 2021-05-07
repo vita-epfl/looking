@@ -325,8 +325,10 @@ class new_Dataset_qualitative(Dataset):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
 		label = self.Y[idx]
+		label = torch.Tensor([label])
+
 		file_n = self.files[idx]
 
-		sample = {'keypoints':self.kps[idx] ,'label':label, 'file_name': file_n}
+		sample = {'keypoints':torch.Tensor([self.kps[idx]]) ,'label':label, 'file_name': file_n}
 
 		return sample['keypoints'], sample['label'], sample['file_name']
