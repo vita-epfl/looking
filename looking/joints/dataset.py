@@ -156,9 +156,9 @@ class JAAD_Dataset_joints(Dataset):
 		kps = []
 		files = []
 		for line in self.txt:
-			files.append(line_s[0])
 			line = line[:-1]
 			line_s = line.split(",")
+			files.append(line_s[0])
 			joints = np.array(json.load(open(self.path+self.path_jaad+line_s[-2]+'.json'))["X"])
 			X = joints[:17]
 			Y = joints[17:34]
