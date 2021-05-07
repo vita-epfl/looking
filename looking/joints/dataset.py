@@ -154,7 +154,7 @@ class JAAD_Dataset_joints(Dataset):
 	def preprocess(self):
 		tab_Y = []
 		kps = []
-		filenames = []
+		files = []
 		for line in self.txt:
 			files.append(line_s[0])
 			line = line[:-1]
