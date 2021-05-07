@@ -1,6 +1,7 @@
 from dataset import *
 from utils import *
 import torch
+torch.cuda.empty_cache()
 import torch.nn as nn
 from torchvision import transforms, datasets
 from torchvision import datasets, models, transforms
@@ -99,10 +100,10 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-model.load_state_dict(torch.load('{}{}_head_{}.pkl'.format(PATH_MODEL, model_type, split)))
+model.load_state_dict(torch.load('{}{}_head_{}_romain.p'.format(PATH_MODEL, model_type, split), map_location=torch.device('cpu')))
 model.eval()
 
-jaad_test = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH_JAAD, split, data_transform)
+jaad_test = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, split, data_transform)
 ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model.to(device), device)
 
 with open("false_pos_head.txt", "w") as output:

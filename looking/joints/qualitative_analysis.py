@@ -46,16 +46,16 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 print('Device: ', device)
 
 
-model = torch.load(PATH_MODEL + "looking_model_jaad_{}_{}_kps.pkl".format(video, pose), map_location=torch.device(device))
+model = torch.load(PATH_MODEL + "looking_model_jaad_{}_{}_kps_romain.p".format(video, pose), map_location=torch.device(device))
 model.eval()
 jaad_test = JAAD_Dataset_joints(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, pose, video)
 
-ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model.to(device), device)
+ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model, device)
 
-with open("false_pos_head.txt", "w") as output:
+with open("false_pos_joints.txt", "w") as output:
     for row in f_pos:
         output.write(str(row)+'\n')
-with open("false_neg_head.txt", "w") as output:
+with open("false_neg_joints.txt", "w") as output:
     for row in f_neg:
         output.write(str(row)+'\n')
 

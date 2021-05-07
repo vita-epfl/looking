@@ -102,7 +102,7 @@ class JAAD_Dataset_head(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		file_n = [self.files[idx]]
+		file_n = self.files[idx]
 		label = self.data_y[idx]
 		label = torch.Tensor([label])
 		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}
@@ -184,7 +184,7 @@ class JAAD_Dataset_head(Dataset):
 		total_filenames = np.concatenate((pos_files, neg_files)).tolist()
 
 		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, self.transform)
-		data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
+		data_loader = torch.utils.data.DataLoader(new_data, batch_size=1, shuffle=True)
 
 		acc = 0
 		false_neg, false_pos = [], []
@@ -195,19 +195,19 @@ class JAAD_Dataset_head(Dataset):
 			output = model(x_test)
 			out_pred = output
 			pred_label = torch.round(out_pred)
-
-			if y_test == 1 and pred_label == 0:
-				# False negative
-				false_neg.append([f_name, pred_label])
-			elif y_test == 0 and pred_label == 1:
-				# False postitve
-				false_pos.append([f_name, pred_label])
+			for i, pred in enumerate(pred_label):
+				if y_test[i] == 1 and pred == 0:
+					# False negative
+					false_neg.append([f_name[i], pred])
+				elif y_test[i] == 0 and pred == 1:
+					# False postitve
+					false_pos.append([f_name[i], pred])			
 
 			le = x_test.shape[0]
 			acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
 			test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
 			out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-
+			
 
 		acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
 		ap = average_precision(out_lab, test_lab)
@@ -300,7 +300,7 @@ class new_Dataset_qualitative(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		file_n = [self.files[idx]]
+		file_n = self.files[idx]
 		label = self.data_y[idx]
 		label = torch.Tensor([label])
 		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}

@@ -158,7 +158,7 @@ for e in range(EPOCHS):
 
 if kitti:
 	model = []
-	model = torch.load(PATH_MODEL + "{}_head_{}_.pkl".format(video, pose), map_location=torch.device(device))
+	model = torch.load(PATH_MODEL + "{}_head_{}_.pkl".format(model_type, split), map_location=torch.device(device))
 	jaad_val = Kitti_Dataset_head(DATA_PATH, "test", pose)
 	model.eval()
 

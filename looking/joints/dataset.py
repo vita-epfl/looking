@@ -119,9 +119,10 @@ class JAAD_Dataset_joints(Dataset):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
 		label = self.Y[idx]
+		label = torch.Tensor([label])
 		file_n = self.files[idx]
 
-		sample = {'keypoints':self.kps[idx] ,'label':label, 'file_name': file_n}
+		sample = {'keypoints':torch.Tensor([self.kps[idx]]) ,'label':label, 'file_name': file_n}
 
 		return sample['keypoints'], sample['label'], sample['file_name']
 
@@ -216,6 +217,7 @@ class JAAD_Dataset_joints(Dataset):
 	def get_mislabeled_test(self, model, device):
 		assert self.split in ["test"]
 		model.eval()
+		model.to(device)
 		print("Starting evalutation ..")
 		tab_X, tab_Y, filenames = self.kps.cpu().detach().numpy(), self.Y, self.filenames
 
@@ -252,13 +254,13 @@ class JAAD_Dataset_joints(Dataset):
 			out_pred = output
 			pred_label = torch.round(out_pred)
 
-			if y_test == 1 and pred_label == 0:
-				# False negative
-				false_neg.append([f_name, pred_label])
-			elif y_test == 0 and pred_label == 1:
-				# False postitve
-				false_pos.append([f_name, pred_label])
-
+			for i, pred in enumerate(pred_label):
+				if y_test[i] == 1 and pred == 0:
+					# False negative
+					false_neg.append([f_name[i], pred])
+				elif y_test[i] == 0 and pred == 1:
+					# False postitve
+					false_pos.append([f_name[i], pred])
 			le = x_test.shape[0]
 			acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
 			test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
@@ -329,6 +331,6 @@ class new_Dataset_qualitative(Dataset):
 
 		file_n = self.files[idx]
 
-		sample = {'keypoints':torch.Tensor([self.kps[idx]]) ,'label':label, 'file_name': file_n}
+		sample = {'keypoints':self.kps[idx] ,'label':label, 'file_name': file_n}
 
-		return sample['keypoints'], sample['label'], sample['file_name']
+		return torch.Tensor(sample['keypoints']), sample['label'], sample['file_name']
