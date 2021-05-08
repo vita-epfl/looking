@@ -11,7 +11,7 @@ Then modify the paths in the shell script
 | Parameter                 |Description   |	
 | :------------------------ |:-------------|
 | PATH_JAAD_REPO  | Path to the offcial JAAD repo |
-| PATH_JAAD_TEXT_FILE | Path to the text files created after creating our custom JAAD (default : ```../create_data/splits_jaad```)|
+| PATH_JAAD_TEXT_FILE | Path to the text files created after creating our custom JAAD (default : ```../create_data/splits_jaad```) |
 
 Run :
 

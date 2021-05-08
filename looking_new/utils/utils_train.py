@@ -290,7 +290,7 @@ def normalize(X, Y, divide=True, height_=False):
         X_new /= max(width, height)
     
     if height_==True:
-        return X_new, Y_new, height
+       return X_new, Y_new, height
 
     return X_new, Y_new
 

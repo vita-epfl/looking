@@ -32,11 +32,13 @@ parser.add_argument('--precise-rescaling', dest='fast_rescaling',
                         help='use more exact image rescaling (requires scipy)')
 parser.add_argument('--disable-cuda', action='store_true',
                         help='disable CUDA')
+
 decoder.cli(parser)
 logger.cli(parser)
 network.Factory.cli(parser)
 show.cli(parser)
 visualizer.cli(parser)
+
 args = parser.parse_args()
 
 predictor = Predictor(args)

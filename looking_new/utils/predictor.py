@@ -73,7 +73,7 @@ class Predictor():
                 kps = keypoints[i]
                 kps_final = np.array([kps[0], kps[1], kps[2]]).flatten().tolist()
                 X, Y = kps_final[:17], kps_final[17:34]
-                X, Y = normalize(X, Y, True)
+                X, Y = normalize(X, Y, divide=True, height_=False)
                 kps_final_normalized = np.array([X, Y, kps_final[34:]]).flatten().tolist()
                 final_keypoints.append(kps_final_normalized)
             tensor_kps = torch.Tensor([final_keypoints])#
@@ -90,9 +90,11 @@ class Predictor():
         imageWidth, imageHeight, _ = open_cv_image.shape
         font_scale = min(imageWidth,imageHeight)/(10/scale)
 
-        print(imageWidth, imageHeight)
+        #print(imageWidth, imageHeight)
 
         mask = np.zeros(open_cv_image.shape, dtype=np.uint8)
+        #print(len(keypoints))
+        #exit(0)
         for i, label in enumerate(pred_labels):
 
             if label > 0.5:
@@ -117,9 +119,11 @@ class Predictor():
             mask = cv2.rectangle(mask, small_rect_start, small_rect_end, color, -1)
 
             mask = cv2.putText(mask, str("%.2f" % label), small_text_start, FONT, font_scale, (255,255,255), 1)"""
-            mask = run_and_kps(open_cv_image, keypoints, label)
-        open_cv_image = cv2.addWeighted(open_cv_image, 0.8, mask, 0.4, 1.0)
-        cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.predictions.png'), open_cv_image)
+            mask = draw_skeleton(mask, keypoints[i], color)
+        mask = cv2.erode(mask,(7,7),iterations = 1)
+        mask = cv2.GaussianBlur(mask,(3,3),0)
+        open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, 0.3, 1.0)
+        cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.pedictions.png'), open_cv_image)
 
     def predict(self, args):
         if args.glob:

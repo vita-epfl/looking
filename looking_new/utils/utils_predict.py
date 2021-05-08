@@ -3,20 +3,35 @@ import cv2
 import openpifpaf
 import openpifpaf.datasets as datasets
 import os
+import numpy as np
 from openpifpaf.predict import processor_factory, preprocess_factory
 from openpifpaf import decoder, network, visualizer, show, logger
 
+"""COCO_PERSON_SKELETON = [
+        [16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13],
+    [6, 7], [6, 8], [7, 9], [8, 10], [9, 11], [2, 3], [1, 2], [1, 3],
+    [2, 4], [3, 5], [4, 6], [5, 7]]
+"""
+COCO_PERSON_SKELETON = [
+        [16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13],
+    [6, 7], [6, 8], [7, 9], [8, 10], [9, 11]]
+COCO_HEAD = [
+    [3,4]
+]
 def convert(data):
-    X = []
+    """X = []
     Y = []
     C = []
     A = []
     i = 0
+    print(data)
     while i < 51:
         X.append(data[i])
         Y.append(data[i+1])
         C.append(data[i+2])
         i += 3
+    """
+    X, Y, C = data[0], data[1], data[2]
     A = np.array([X, Y, C]).flatten().tolist()
     return X, Y, C, A
 
@@ -94,6 +109,33 @@ def filecreation(dirname):
             raise  # This was not a "directory exist" error..
     return mydir
 
+def draw_skeleton(img, kps, color, skeleton=COCO_PERSON_SKELETON):
+    X, Y, C, _ = convert(kps)
+    linewidth = 4
+    height = abs(Y[0]-Y[-1])
+    for ci, connection in enumerate(np.array(skeleton) - 1):
+        #print(connection)
+        c1, c2 = connection
+        #print(X[c1])
+        img = cv2.line(img,(int(X[c2]),int(Y[c2])),(int(X[c1]),int(Y[c1])), color,linewidth)
+        #exit(0)
+        """
+        c = matplotlib.cm.get_cmap('tab20')(ci / len(self.skeleton))
+                if np.all(v[connection] > self.dashed_threshold):
+                    ax.plot(x[connection], y[connection],
+                            linewidth=self.linewidth, color=c,
+                            linestyle='dashed', dash_capstyle='round')
+                if np.all(v[connection] > self.solid_threshold):
+                    ax.plot(x[connection], y[connection],
+                            linewidth=self.linewidth, color=c, solid_capstyle='round')"""
+    head = COCO_HEAD[0]
+    c1, c2 = head
+    #radius = abs(int(X[c1])- int(X[c2]))
+    radius = int(0.09*height)
+    center = int((X[c1]+X[c2])/2), int((Y[c1]+Y[c2])/2)
+    img = cv2.circle(img, center, radius, color, -1)
+    img = cv2.circle(img, center, radius, (255, 255, 255), 2)
+    return img
 def run_and_kps(img, kps, label):
     blk = np.zeros(img.shape, np.uint8)
     X, Y, C, _ = convert(kps)
@@ -112,6 +154,7 @@ def load_pifpaf(args):
     args.keypoint_threshold_rel = 0.0
     args.instance_threshold = 0.2
     args.keypoint_threshold = 0
+    args.force_complete_pose = True
 
     decoder.configure(args)
     network.Factory.configure(args)
@@ -121,17 +164,3 @@ def load_pifpaf(args):
     processor, net = processor_factory(args)
     preprocess = preprocess_factory(args)
     return net, processor, preprocess
-
-"""
-def load_pifpaf(device, version='shufflenetv2k16w'):
-    print('Loading Pifpaf')
-    net_cpu, _ = openpifpaf.network.Factory(checkpoint=version, download_progress=False).factory()
-    net = net_cpu.to(device)
-    openpifpaf.decoder.CifSeeds.threshold = 0.5
-    openpifpaf.decoder.nms.Keypoints.keypoint_threshold = 0.0
-    openpifpaf.decoder.nms.Keypoints.instance_threshold = 0.2
-    openpifpaf.decoder.nms.Keypoints.keypoint_threshold_rel = 0.0
-    openpifpaf.decoder.CifCaf.force_complete = True
-    processor = openpifpaf.decoder.factory_decode(net.head_nets, basenet_stride=net.base_net.stride)
-    preprocess = openpifpaf.transforms.Compose([openpifpaf.transforms.NormalizeAnnotations(),openpifpaf.transforms.CenterPadTight(16),openpifpaf.transforms.EVAL_TRANSFORM])
-    return net, processor, preprocess"""
