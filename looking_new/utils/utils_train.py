@@ -266,7 +266,7 @@ def save_results(y_pred):
         json.dump(di, out_file)
 
 
-def normalize(X, Y, divide=True, height=False):
+def normalize(X, Y, divide=True, height_=False):
     center_p = (int((X[11] + X[12]) / 2), int((Y[11] + Y[12]) / 2))
     # X_new = np.array(X)-center_p[0]
     X_new = np.array(X)
@@ -278,7 +278,7 @@ def normalize(X, Y, divide=True, height=False):
         Y_new /= max(width, height)
         X_new /= max(width, height)
     
-    if height:
+    if height_ == True:
         return X_new, Y_new, height
 
     return X_new, Y_new
