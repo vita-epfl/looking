@@ -1,6 +1,7 @@
-# New repo
+# Are you looking at the camera ? Official repository
 
 Official implementation of the repository ...
+![Main Image](./images/main_image.png)
 
 ## Requirements
 
