@@ -265,20 +265,31 @@ def save_results(y_pred):
     with open('output_train.json', 'w') as out_file:
         json.dump(di, out_file)
 
+def get_acc_per_distance(ground_truths_1, pred_1):
+    idx_1 = (ground_truths_1==1)
+    #print(np.round(pred_1))
+    #print(ground_truths_1)
+    #print(np.round(pred_1) == ground_truths_1)
+    #exit(0)
+    #print(np.round(pred_1[idx_1]))
+    #print(ground_truths_1[idx_1])
+    #exit(0)
+    return sum(np.round(pred_1) == ground_truths_1)/len(ground_truths_1)
 
-def normalize(X, Y, divide=True, height=False):
+
+def normalize(X, Y, divide=True, height_=False):
     center_p = (int((X[11] + X[12]) / 2), int((Y[11] + Y[12]) / 2))
     # X_new = np.array(X)-center_p[0]
     X_new = np.array(X)
     Y_new = np.array(Y) - center_p[1]
     width = abs(np.max(X_new) - np.min(X_new))
     height = abs(np.max(Y_new) - np.min(Y_new))
-    # print(X_new)
-    if divide:
+
+    if divide==True:
         Y_new /= max(width, height)
         X_new /= max(width, height)
     
-    if height:
+    if height_==True:
         return X_new, Y_new, height
 
     return X_new, Y_new

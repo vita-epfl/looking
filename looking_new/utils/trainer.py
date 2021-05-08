@@ -107,18 +107,19 @@ class Parser():
                                             std=[0.229, 0.224, 0.225])
             ])
             assert backbone in ['resnet18', 'resnet50']
-            name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose']])+'.p'
+            name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], self.data_args['split']])+'.p'
             if backbone == 'resnet18':
-                name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__])+'.p'
-                
+                name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
             else:
-                name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__])+'.p'
+                name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
 
-            path_output_model_backbone = os.path.join(self.general['path'], self.data_args['trained_on'], 'Heads')
+            path_output_model_backbone = os.path.join(self.general['path'], self.model_type['trained_on'], 'Heads')
             path_backbone = os.path.join(path_output_model_backbone, name_model_backbone)
 
-            path_output_model_joints = os.path.join(self.general['path'], self.data_args['trained_on'], 'Joints')
+            path_output_model_joints = os.path.join(self.general['path'], self.model_type['trained_on'], 'Joints')
             path_model_joints = os.path.join(path_output_model_joints, name_model_joints)
+            print(path_backbone)
+            print(path_model_joints)
             if fine_tune:
                 if not os.path.isfile(path_backbone):
                     print('ERROR: Heads model not trained, please train your heads model first')
@@ -128,9 +129,9 @@ class Parser():
                     exit(0)
                 
             if backbone == 'resnet18':
-                model = LookingNet_early_fusion_18(path_backbone, path_output_model_joints, self.device, fine_tune)
+                model = LookingNet_early_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
             else:
-                model = LookingNet_early_fusion_50(path_backbone, path_output_model_joints, self.device, fine_tune)
+                model = LookingNet_early_fusion_50(path_backbone, path_model_joints, self.device, fine_tune)
 
         self.model_type_ = model_type
         self.pose = pose
@@ -140,8 +141,10 @@ class Parser():
         if optimizer_type == 'adam':
 	        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
         else:
-            optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
-
+            if fine_tune and model_type=='heads':
+                optimizer = torch.optim.SGD(model.net.classifier.parameters(), lr=self.lr, momentum=0.9)
+            else:
+                optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
         return model, criterion, optimizer, self.data_transform
 
     def get_data(self, data_type):
@@ -270,6 +273,12 @@ class Evaluator():
         else:
             print('ERROR : Model file doesnt exists, please train your model first or review your parameters')
             exit(0)
+        self.height_ = self.parser.eval_params.getboolean('height')
+    def evaluate_distance(self):
+        ap, acc, ap_1, ap_2, ap_3 = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
+        print('Far : {} | Middle : {} | Close :{}'.format(ap_1, ap_2, ap_3))
+        print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
+
     def evaluate(self):
         """
             Loop over the test set and evaluate the performance of the model on it
@@ -296,8 +305,17 @@ class Evaluator():
             ap = average_precision(output_all, labels_all)
             acc = binary_acc(output_all.type(torch.float).view(-1), labels_all).item()
         else:"""
-        ap, acc = data_test.evaluate(self.parser.model, self.parser.device, 10)
-        print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
+        if self.height_==False:
+            ap, acc = data_test.evaluate(self.parser.model, self.parser.device, 10)
+            print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
+        else:
+            #ap, acc, ap_1, ap_2, ap_3, ap_4, ac_1, ac_2, ac_3, ac_4, distances = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
+            ap, acc, ap_1, ap_2, ap_3, ap_4, distances = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
+            
+            print('Distances : ', np.mean(distances, axis=0))
+            print('Ap Far : {:.1f} | Middle 1 : {:.1f} | Middle_2 : {:.1f} | Close :{:.1f}'.format(ap_1*100, ap_2*100, ap_3*100, ap_4*100))
+            #print('Ac Far : {:.1f} | Middle 1 : {:.1f} | Middle_2 : {:.1f} | Close :{:.1f}'.format(ac_1*100, ac_2*100, ac_3*100, ac_4*100))
+            print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
         
 
 
@@ -344,6 +362,7 @@ class Trainer():
             accuracies = []
 
             for x_batch, y_batch in train_loader:
+                
                 y_batch = y_batch.to(self.parser.device)
                 self.parser.optimizer.zero_grad()
                 output = self.parser.model(x_batch)
