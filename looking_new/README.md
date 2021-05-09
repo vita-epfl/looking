@@ -1,6 +1,6 @@
 # Are you looking at the camera ? Official repository
 
-[Main image](https://raw.githubusercontent.com/vita-epfl/looking/younes/looking_new/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png?token=ALXVUF3F4QYCBPP7RXYD74TAS7RNS)
+![Main image](https://raw.githubusercontent.com/vita-epfl/looking/younes/looking_new/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png?token=ALXVUF3F4QYCBPP7RXYD74TAS7RNS)
 
 ## Requirements
 
