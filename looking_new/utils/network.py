@@ -8,6 +8,12 @@ from torchvision import datasets, models, transforms
 torch.manual_seed(1)
 np.random.seed(0)
 
+class Binarize(nn.Module):
+    def __init__(self):
+        super(Binarize, self).__init__()
+    def forward(self, x):
+        return torch.where(x > 0, 1, 0).float()
+
 class SquarePad:
 	def __call__(self, image):
 		w, h = image.size
@@ -53,7 +59,9 @@ class LookingModel(nn.Module):
         # linear layers
         for i in range(self.num_stage):
             y = self.linear_stages[i](y)
+        #y = self.binarize(y)
         y = self.w2(y)
+        #y = self.binarize(y)
         y = self.sigmoid(y)
         return y
 
@@ -61,7 +69,6 @@ class LookingModel(nn.Module):
 class Linear(nn.Module):
     def __init__(self, linear_size=256, p_dropout=0.2):
         super(Linear, self).__init__()
-
         ###
 
         self.linear_size = linear_size
@@ -69,8 +76,9 @@ class Linear(nn.Module):
 
         ###
 
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(True)
         self.dropout = nn.Dropout(self.p_dropout)
+        #self.binarize = Binarize()
 
         ###
         self.l1 = nn.Linear(self.linear_size, self.linear_size)
