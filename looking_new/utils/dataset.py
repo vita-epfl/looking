@@ -71,7 +71,7 @@ class JAAD_Dataset(Dataset):
                 joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
                 X = joints[:17]
                 Y = joints[17:34]
-                X_new, Y_new, height = normalize(X, Y, True, True)
+                X_new, Y_new, height = normalize(X, Y, divide=True, height_=True)
                 if self.pose == "head":
                     X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
                     tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
@@ -92,6 +92,11 @@ class JAAD_Dataset(Dataset):
                 line_s = line.split(",")
                 tab_X.append(line_s[-2])
                 tab_Y.append(int(line_s[-1]))
+                joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
+                X = joints[:17]
+                Y = joints[17:34]
+                X_new, Y_new, height = normalize(X, Y, divide=True, height_=True)
+                self.heights.append(height)
             return tab_X, tab_Y
         else:
             tab_X = []
@@ -118,8 +123,13 @@ class JAAD_Dataset(Dataset):
         preds = preds.detach().cpu().numpy()
         ground_truths = ground_truths.detach().cpu().numpy()
 
-        perc_1 = np.percentile(heights, 33)
-        perc_2 = np.percentile(heights, 66)
+        #perc_1 = np.percentile(heights, 5)
+        #perc_2 = np.percentile(heights, 50)
+        #perc_3 = np.percentile(heights, 95)
+        perc_1 = 65
+        perc_2 = 165
+        perc_3 = 365
+
 
         preds_1 = preds[heights <= perc_1]
         ground_truths_1 = ground_truths[heights <= perc_1]
@@ -127,14 +137,22 @@ class JAAD_Dataset(Dataset):
         preds_2 = preds[(heights > perc_1) & (heights <= perc_2)]
         ground_truths_2 = ground_truths[(heights > perc_1) & (heights <= perc_2)]
 
-        preds_3 = preds[heights > perc_2]
-        ground_truths_3 = ground_truths[heights > perc_2]
+        preds_3 = preds[(heights > perc_2) & (heights <= perc_3)]
+        ground_truths_3 = ground_truths[(heights > perc_2) & (heights <= perc_3)]
 
-        ap_1, ap_2, ap_3 = average_precision_score(ground_truths_1, preds_1), average_precision_score(ground_truths_2, preds_2), average_precision_score(ground_truths_3, preds_3)
+        preds_4 = preds[heights > perc_3]
+        ground_truths_4 = ground_truths[heights > perc_3]
+
+        ap_1, ap_2, ap_3, ap_4 = average_precision_score(ground_truths_1, preds_1), average_precision_score(ground_truths_2, preds_2), average_precision_score(ground_truths_3, preds_3), average_precision_score(ground_truths_4, preds_4)
+        ac_1, ac_2, ac_3, ac_4 = get_acc_per_distance(ground_truths_1, preds_1), get_acc_per_distance(ground_truths_2, preds_2), get_acc_per_distance(ground_truths_3, preds_3), get_acc_per_distance(ground_truths_4, preds_4)
 
         #print('Far :{} | Middle : {} | Close : {}'.format(ap_1, ap_2, ap_3))
 
-        return ap_1, ap_2, ap_3
+        distances = [perc_1, perc_2, perc_3]
+        #print(distances)
+        #exit(0)
+
+        return (ap_1, ap_2, ap_3, ap_4), (ac_1, ac_2, ac_3, ac_4), distances
 
 
     def evaluate(self, model, device, it=1, heights_=False):
@@ -155,6 +173,12 @@ class JAAD_Dataset(Dataset):
             aps1 = []
             aps2 = []
             aps3 = []
+            aps4 = []
+            acs1 = []
+            acs2 = []
+            acs3 = []
+            acs4 = []
+            distances = []
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
@@ -183,10 +207,21 @@ class JAAD_Dataset(Dataset):
                     test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
                 if heights_:
-                    ap_1, ap_2, ap_3 = self.eval_ablation(heights, out_lab, test_lab)
+                    out_ap, out_ac, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    ap_1, ap_2, ap_3, ap_4 = out_ap
+                    ac_1, ac_2, ac_3, ac_4 = out_ac
+
                     aps1.append(ap_1)
                     aps2.append(ap_2)
                     aps3.append(ap_3)
+                    aps4.append(ap_4)
+
+                    acs1.append(ac_1)
+                    acs2.append(ac_2)
+                    acs3.append(ac_3)
+                    acs4.append(ac_4)
+                    distances.append(distance)
+                    #break
 
                 
                 
@@ -197,7 +232,7 @@ class JAAD_Dataset(Dataset):
                 accs.append(acc)
                 aps.append(ap)
             if heights_:
-                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3)
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.mean(acs1), np.mean(acs2), np.mean(acs3), np.mean(acs4), np.array(distances)
             return np.mean(aps), np.mean(accs)
         elif self.type == 'heads':
             tab_X, tab_Y = self.X, self.Y
@@ -209,6 +244,15 @@ class JAAD_Dataset(Dataset):
 
             aps = []
             accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
+            aps4 = []
+            acs1 = []
+            acs2 = []
+            acs3 = []
+            acs4 = []
+            distances = []
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
@@ -224,6 +268,9 @@ class JAAD_Dataset(Dataset):
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
+
                 for x_test, y_test in data_loader:
                     x_test, y_test = x_test.to(device), y_test.to(device)
                     output = model(x_test)
@@ -234,6 +281,8 @@ class JAAD_Dataset(Dataset):
                     acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
                     test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
+
+                    
                 acc /= len(new_data)
                 #rint(torch.round(out_lab).shape)
                 #print(test_lab.shape)
@@ -244,6 +293,25 @@ class JAAD_Dataset(Dataset):
                 #print(ap)
                 accs.append(acc)
                 aps.append(ap)
+                if heights_:
+                    #ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    out_ap, out_ac, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    ap_1, ap_2, ap_3, ap_4 = out_ap
+                    ac_1, ac_2, ac_3, ac_4 = out_ac
+
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+                    aps4.append(ap_4)
+
+                    acs1.append(ac_1)
+                    acs2.append(ac_2)
+                    acs3.append(ac_3)
+                    acs4.append(ac_4)
+                    distances.append(distance)
+                #break
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.mean(acs1), np.mean(acs2), np.mean(acs3), np.mean(acs4), np.array(distances)
             return np.mean(aps), np.mean(accs)
         else:
             model = model.eval()
@@ -284,7 +352,9 @@ class JAAD_Dataset(Dataset):
                     out_pred = output
                     pred_label = torch.round(out_pred)
                     le = x_test.shape[0]
-                    acc += le*binary_acc(test_lab.type(torch.float).view(-1), y_test).item()
+                    #print(test_lab)
+                    #print(y_test)
+                    acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
                     test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
 
@@ -441,7 +511,7 @@ class Kitti_dataset(Dataset):
                     joints = np.array(json.load(open(os.path.join(self.path_data,line_s[1]+'.json')))["X"])
                     X = joints[:17]
                     Y = joints[17:34]
-                    X_new, Y_new = normalize(X, Y, True)
+                    X_new, Y_new = normalize(X, Y, divide=True, height_=False)
                     if self.pose == "head":
                         X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
                         tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
@@ -514,13 +584,54 @@ class Kitti_dataset(Dataset):
             if self.transform:
                 sample['image'] = self.transform(sample['image'])
             return (sample['image'].to(self.device), sample['keypoints'].to(self.device)), torch.Tensor([float(sample['label'])])
-    
-    def evaluate(self, model, device, it=1):
+
+    def eval_ablation(self, heights, preds, ground_truths):
+        """
+            Evaluate using the ablation study
+        """
+        preds = preds.detach().cpu().numpy()
+        ground_truths = ground_truths.detach().cpu().numpy()
+
+        perc_1 = np.percentile(heights, 10)
+        perc_2 = np.percentile(heights, 50)
+        perc_3 = np.percentile(heights, 90)
+
+
+
+        preds_1 = preds[heights <= perc_1]
+        ground_truths_1 = ground_truths[heights <= perc_1]
+
+
+
+        preds_2 = preds[(heights > perc_1) & (heights <= perc_2)]
+        ground_truths_2 = ground_truths[(heights > perc_1) & (heights <= perc_2)]
+
+        preds_3 = preds[(heights > perc_2) & (heights <= perc_3)]
+        ground_truths_3 = ground_truths[(heights > perc_2) & (heights <= perc_3)]
+
+        preds_4 = preds[heights > perc_3]
+        ground_truths_4 = ground_truths[heights > perc_3]
+
+        ap_1, ap_2, ap_3, ap_4 = average_precision_score(ground_truths_1, preds_1), average_precision_score(ground_truths_2, preds_2), average_precision_score(ground_truths_3, preds_3), average_precision_score(ground_truths_4, preds_4)
+
+
+        
+        acc_1, acc_2, acc_3, acc_4 = get_acc_per_distance(ground_truths_1, preds_1), get_acc_per_distance(ground_truths_2, preds_2), get_acc_per_distance(ground_truths_3, preds_3), get_acc_per_distance(ground_truths_4, preds_4)
+
+        #print('Far :{} | Middle : {} | Close : {}'.format(ap_1, ap_2, ap_3))
+
+        distances = [perc_1, perc_2, perc_3]
+        #print(distances)
+        #exit(0)
+
+        return ap_1, ap_2, ap_3, ap_4, distances
+        #return acc_1, acc_2, acc_3, acc_4, distances
+    def evaluate(self, model, device, it=1, heights_=False):
         assert self.split in ["test", "val"]
         model = model.eval()
         model = model.to(device)
         if self.type == 'joints':
-            
+            """
             tab_X, tab_Y = self.X.cpu().detach().numpy(), self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -548,14 +659,75 @@ class Kitti_dataset(Dataset):
                     out_pred = output
                     pred_label = torch.round(out_pred)
                     le = x_test.shape[0]
-                    acc += le*binary_acc(pred_label.type(torch.float), y_test.view(-1,1)).item()
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    acc += le*binary_acc(pred_label.type(torch.float), y_test.type(torch.float).view(-1,1)).item()
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
                 acc /= len(new_data)
                 ap = average_precision(out_lab, test_lab)
                 accs.append(acc)
                 aps.append(ap)
-            return np.mean(aps), np.mean(accs)
+            return np.mean(aps), np.mean(accs)"""
+            tab_X, tab_Y = self.X.cpu().detach().numpy(), self.Y
+            idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
+            idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
+            positive_samples = np.array(tab_X)[idx_Y1]
+            positive_samples_labels = np.array(tab_Y)[idx_Y1]
+            N_pos = len(idx_Y1)
+            #print(N_pos)
+            aps = []
+            accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
+            aps4 = []
+            distances = []
+            for i in range(it):
+                np.random.seed(i)
+                np.random.shuffle(idx_Y0)
+                neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
+                neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
+
+
+                total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
+                total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
+
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
+
+                new_data = Eval_Dataset_joints(total_samples, total_labels)
+                data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
+                acc = 0
+                out_lab = torch.Tensor([]).type(torch.float)
+                test_lab = torch.Tensor([])
+                for x_test, y_test in data_loader:
+                    x_test, y_test = x_test.to(device), y_test.to(device)
+                    output = model(x_test)
+                    out_pred = output
+                    pred_label = torch.round(out_pred)
+                    le = x_test.shape[0]
+                    acc += le*binary_acc(pred_label.type(torch.float), y_test.type(torch.float).view(-1)).item()
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
+                    out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
+                if heights_:
+                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+                    aps4.append(ap_4)
+                    distances.append(distance)
+
+                
+                
+                acc /= len(new_data)
+                ap = average_precision(out_lab, test_lab)
+                
+
+                accs.append(acc)
+                aps.append(ap)
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
+            else:
+                return np.mean(aps), np.mean(accs)
         elif self.type == 'heads':
             tab_X, tab_Y = self.X, self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
@@ -566,6 +738,11 @@ class Kitti_dataset(Dataset):
 
             aps = []
             accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
+            aps4 = []
+            distances = []
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
@@ -577,7 +754,8 @@ class Kitti_dataset(Dataset):
                 new_data = Eval_Dataset_heads(self.path_data, total_samples, total_labels, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
-                
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
@@ -589,17 +767,33 @@ class Kitti_dataset(Dataset):
 
                     le = x_test.shape[0]
                     acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-                #acc /= len(new_data)
+                acc /= len(new_data)
                 #rint(torch.round(out_lab).shape)
                 #print(test_lab.shape)
 
-                acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                #acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
-                accs.append(acc.item())
+                accs.append(acc)
                 aps.append(ap)
+                if heights_:
+                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+                    aps4.append(ap_4)
+                    distances.append(distance)
+
+                
+                
+                acc /= len(new_data)
+                ap = average_precision(out_lab, test_lab)
+                #break
+                
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
         else:
             model = model.eval()
@@ -640,7 +834,7 @@ class Kitti_dataset(Dataset):
                     out_pred = output
                     pred_label = torch.round(out_pred)
                     le = x_test.shape[0]
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
 
                 acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
