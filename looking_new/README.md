@@ -29,9 +29,7 @@ General parameters for training:
 | ```device``` | cuda device |
 | ```optimizer``` | Choice of optimizers between [```adam```, ```sgd```] |
 | ```eval_it``` | Number of iterations for negative sampling on the validation set |
-| ```multi_dataset``` | Enables the mutli dataset training configuration. Choice between  [```yes```, ```no```].|
-
-
+| ```multi_dataset``` | Enables the mutli dataset training configuration. Choice between  [```yes```, ```no```].|ls
 
 ## Evaluate your trained models
 
