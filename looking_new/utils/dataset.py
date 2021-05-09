@@ -232,7 +232,7 @@ class JAAD_Dataset(Dataset):
                 accs.append(acc)
                 aps.append(ap)
             if heights_:
-                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.mean(acs1), np.mean(acs2), np.mean(acs3), np.mean(acs4), np.array(distances)
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
         elif self.type == 'heads':
             tab_X, tab_Y = self.X, self.Y
@@ -311,7 +311,7 @@ class JAAD_Dataset(Dataset):
                     distances.append(distance)
                 #break
             if heights_:
-                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.mean(acs1), np.mean(acs2), np.mean(acs3), np.mean(acs4), np.array(distances)
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
         else:
             model = model.eval()
@@ -592,9 +592,9 @@ class Kitti_dataset(Dataset):
         preds = preds.detach().cpu().numpy()
         ground_truths = ground_truths.detach().cpu().numpy()
 
-        perc_1 = np.percentile(heights, 10)
+        perc_1 = np.percentile(heights, 5)
         perc_2 = np.percentile(heights, 50)
-        perc_3 = np.percentile(heights, 90)
+        perc_3 = np.percentile(heights, 95)
 
 
 
@@ -809,6 +809,11 @@ class Kitti_dataset(Dataset):
             N_pos = len(idx_Y1)
             aps = []
             accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
+            aps4 = []
+            distances = []
             
             for i in range(it):
                 np.random.seed(i)
@@ -828,20 +833,32 @@ class Kitti_dataset(Dataset):
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
                 for x_test, kps_test, y_test in data_loader:
                     x_test, kps_test, y_test = x_test.to(device), kps_test.to(device), y_test.to(device)
                     output = model((x_test, kps_test))
                     out_pred = output
                     pred_label = torch.round(out_pred)
                     le = x_test.shape[0]
+                    acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
                     test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-
-                acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                acc /= len(new_data)
+                #acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
-                accs.append(acc.item()*100)
+                accs.append(acc*100)
                 aps.append(ap)
+                if heights_:
+                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+                    aps4.append(ap_4)
+                    distances.append(distance)
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
     
 
@@ -901,15 +918,16 @@ class Jack_Nu_dataset(Dataset):
         X = []
         Y = []
         kps = []
+        self.heights = []
         for line in self.file:
             line = line[:-1] # remove the \n
             line_s = line.split(",")
-            if line_s[1] == self.split: # verify if it's the right split
+            if line_s[1] == self.split and int(line_s[-1]) != -1: # verify if it's the right split
                 X.append(line_s[2]+'.png') # append the image / joints file name
                 joints = np.array(json.load(open(os.path.join(self.path_data,line_s[2])))["X"])
                 Xs = joints[:17] # take the Xs
                 Ys = joints[17:34] # take the Ys
-                X_new, Y_new = normalize(Xs, Ys, True) # normalize according to the paper
+                X_new, Y_new, height = normalize(Xs, Ys, True, True) # normalize according to the paper
                 if self.pose == "head":
                     X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
                     tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
@@ -918,12 +936,50 @@ class Jack_Nu_dataset(Dataset):
                     tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
                 else:
                     tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-                kps.append(tensor) 
+                kps.append(tensor)
+                self.heights.append(height)
                 Y.append(int(line_s[-1])) # append the label
         self.file.close()
         return X, torch.tensor(kps), Y
     
-    def evaluate(self, model, device, it=1):
+    def eval_ablation(self, heights, preds, ground_truths):
+        """
+            Evaluate using the ablation study
+        """
+        preds = preds.detach().cpu().numpy()
+        ground_truths = ground_truths.detach().cpu().numpy()
+
+        perc_1 = np.percentile(heights, 5)
+        perc_2 = np.percentile(heights, 50)
+        perc_3 = np.percentile(heights, 95)
+
+
+
+        preds_1 = preds[heights <= perc_1]
+        ground_truths_1 = ground_truths[heights <= perc_1]
+
+
+
+        preds_2 = preds[(heights > perc_1) & (heights <= perc_2)]
+        ground_truths_2 = ground_truths[(heights > perc_1) & (heights <= perc_2)]
+
+        preds_3 = preds[(heights > perc_2) & (heights <= perc_3)]
+        ground_truths_3 = ground_truths[(heights > perc_2) & (heights <= perc_3)]
+
+        preds_4 = preds[heights > perc_3]
+        ground_truths_4 = ground_truths[heights > perc_3]
+
+        ap_1, ap_2, ap_3, ap_4 = average_precision_score(ground_truths_1, preds_1), average_precision_score(ground_truths_2, preds_2), average_precision_score(ground_truths_3, preds_3), average_precision_score(ground_truths_4, preds_4)
+
+
+        
+        acc_1, acc_2, acc_3, acc_4 = get_acc_per_distance(ground_truths_1, preds_1), get_acc_per_distance(ground_truths_2, preds_2), get_acc_per_distance(ground_truths_3, preds_3), get_acc_per_distance(ground_truths_4, preds_4)
+
+        distances = [perc_1, perc_2, perc_3]
+
+        return ap_1, ap_2, ap_3, ap_4, distances
+
+    def evaluate(self, model, device, it=1, heights_=False):
         assert self.split in ["test", "val"]
         model = model.eval()
         model = model.to(device)
@@ -937,6 +993,11 @@ class Jack_Nu_dataset(Dataset):
             N_pos = len(idx_Y1)
             aps = []
             accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
+            aps4 = []
+            distances = []
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
@@ -950,19 +1011,30 @@ class Jack_Nu_dataset(Dataset):
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
                 for x_test, y_test in data_loader:
                     x_test, y_test = x_test.to(device), y_test.to(device)
                     output = model(x_test)
                     out_pred = output
                     pred_label = torch.round(out_pred)
                     le = x_test.shape[0]
-                    acc += le*binary_acc(pred_label.type(torch.float), y_test.view(-1,1)).item()
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    acc += le*binary_acc(pred_label.type(torch.float), y_test.type(torch.float).view(-1,1)).item()
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
                 acc /= len(new_data)
                 ap = average_precision(out_lab, test_lab)
                 accs.append(acc)
                 aps.append(ap)
+                if heights_:
+                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+                    aps4.append(ap_4)
+                    distances.append(distance)
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
         elif self.type == 'heads':
             tab_X, tab_Y = self.X, self.Y
@@ -974,6 +1046,11 @@ class Jack_Nu_dataset(Dataset):
 
             aps = []
             accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
+            aps4 = []
+            distances = []
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
@@ -985,7 +1062,8 @@ class Jack_Nu_dataset(Dataset):
                 new_data = Eval_Dataset_heads(self.path_data, total_samples, total_labels, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
-                
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
@@ -996,18 +1074,27 @@ class Jack_Nu_dataset(Dataset):
                     pred_label = torch.round(out_pred)
 
                     le = x_test.shape[0]
-                    acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
+                    acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test.view(-1,1)).item()
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-                #acc /= len(new_data)
+                acc /= len(new_data)
                 #rint(torch.round(out_lab).shape)
                 #print(test_lab.shape)
 
-                acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                #cc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
-                accs.append(acc.item())
+                accs.append(acc)
                 aps.append(ap)
+                if heights_:
+                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+                    aps4.append(ap_4)
+                    distances.append(distance)
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
         else:
             model = model.eval()
@@ -1023,6 +1110,11 @@ class Jack_Nu_dataset(Dataset):
             N_pos = len(idx_Y1)
             aps = []
             accs = []
+            aps1 = []
+            aps2 = []
+            aps3 = []
+            aps4 = []
+            distances = []
             
             for i in range(it):
                 np.random.seed(i)
@@ -1042,18 +1134,32 @@ class Jack_Nu_dataset(Dataset):
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
+                if heights_:
+                    heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
                 for x_test, kps_test, y_test in data_loader:
                     x_test, kps_test, y_test = x_test.to(device), kps_test.to(device), y_test.to(device)
                     output = model((x_test, kps_test))
-                    out_pred = output
-                    pred_label = torch.round(out_pred)
+                    pred_label = torch.round(output)
                     le = x_test.shape[0]
-                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
-                    out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
+                    acc += le*binary_acc(pred_label.type(torch.float).view(-1, 1), y_test.view(-1,1)).item()
+                    test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
+                    out_lab = torch.cat((out_lab.detach().cpu(), output.view(-1).detach().cpu()), dim=0)
 
-                acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
+                acc /= len(new_data)
+                #print(out_lab)
+                #print(test_lab)
+                #exit(0)
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
-                accs.append(acc.item()*100)
+                accs.append(acc)
                 aps.append(ap)
+                if heights_:
+                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    aps1.append(ap_1)
+                    aps2.append(ap_2)
+                    aps3.append(ap_3)
+                    aps4.append(ap_4)
+                    distances.append(distance)
+            if heights_:
+                return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
