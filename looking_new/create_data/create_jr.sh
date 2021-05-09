@@ -1,18 +1,18 @@
 #!/bin/sh
 BASE_PATH=$(pwd)
-PATH_OUT="/home/younesbelkada/Travail/data"
+PATH_OUT="/data/younes-data"
 ID_JR='1hazKAEdWQjjwPwmksL8XbyT9W8A6zn0Z'
-PATH_SPLITS="/home/younesbelkada/Travail/looking/looking_new/create_data/splits_jack"
+PATH_SPLITS="/home/younesbelkada/looking/looking_new/create_data/splits_jack"
 
 echo "Downloading JackRabbot dataset"
 
 mkdir -p "${PATH_OUT}/JackRabbot"
 
-#gdown --id $ID_JR
-#mv reviewed.zip "${PATH_OUT}/JackRabbot"
+gdown --id $ID_JR
+mv reviewed.zip "${PATH_OUT}/JackRabbot"
 
-#cd "${PATH_OUT}/JackRabbot"
-#unzip reviewed.zip
+cd "${PATH_OUT}/JackRabbot"
+unzip reviewed.zip
 
 cd $BASE_PATH
 

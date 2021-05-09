@@ -107,12 +107,18 @@ class Parser():
                                             std=[0.229, 0.224, 0.225])
             ])
             assert backbone in ['resnet18', 'resnet50']
-            name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], self.data_args['split']])+'.p'
-            if backbone == 'resnet18':
-                name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
+            if self.model_type['trained_on'] == 'JAAD':
+                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], self.data_args['split']])+'.p'
+                if backbone == 'resnet18':
+                    name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
+                else:
+                    name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
             else:
-                name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
-
+                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.p'
+                if backbone == 'resnet18':
+                    name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, ''])+'.p'
+                else:
+                    name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, ''])+'.p'
             path_output_model_backbone = os.path.join(self.general['path'], self.model_type['trained_on'], 'Heads')
             path_backbone = os.path.join(path_output_model_backbone, name_model_backbone)
 
@@ -132,7 +138,7 @@ class Parser():
                 model = LookingNet_early_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
             else:
                 model = LookingNet_early_fusion_50(path_backbone, path_model_joints, self.device, fine_tune)
-
+                #model = LookingNet_early_fusion_50_reduced(path_backbone, path_model_joints, self.device, fine_tune)
         self.model_type_ = model_type
         self.pose = pose
         self.lr = float(self.general['learning_rate'])
@@ -186,6 +192,14 @@ class Parser():
                 path_data = self.data_args['path_data']
                 dataset_train = Kitti_dataset('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
                 dataset_val = Kitti_dataset('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+            elif data_type == 'Nu':
+                path_data = self.data_args['path_data']
+                dataset_train = Jack_Nu_dataset('nu', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+                dataset_val = Jack_Nu_dataset('nu', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+            else:
+                path_data = self.data_args['path_data']
+                dataset_train = Jack_Nu_dataset('jack', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
+                dataset_val = Jack_Nu_dataset('jack', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
             return dataset_train, dataset_val
     
     def get_data_test(self, data_type):
@@ -200,7 +214,7 @@ class Parser():
             dataset_test = Kitti_dataset('test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
         elif data_type == 'Jack':
             dataset_test = Jack_Nu_dataset('jack', 'test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-        elif data_type == 'NU':
+        elif data_type == 'Nu':
             dataset_test = Jack_Nu_dataset('nu', 'test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
         return dataset_test
 
@@ -309,7 +323,6 @@ class Evaluator():
             ap, acc = data_test.evaluate(self.parser.model, self.parser.device, 10)
             print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
         else:
-            #ap, acc, ap_1, ap_2, ap_3, ap_4, ac_1, ac_2, ac_3, ac_4, distances = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
             ap, acc, ap_1, ap_2, ap_3, ap_4, distances = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
             
             print('Distances : ', np.mean(distances, axis=0))
