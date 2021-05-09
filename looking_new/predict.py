@@ -21,7 +21,7 @@ parser.add_argument('--json-output', default=None, nargs='?', const=True,
                              'with the option to specify the output path or directory')
 parser.add_argument('--batch-size', default=1, type=int,
                         help='processing batch size')
-parser.add_argument('--device', default=0, type=int,
+parser.add_argument('--device', default='0', type=str,
                         help='cuda device')
 parser.add_argument('--long-edge', default=None, type=int,
                         help='rescale the long side of the image (aspect ratio maintained)')

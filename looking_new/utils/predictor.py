@@ -34,8 +34,11 @@ class Predictor():
         device = args.device
         args.checkpoint = pifpaf_ver
         args.force_complete_pose = True
-        use_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda:{}".format(device) if use_cuda else "cpu")
+        if device != 'cpu':
+            use_cuda = torch.cuda.is_available()
+            self.device = torch.device("cuda:{}".format(device) if use_cuda else "cpu")
+        else:
+            self.device = torch.device('cpu')
         args.device = self.device
         print('device : {}'.format(self.device))
         self.path_images = args.images
@@ -122,7 +125,7 @@ class Predictor():
             mask = draw_skeleton(mask, keypoints[i], color)
         mask = cv2.erode(mask,(7,7),iterations = 1)
         mask = cv2.GaussianBlur(mask,(3,3),0)
-        open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, 0.3, 1.0)
+        open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, 0.4, 1.0)
         cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.pedictions.png'), open_cv_image)
 
     def predict(self, args):
