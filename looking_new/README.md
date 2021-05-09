@@ -1,6 +1,5 @@
 # Are you looking at the camera ? Official repository
 
-![Main Image](https://github.com/vita-epfl/looking/blob/younes/looking_new/image/main_image.png)
 
 ## Requirements
 
