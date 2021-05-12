@@ -44,7 +44,7 @@ PATH_MODEL = './models/'
 assert model_type in ['resnet18', 'resnet50', 'alexnet']
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
+device = torch.device("cuda" if use_cuda else "cpu")
 print('Device: ', device)
 res_18 =False
 
@@ -100,11 +100,11 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-model.load_state_dict(torch.load('{}{}_head_{}_romain.p'.format(PATH_MODEL, model_type, split), map_location=torch.device('cpu')))
+model.load_state_dict(torch.load('{}{}_head_{}_romain.p'.format(PATH_MODEL, model_type, split)))
 model.eval()
 
 jaad_test = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, split, data_transform)
-ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model.to(device), device)
+ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model, device)
 
 with open("false_pos_head.txt", "w") as output:
     for row in f_pos:

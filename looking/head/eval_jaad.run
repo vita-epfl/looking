@@ -5,7 +5,7 @@
 #SBATCH --ntasks 1
 #SBATCH --gres=gpu:1
 #SBATCH --time 01:00:00
-#SBATCH --mem 16G
+#SBATCH --mem 8G
 echo STARTING AT `date`
 python qualitative_analysis.py --model resnet18 --split video
 echo FINISHED at `date`

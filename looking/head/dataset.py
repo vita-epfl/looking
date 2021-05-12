@@ -160,6 +160,7 @@ class JAAD_Dataset_head(Dataset):
 	def get_mislabeled_test(self, model, device):
 		assert self.split in ["test"]
 		model.eval()
+		model.to(device)
 		print("Starting evalutation ..")
 		tab_X, tab_Y, filenames = self.X, self.Y, self.filenames
 
@@ -187,22 +188,16 @@ class JAAD_Dataset_head(Dataset):
 		data_loader = torch.utils.data.DataLoader(new_data, batch_size=1, shuffle=True)
 
 		acc = 0
-		false_neg, false_pos = [], []
+		false_pos, false_neg = [], []
 		out_lab = torch.Tensor([]).type(torch.float)
 		test_lab = torch.Tensor([])
+		filenames = list()
 		for x_test, y_test, f_name in data_loader:
 			x_test, y_test = x_test.to(device), y_test.to(device)
 			output = model(x_test)
 			out_pred = output
+			filenames += f_name
 			pred_label = torch.round(out_pred)
-			for i, pred in enumerate(pred_label):
-				if y_test[i] == 1 and pred == 0:
-					# False negative
-					false_neg.append([f_name[i], pred])
-				elif y_test[i] == 0 and pred == 1:
-					# False postitve
-					false_pos.append([f_name[i], pred])			
-
 			le = x_test.shape[0]
 			acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
 			test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
@@ -213,6 +208,15 @@ class JAAD_Dataset_head(Dataset):
 		ap = average_precision(out_lab, test_lab)
 		accs.append(acc.item())
 		aps.append(ap)
+		
+		pred_labs = torch.round(out_lab)
+		for i, pred in enumerate(pred_labs):
+			if test_lab[i] == 1 and pred == 0:
+				# False negative
+                        	false_neg.append([filenames[i], pred])
+			elif test_lab[i] == 0 and pred == 1:
+				# False postitve
+				false_pos.append([filenames[i], pred])   
 		return np.mean(aps), np.mean(accs), false_pos, false_neg
 
 

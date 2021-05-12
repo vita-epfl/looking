@@ -109,7 +109,7 @@ class JAAD_Dataset_joints(Dataset):
 		else:
 			print("please select a valid type of split ")
 			exit(0)
-		self.Y, self.kps, self.filenames = self.preprocess()
+		self.Y, self.kps, self.filenames, self.bboxes = self.preprocess()
 
 
 	def __len__(self):
@@ -121,10 +121,11 @@ class JAAD_Dataset_joints(Dataset):
 		label = self.Y[idx]
 		label = torch.Tensor([label])
 		file_n = self.files[idx]
+		bbox = self.bboxes[idx]
 
-		sample = {'keypoints':torch.Tensor([self.kps[idx]]) ,'label':label, 'file_name': file_n}
+		sample = {'keypoints':torch.Tensor([self.kps[idx]]) ,'label':label, 'file_name': file_n, 'bbox': bbox}
 
-		return sample['keypoints'], sample['label'], sample['file_name']
+		return sample['keypoints'], sample['label'], sample['file_name'], sample['bbox']
 
 	def get_joints(self):
 		return self.kps, torch.Tensor(self.Y)
@@ -154,10 +155,12 @@ class JAAD_Dataset_joints(Dataset):
 		tab_Y = []
 		kps = []
 		files = []
+		bboxes = []
 		for line in self.txt:
 			line = line[:-1]
 			line_s = line.split(",")
 			files.append(line_s[0])
+			bboxes.append(','.join(line_s[2:6]))
 			joints = np.array(json.load(open(self.path+self.path_jaad+line_s[-2]+'.json'))["X"])
 			X = joints[:17]
 			Y = joints[17:34]
@@ -172,7 +175,7 @@ class JAAD_Dataset_joints(Dataset):
 				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 			kps.append(tensor)
 			tab_Y.append(int(line_s[-1]))
-		return tab_Y, torch.tensor(kps), files
+		return tab_Y, torch.tensor(kps), files, bboxes
 
 	def evaluate(self, model, device, it=1):
 		assert self.split in ["test", "val"]
@@ -219,7 +222,7 @@ class JAAD_Dataset_joints(Dataset):
 		model.eval()
 		model.to(device)
 		print("Starting evalutation ..")
-		tab_X, tab_Y, filenames = self.kps.cpu().detach().numpy(), self.Y, self.filenames
+		tab_X, tab_Y, filenames, bboxes = self.kps.cpu().detach().numpy(), self.Y, self.filenames, self.bboxes
 
 		idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
 		idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -227,6 +230,7 @@ class JAAD_Dataset_joints(Dataset):
 		positive_samples = np.array(tab_X)[idx_Y1]
 		positive_samples_labels = np.array(tab_Y)[idx_Y1]
 		pos_files = np.array(filenames)[idx_Y1]
+		pos_bbox = np.array(bboxes)[idx_Y1]
 		N_pos = len(idx_Y1)
 
 		aps = []
@@ -236,31 +240,31 @@ class JAAD_Dataset_joints(Dataset):
 		neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
 		neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
 		neg_files = np.array(filenames)[idx_Y0[:N_pos]]
-
+		neg_bbox = np.array(bboxes)[idx_Y0[:N_pos]]
 		total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
 		total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
 		total_filenames = np.concatenate((pos_files, neg_files)).tolist()
+		total_bboxes = np.concatenate((pos_bbox, neg_bbox)).tolist()
 
-		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames)
+		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, total_bboxes)
 		data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
 		acc = 0
 		false_neg, false_pos = [], []
 		out_lab = torch.Tensor([]).type(torch.float)
 		test_lab = torch.Tensor([])
-		for x_test, y_test, f_name in data_loader:
+		for x_test, y_test, f_name, bbox in data_loader:
 			x_test, y_test = x_test.to(device), y_test.to(device)
 			output = model(x_test)
 			out_pred = output
 			pred_label = torch.round(out_pred)
-
 			for i, pred in enumerate(pred_label):
 				if y_test[i] == 1 and pred == 0:
 					# False negative
-					false_neg.append([f_name[i], pred])
+					false_neg.append([f_name[i], bbox[i], pred])
 				elif y_test[i] == 0 and pred == 1:
 					# False postitve
-					false_pos.append([f_name[i], pred])
+					false_pos.append([f_name[i], bbox[i], pred])
 			le = x_test.shape[0]
 			acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
 			test_lab = torch.cat((test_lab.detach().cpu(), y_test.view(-1).detach().cpu()), dim=0)
@@ -303,7 +307,7 @@ class new_Dataset(Dataset):
 class new_Dataset_qualitative(Dataset):
 	"""JAAD dataset for training and inference"""
 
-	def __init__(self, path, path_jaad, data_x, data_y, files):
+	def __init__(self, path, path_jaad, data_x, data_y, files, bbox):
 		"""
 		Args:
 			split : train, val and test
@@ -316,6 +320,7 @@ class new_Dataset_qualitative(Dataset):
 		self.kps = data_x
 		self.Y = data_y
 		self.files = files
+		self.bbox = bbox
 
 	def __len__(self):
 		return len(self.Y)
@@ -330,7 +335,7 @@ class new_Dataset_qualitative(Dataset):
 		label = torch.Tensor([label])
 
 		file_n = self.files[idx]
+		bbox = self.bbox[idx]
+		sample = {'keypoints':self.kps[idx] ,'label':label, 'file_name': file_n, 'bbox':bbox}
 
-		sample = {'keypoints':self.kps[idx] ,'label':label, 'file_name': file_n}
-
-		return torch.Tensor(sample['keypoints']), sample['label'], sample['file_name']
+		return torch.Tensor(sample['keypoints']), sample['label'], sample['file_name'], sample['bbox']
