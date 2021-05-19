@@ -125,7 +125,7 @@ if use_cuda:
 
 for e in range(EPOCHS):
 	i = 0
-	for x_batch, y_batch in dataset_loader:
+	for x_batch, y_batch, _, _ in dataset_loader:
 		if use_cuda:
 			x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 		optimizer.zero_grad()
@@ -151,21 +151,31 @@ for e in range(EPOCHS):
 		accs_val = acc
 		aps_val = ap
 		if args.save:
-			torch.save(net.state_dict(), PATH_MODEL + '{}_head_{}.pkl'.format(model_type, split))
+			torch.save(net.state_dict(), PATH_MODEL + '{}_head_{}_new_crops.pkl'.format(model_type, split))
 	print('epoch {} | acc:{} | ap:{}'.format(e, acc, ap))
 	net.train()
 
 
 if kitti:
-	model = []
-	model = torch.load(PATH_MODEL + "{}_head_{}_.pkl".format(model_type, split), map_location=torch.device(device))
-	jaad_val = Kitti_Dataset_head(DATA_PATH, "test", pose)
-	model.eval()
+	model = torch.load(PATH_MODEL + "{}_head_{}_new_crops.pkl".format(model_type, split), map_location=torch.device(device))
+	data_test = Kitti_Dataset_head(DATA_PATH, "test", data_transform)
 
-	joints_test, labels_test = jaad_val.get_joints()
+	dataset_loader_test = torch.utils.data.DataLoader(data_test,batch_size=8, shuffle=True)
 
-	out_test = model(joints_test.to(device))
-	acc_test = binary_acc(out_test.to(device), labels_test.view(-1,1).to(device))
-	ap_test = average_precision(out_test.to(device), labels_test.to(device))
+	acc = 0
+	ap = 0
+	out_lab = torch.Tensor([]).type(torch.float).to(device)
+	test_lab = torch.Tensor([]).to(device)
+	for x_test, y_test in dataset_loader_test:
+		if use_cuda:
+			x_test, y_test = x_test.cuda(), y_test.cuda()
+		output = model(x_test)
+		out_pred = output
+		le = x_test.shape[0]
+		pred_label = torch.round(out_pred)
+		test_lab = torch.cat((test_lab.detach().cpu(), y_test.detach().cpu().view(-1)), dim=0)
+		out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
 
-	print("Kitti | AP : {} | Acc : {}".format(ap_test, acc_test))
+	ap = average_precision(out_lab, test_lab)
+	acc = binary_acc(torch.round(out_lab).type(torch.float).view(-1), test_lab).item()
+	print('Kitti {} | acc:{} | ap:{}'.format(0, acc,ap))

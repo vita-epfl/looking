@@ -5,10 +5,10 @@ np.random.seed(0)
 
 # put gt file
 
-file = open("../ground_truth_2k30.txt", "r")
-file_train = open("JAAD_train.txt", "r")
-file_val = open("JAAD_val.txt", "r")
-file_test = open("JAAD_test.txt", "r")
+file = open("./ground_truth_2k30_head_crop_pifpaf.txt", "r")
+file_train = open("jaad_train.txt", "r")
+file_val = open("jaad_val.txt", "r")
+file_test = open("jaad_test.txt", "r")
 
 
 def extract_scenes(tab, file):
@@ -32,9 +32,9 @@ file_test.close()
 
 # final files
 
-file_train = open("jaad_train_scenes_2k30.txt", "w")
-file_val = open("jaad_val_scenes_2k30.txt", "w")
-file_test = open("jaad_test_scenes_2k30.txt", "w")
+file_train = open("jaad_train_scenes_2k30_new_head.txt", "w")
+file_val = open("jaad_val_scenes_2k30_new_head.txt", "w")
+file_test = open("jaad_test_scenes_2k30_new_head.txt", "w")
 
 #
 

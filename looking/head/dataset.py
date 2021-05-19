@@ -24,7 +24,7 @@ class Kitti_Dataset_head(Dataset):
 			transform : image transformation to be applied on every instance
 		"""
 		self.data = None
-		self.path = path + 'Kitti/'
+		self.path = path + 'Kitti_new_crops/'
 		self.transform = transform
 		self.split = split
 		assert self.split in ['train', 'test']
@@ -55,7 +55,7 @@ class Kitti_Dataset_head(Dataset):
 		output = []
 		X = []
 		Y = []
-		file = open(self.path + 'kitti_gt.txt', "r")
+		file = open(self.path + 'kitti_gt_new_crops.txt', "r")
 		for line in file:
 			line = line[:-1]
 			line_s = line.split(",")
@@ -85,7 +85,7 @@ class JAAD_Dataset_head(Dataset):
 		assert self.type in ['original', 'video']
 
 		if self.type == "video":
-			self.txt = open(self.split_path + 'jaad_' + self.split + '_scenes_2k30.txt', "r")
+			self.txt = open(self.split_path + 'jaad_' + self.split + '_scenes_2k30_new_head.txt', "r")
 		elif self.type == "original":
 			self.txt = open(self.split_path + 'jaad_'+self.split + '_original_2k30.txt', "r")
 		else:
@@ -102,11 +102,11 @@ class JAAD_Dataset_head(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
-		file_n = self.files[idx]
+		file_n = self.filenames[idx]
 		bbox = self.bboxes[idx]
-		label = self.data_y[idx]
+		label = self.Y[idx]
 		label = torch.Tensor([label])
-		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n, 'bbox': bbox}
+		sample = {'image': Image.open(self.path+self.path_jaad+self.X[idx]), 'label': label, 'file_name': file_n, 'bbox': bbox}
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
 		return sample['image'], sample['label'], sample['file_name'], sample['bbox']

@@ -100,16 +100,16 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-model.load_state_dict(torch.load('{}{}_head_{}_romain.p'.format(PATH_MODEL, model_type, split)))
+model.load_state_dict(torch.load('{}{}_head_{}_new_head.pkl'.format(PATH_MODEL, model_type, split)))
 model.eval()
 
 jaad_test = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, split, data_transform)
 ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model, device)
 
-with open("false_pos_head.txt", "w") as output:
+with open("false_pos_head_new_crops.txt", "w") as output:
     for row in f_pos:
         output.write(str(row)+'\n')
-with open("false_neg_head.txt", "w") as output:
+with open("false_neg_head_new_crops.txt", "w") as output:
     for row in f_neg:
         output.write(str(row)+'\n')
 

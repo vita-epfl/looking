@@ -91,7 +91,7 @@ if training:
 		i = 0
 		model.to(device)
 		running_loss = 0
-		for x_batch, y_batch in train_loader:
+		for x_batch, y_batch, _, _ in train_loader:
 			if torch.cuda.is_available():
 				x_batch, y_batch = x_batch.to(device), y_batch.to(device).float()
 				#x_batch.requires_grad=True

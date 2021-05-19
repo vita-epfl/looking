@@ -35,10 +35,10 @@ def new_crop(img, kps):
 
 	# No head in picture
 	default_l = 5
-	if x1 == img.shape[1]:
-		x1 -= default_l
-	if y1 == img.shape[0]:
-		y1 -= default_l
+	if x1 >= img.shape[1]:
+		x1 = img.shape[1] - default_l
+	if y1 >= img.shape[0]:
+		y1 = img.shape[0] - default_l
 	if x2 == 0:
 		x2 += default_l
 	if y2 == 0:
@@ -48,7 +48,6 @@ def new_crop(img, kps):
 	if y1 == y2:
 		y2 += default_l
 
-	# shape img 1080*1920
 	if y2 > img.shape[0]:
 		y2 = img.shape[0]
 	if x2 > img.shape[1]:
@@ -59,15 +58,10 @@ train = True
 test = True
 
 if train:
-	"""path_train_images = '../data/Kitti/Trainset/'
-	path_train = '../data/Kitti/Trainset/anno_Trainset/'
+	path_train_images = '/scratch/izar/caristan/data/Kitti/Trainset/'
+	path_train = '/scratch/izar/caristan/data/Kitti/Trainset/anno_Trainset/'
 	final_di = {'head':[], 'keypoints':[], 'Y':[], 'names':[]}
-	path_out = "../data/Kitti/" """
-
-	path_train_images = '../data/Kitti/Trainset/'
-	path_train = '../data/Kitti/Trainset/anno_Trainset/'
-	final_di = {'head':[], 'keypoints':[], 'Y':[], 'names':[]}
-	path_out = "../data/Kitti_new_crops/"
+	path_out = "/scratch/izar/caristan/data/Kitti_new_crops/"
 
 	name_pic = 0
 	file_out = open("kitti_gt_new_crops.txt", "w")
@@ -95,11 +89,8 @@ if train:
 	#json.dump(final_di, open("kitti_head_joints_train.json", 'w'))
 
 if test:
-	"""path_train_images = '../data/Kitti/Testset/'
-	path_train = '../data/Kitti/Testset/anno_Testset/'"""
-
-	path_train_images = '../data/Kitti/Testset/'
-	path_train = '../data/Kitti/Testset/anno_Testset/'
+	path_train_images = '/scratch/izar/caristan/data/Kitti/Testset/'
+	path_train = '/scratch/izar/caristan/data/Kitti/Testset/anno_Testset/'
 
 	final_di = {'head':[], 'keypoints':[], 'Y':[], 'names':[]}
 

@@ -7,5 +7,5 @@
 #SBATCH --time 01:00:00
 #SBATCH --mem 8G
 echo STARTING AT `date`
-python qualitative_analysis.py --model resnet18 --split video
+python qualitative_analysis.py --model resnet18 --split video --jaad_split_path 'JAAD_2k30_new_head/' --split_path '../splits/' --data_path '/scratch/izar/caristan/data/' 
 echo FINISHED at `date`
