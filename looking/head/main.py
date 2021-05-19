@@ -159,7 +159,7 @@ for e in range(EPOCHS):
 if kitti:
 	model = torch.load(PATH_MODEL + "{}_head_{}_new_crops.pkl".format(model_type, split), map_location=torch.device(device))
 	data_test = Kitti_Dataset_head(DATA_PATH, "test", data_transform)
-
+	model.eval()
 	dataset_loader_test = torch.utils.data.DataLoader(data_test,batch_size=8, shuffle=True)
 
 	acc = 0
