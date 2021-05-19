@@ -130,19 +130,13 @@ def new_crop_jaad(img, kps, bbox_original):
 ## paths
 
 # Cluster
-"""path_jaad = "/work/vita/datasets/JAAD/images/"
-path_joints = "./data/output_pifpaf_01_2k30/"
+path_jaad = "/work/vita/datasets/JAAD/images/"
+path_joints = "/scratch/izar/caristan/data/jaad_pifpaf_new/"
 
 dir_out = "./splits"
-path_out = "./data/JAAD_2k30_new_head/" """
+path_out = "/scratch/izar/caristan/data/JAAD_2k30_new_head/"
 
 
-# Local
-path_jaad = "../../../data/JAAD/images/"
-path_joints = "../data/output_pifpaf_01_2k30/"
-
-dir_out = "./splits"
-path_out = "../data/JAAD_2k30_new_head/"
 
 
 
@@ -151,7 +145,7 @@ assert os.path.isdir(path_out), "output directory to save crops not found"
 
 file = open("results_new.csv", "r")
 
-file_out = open(os.path.join(dir_out, "ground_truth_2k30_new_head.txt"), "w+")
+file_out = open(os.path.join(dir_out, "ground_truth_2k30_head_crop_pifpaf.txt"), "w+")
 
 # Convert the data
 data = convert_file_to_data(file)

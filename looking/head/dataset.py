@@ -93,7 +93,7 @@ class JAAD_Dataset_head(Dataset):
 			exit(0)
 
 		self.transform = transform
-		self.X, self.Y, self.filenames = self.preprocess()
+		self.X, self.Y, self.filenames, self.bboxes = self.preprocess()
 
 	def __len__(self):
 		return len(self.Y)
@@ -103,12 +103,13 @@ class JAAD_Dataset_head(Dataset):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
 		file_n = self.files[idx]
+		bbox = self.bboxes[idx]
 		label = self.data_y[idx]
 		label = torch.Tensor([label])
-		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}
+		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n, 'bbox': bbox}
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
-		return sample['image'], sample['label'], sample['file_name']
+		return sample['image'], sample['label'], sample['file_name'], sample['bbox']
 
 
 	def evaluate(self, model, device, it):
@@ -162,7 +163,7 @@ class JAAD_Dataset_head(Dataset):
 		model.eval()
 		model.to(device)
 		print("Starting evalutation ..")
-		tab_X, tab_Y, filenames = self.X, self.Y, self.filenames
+		tab_X, tab_Y, filenames, bboxes = self.X, self.Y, self.filenames, self.bboxes
 
 		idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
 		idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -170,6 +171,7 @@ class JAAD_Dataset_head(Dataset):
 		positive_samples = np.array(tab_X)[idx_Y1]
 		positive_samples_labels = np.array(tab_Y)[idx_Y1]
 		pos_files = np.array(filenames)[idx_Y1]
+		pos_bbox = np.array(bboxes)[idx_Y1]
 		N_pos = len(idx_Y1)
 
 		aps = []
@@ -179,12 +181,13 @@ class JAAD_Dataset_head(Dataset):
 		neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
 		neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
 		neg_files = np.array(filenames)[idx_Y0[:N_pos]]
-
+		neg_bbox = np.array(bboxes)[idx_Y0[:N_pos]]
 		total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
 		total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
 		total_filenames = np.concatenate((pos_files, neg_files)).tolist()
+		total_bboxes = np.concatenate((pos_bbox, neg_bbox)).tolist()
 
-		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, self.transform)
+		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, total_bboxes, self.transform)
 		data_loader = torch.utils.data.DataLoader(new_data, batch_size=1, shuffle=True)
 
 		acc = 0
@@ -192,11 +195,13 @@ class JAAD_Dataset_head(Dataset):
 		out_lab = torch.Tensor([]).type(torch.float)
 		test_lab = torch.Tensor([])
 		filenames = list()
-		for x_test, y_test, f_name in data_loader:
+		bbox_l = list()
+		for x_test, y_test, f_name, bbox in data_loader:
 			x_test, y_test = x_test.to(device), y_test.to(device)
 			output = model(x_test)
 			out_pred = output
 			filenames += f_name
+			bbox_l += bbox
 			pred_label = torch.round(out_pred)
 			le = x_test.shape[0]
 			acc += le*binary_acc(pred_label.type(torch.float).view(-1), y_test).item()
@@ -213,10 +218,10 @@ class JAAD_Dataset_head(Dataset):
 		for i, pred in enumerate(pred_labs):
 			if test_lab[i] == 1 and pred == 0:
 				# False negative
-                        	false_neg.append([filenames[i], pred])
+                        	false_neg.append([filenames[i], bbox_l[i], pred])
 			elif test_lab[i] == 0 and pred == 1:
 				# False postitve
-				false_pos.append([filenames[i], pred])   
+				false_pos.append([filenames[i], bbox_l[i], pred])   
 		return np.mean(aps), np.mean(accs), false_pos, false_neg
 
 
@@ -226,15 +231,17 @@ class JAAD_Dataset_head(Dataset):
 		A helper function to load the paths of the images from the txt file.
 		"""
 		files = []
+		bboxes = []
 		tab_X = []
 		tab_Y = []
 		for line in self.txt:
 			line = line[:-1]
 			line_s = line.split(",")
 			files.append(line_s[0])
+			bboxes.append(','.join(line_s[2:6]))
 			tab_X.append(line_s[-2])
 			tab_Y.append(int(line_s[-1]))
-		return tab_X, tab_Y, files
+		return tab_X, tab_Y, files, bboxes
 
 
 class new_Dataset(Dataset):
@@ -283,7 +290,7 @@ class new_Dataset(Dataset):
 class new_Dataset_qualitative(Dataset):
 	"""JAAD dataset for training and inference"""
 
-	def __init__(self, path, path_jaad, data_x, data_y, files, transform=None):
+	def __init__(self, path, path_jaad, data_x, data_y, files, bbox, transform=None):
 		"""
 		Args:
 			split : train, val and test
@@ -297,6 +304,7 @@ class new_Dataset_qualitative(Dataset):
 		self.data_x = data_x
 		self.data_y = data_y
 		self.files = files
+		self.bbox = bbox
 
 	def __len__(self):
 		return len(self.data_y)
@@ -304,10 +312,11 @@ class new_Dataset_qualitative(Dataset):
 	def __getitem__(self, idx):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
+		bbox = self.bbox[idx]
 		file_n = self.files[idx]
 		label = self.data_y[idx]
 		label = torch.Tensor([label])
-		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n}
+		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label, 'file_name': file_n, 'bbox':bbox}
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
-		return sample['image'], sample['label'], sample['file_name']
+		return sample['image'], sample['label'], sample['file_name'], sample['bbox']
