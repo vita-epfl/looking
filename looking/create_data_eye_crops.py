@@ -127,7 +127,7 @@ path_jaad = "/work/vita/datasets/JAAD/images/"
 path_joints = "/scratch/izar/caristan/data/jaad_pifpaf_new/"
 
 dir_out = "./splits"
-path_out = "/home/caristan/code/looking/data/JAAD_2k30_eyes/"
+path_out = "/home/caristan/code/looking/looking/data/JAAD_2k30_eyes/"
 
 
 assert os.path.isdir(dir_out), "directory to save ground-truth not found"

@@ -18,7 +18,7 @@ def enlarge_bbox(bb, enlarge=1):
 def new_crop(img, kps):
 	default_l = 5
 	idx = [0, 1]
-	kps1, kps2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
+	kps1, kps2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
 	# l is euclidean dist between keypoints
 	l = np.linalg.norm(np.array(kps2)-np.array(kps1))
 	center_x = (kps1[0] + kps2[0])/2
@@ -61,10 +61,10 @@ train = True
 test = True
 
 if train:
-	path_train_images = '../data/Kitti/Trainset/'
-	path_train = '../data/Kitti/Trainset/anno_Trainset/'
+	path_train_images = '/scratch/izar/caristan/data/Kitti/Trainset/'
+	path_train = '/scratch/izar/caristan/data/Kitti/Trainset/anno_Trainset/'
 	final_di = {'head':[], 'keypoints':[], 'Y':[], 'names':[]}
-	path_out = "../data/Kitti_eye_crops/"
+	path_out = "/scratch/izar/caristan/data/Kitti_eye_crops/"
 
 	name_pic = 0
 	file_out = open("kitti_gt_eyes_crops.txt", "w")
@@ -92,8 +92,8 @@ if train:
 	#json.dump(final_di, open("kitti_head_joints_train.json", 'w'))
 
 if test:
-	path_train_images = '../data/Kitti/Testset/'
-	path_train = '../data/Kitti/Testset/anno_Testset/'
+	path_train_images = '/scratch/izar/caristan/data/Kitti/Testset/'
+	path_train = '/scratch/izar/caristan/data/Kitti/Testset/anno_Testset/'
 
 	final_di = {'head':[], 'keypoints':[], 'Y':[], 'names':[]}
 
