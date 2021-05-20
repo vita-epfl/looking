@@ -4,8 +4,8 @@
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --gres=gpu:1
-#SBATCH --time 05:00:00
+#SBATCH --time 12:00:00
 #SBATCH --mem 8G
 echo STARTING AT `date`
-python main.py --epochs 50 --model resnet18 --split video --kitti --jaad_split_path 'JAAD_2k30_new_head/' --split_path '../splits/' --data_path '/scratch/izar/caristan/data/' --save
+python main.py --epochs 50 --model resnet18 --split video --kitti --jaad_split_path 'JAAD_2k30_new_head/' --split_path '../splits/' --data_path '/home/caristan/code/looking/looking/data/' --save
 echo FINISHED at `date`

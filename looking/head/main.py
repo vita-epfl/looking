@@ -106,7 +106,7 @@ else:
 		).to(device)
 
 print("model type {} | split type : {}".format(model_type, split))
-
+"""
 jaad_train = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "train", SPLIT_PATH, split, data_transform)
 jaad_val = JAAD_Dataset_head(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH, split, data_transform)
 
@@ -125,7 +125,7 @@ if use_cuda:
 
 for e in range(EPOCHS):
 	i = 0
-	for x_batch, y_batch, _, _ in dataset_loader:
+	for x_batch, y_batch in dataset_loader:
 		if use_cuda:
 			x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 		optimizer.zero_grad()
@@ -151,14 +151,20 @@ for e in range(EPOCHS):
 		accs_val = acc
 		aps_val = ap
 		if args.save:
-			torch.save(net.state_dict(), PATH_MODEL + '{}_head_{}_new_crops.pkl'.format(model_type, split))
+			torch.save(net.state_dict(), PATH_MODEL + '{}_head_{}_new_crops.p'.format(model_type, split))
 	print('epoch {} | acc:{} | ap:{}'.format(e, acc, ap))
 	net.train()
-
+"""
 
 if kitti:
-	model = torch.load(PATH_MODEL + "{}_head_{}_new_crops.pkl".format(model_type, split), map_location=torch.device(device))
+	model = models.resnet18(pretrained=True)
+	model.fc  = nn.Sequential(
+			nn.Linear(in_features=512, out_features=1, bias=True),
+			nn.Sigmoid()
+		).to(device)
+	model.load_state_dict(torch.load('{}{}_head_{}_new_crops.p'.format(PATH_MODEL, model_type, split)))
 	data_test = Kitti_Dataset_head(DATA_PATH, "test", data_transform)
+	model.to(device)
 	model.eval()
 	dataset_loader_test = torch.utils.data.DataLoader(data_test,batch_size=8, shuffle=True)
 

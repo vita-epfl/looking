@@ -100,7 +100,7 @@ else:
 
 print("model type {} | split type : {}".format(model_type, split))
 
-model.load_state_dict(torch.load('{}{}_head_{}_new_crops.pkl'.format(PATH_MODEL, model_type, split)))
+model.load_state_dict(torch.load('{}{}_head_{}_new_crops.p'.format(PATH_MODEL, model_type, split)))
 model.eval()
 
 jaad_test = JAAD_Dataset_head_test(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, split, data_transform)
