@@ -99,10 +99,10 @@ def eye_crops(img, kps):
 
 	# No head in picture
 	default_l = 5
-	if x1 == img.shape[1]:
-		x1 -= default_l
-	if y1 == img.shape[0]:
-		y1 -= default_l
+	if x1 >= img.shape[1]:
+		x1 = img.shape[1]-default_l
+	if y1 >= img.shape[0]:
+		y1 = img.shape[0]-default_l
 	if x2 == 0:
 		x2 += default_l
 	if y2 == 0:
@@ -141,7 +141,7 @@ file_out = open(os.path.join(dir_out, "ground_truth_2k30_eyes_crop_pifpaf.txt"),
 data = convert_file_to_data(file)
 name_pic = 0
 
-
+min_shape, max_shape = (np.inf, np.inf, np.inf), (0, 0, 0)
 for i in tqdm(range(len(data["Y"]))):
 	path = data["path"][i]
 	data_json = json.load(open(path_joints+path+'.predictions.json', 'r'))
@@ -165,8 +165,6 @@ for i in tqdm(range(len(data["Y"]))):
 			img = Image.open(path_jaad+path).convert('RGB')
 			img = np.asarray(img)
 			head = eye_crops(img, data_json[j]["keypoints"])
-			print(path, name_head)
-			print(head.shape)
 
 			if head.shape[0] * head.shape[1] > max_shape[0] * max_shape[1]:
 				max_shape = head.shape
