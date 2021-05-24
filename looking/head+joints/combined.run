@@ -7,5 +7,5 @@
 #SBATCH --time 01:00:00
 #SBATCH --mem 8G
 echo STARTING AT `date`
-python main.py --epochs 1 --split video --save
+python main.py --epochs 50 --split video --model resnet18 --jaad_split_path 'JAAD_2k30_new_head/' --split_path '../splits/' --data_path '/home/caristan/code/looking/looking/data/' --save --kitti
 echo FINISHED at `date`

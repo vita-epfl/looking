@@ -118,7 +118,7 @@ jaad_val = JAAD_Dataset(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH, split, data_tra
 
 
 if model_type=='resnet18':
-    model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
+    model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}_new_crops.p".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
 elif model_type=='resnet50':
     model = LookingNet_early_fusion_50(PATH_MODEL + "resnet50_head_{}.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
 
@@ -161,19 +161,23 @@ for e in range(EPOCHS):
 	test_lab = torch.Tensor([])
 
 	ap, acc = jaad_val.evaluate(model, device, 1)
-
 	print('epoch {} | acc:{} | ap:{}'.format(e+1, acc,ap))
+
 
 	if ap > ap_max:
 		ap_max = ap
-		torch.save(model.state_dict(), PATH_MODEL + "model_combined_{}_{}.pkl".format(model_type, video))
+		torch.save(model.state_dict(), PATH_MODEL + "model_combined_{}_{}_new_crops.p".format(model_type, video))
 	model.train()
 
+data_test_jaad = JAAD_Dataset(DATA_PATH, JAAD_PATH,"test", SPLIT_PATH, split, data_transform)
+ap, acc = data_test_jaad.evaluate(model, device, 10)
+print('Performance on JAAD | acc:{} | ap:{}'.format(acc,ap))
+
 if kitti:
-	model = []
-	model = torch.load(PATH_MODEL + "model_combined_{}_{}.pkl".format(video, pose), map_location=torch.device(device))
+	#model = []
+	#model = torch.load(PATH_MODEL + "model_combined_{}_{}_new_crops.p".format(video, pose), map_location=torch.device(device))
 	jaad_val = Kitti_Dataset(DATA_PATH, "test", pose)
-	model.eval()
+
 
 	joints_test, labels_test = jaad_val.get_joints()
 
@@ -182,3 +186,26 @@ if kitti:
 	ap_test = average_precision(out_test.to(device), labels_test.to(device))
 
 	print("Kitti | AP : {} | Acc : {}".format(ap_test, acc_test))
+
+
+	data_test= Kitti_Dataset(DATA_PATH, "test", pose)
+	dataset_loader_test = torch.utils.data.DataLoader(data_test,batch_size=8, shuffle=True)
+	model.eval()
+	acc = 0
+	ap = 0
+
+	out_lab = torch.Tensor([]).type(torch.float).to(device)
+	test_lab = torch.Tensor([]).to(device)
+	for heads, keypoints, y_test in dataset_loader_test:
+	    if use_cuda:
+	        heads, keypoints, y_test = heads.cuda(), keypoints.cuda(), y_test.cuda()
+	    output = model(heads, keypoints)
+	    out_pred = output
+	    le = heads.shape[0]
+	    pred_label = torch.round(out_pred)
+	    test_lab = torch.cat((test_lab.detach().cpu(), y_test.detach().cpu().view(-1)), dim=0)
+	    out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
+
+	ap = average_precision(out_lab, test_lab)
+	acc = binary_acc(torch.round(out_lab).type(torch.float).view(-1), test_lab).item()
+	print('Performance on Kitti | acc:{} | ap:{}'.format(acc,ap))
