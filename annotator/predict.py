@@ -11,7 +11,7 @@ import PIL
 
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
+device = torch.device("cuda" if use_cuda else "cpu")
 print('Device: ', device)
 
 
@@ -28,7 +28,7 @@ def load_pifpaf():
 	decoder = openpifpaf.decoder.factory([hn.meta for hn in net_cpu.head_nets])
 	preprocess = openpifpaf.transforms.Compose([
 	openpifpaf.transforms.NormalizeAnnotations(),
-	openpifpaf.transforms.RescaleAbsolute(long_edge=2500),
+	#openpifpaf.transforms.RescaleAbsolute(long_edge=2500),
 	openpifpaf.transforms.CenterPadTight(16),
 	openpifpaf.transforms.EVAL_TRANSFORM,
 	])
@@ -106,7 +106,7 @@ class Predictor():
 	def __init__(self, path):
 		self.path = path
 
-		self.model = torch.load("./models/looking_model_jaad_video_full_kps_romain.p", map_location=torch.device(device))
+		self.model = torch.load("./models/looking_model_jack.pkl", map_location=torch.device(device))
 		self.model.eval()
 
 		self.net, self.processor, self.preprocess = load_pifpaf()

@@ -24,19 +24,21 @@ print('Device: ', device)
 
 def load_pifpaf():
     print('Loading Pifpaf')
-    net_cpu, _ = openpifpaf.network.factory(checkpoint='shufflenetv2k30', download_progress=False)
+    net_cpu, _ = openpifpaf.network.factory.Factory(checkpoint='shufflenetv2k30', download_progress=False).factory()
     net = net_cpu.to(device)
-    openpifpaf.decoder.CifSeeds.threshold = 0.5
-    openpifpaf.decoder.nms.Keypoints.keypoint_threshold = 0.0
-    openpifpaf.decoder.nms.Keypoints.instance_threshold = 0.2
-    openpifpaf.decoder.nms.Keypoints.keypoint_threshold_rel = 0.0
+    openpifpaf.decoder.utils.CifSeeds.threshold = 0.5
+    openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold = 0.0
+    openpifpaf.decoder.utils.nms.Keypoints.instance_threshold = 0.2
+    openpifpaf.decoder.utils.nms.Keypoints.keypoint_threshold_rel = 0.0
     openpifpaf.decoder.CifCaf.force_complete = True
-    processor = openpifpaf.decoder.factory_decode(net.head_nets, basenet_stride=net.base_net.stride)
+    decoder = openpifpaf.decoder.factory([hn.meta for hn in net_cpu.head_nets])
     preprocess = openpifpaf.transforms.Compose([openpifpaf.transforms.NormalizeAnnotations(),
+                                                #openpifpaf.transforms.RescaleAbsolute(long_edge=2500),
                                                 openpifpaf.transforms.CenterPadTight(16),
-                                                openpifpaf.transforms.RescaleAbsolute(long_edge=2500),
-                                                openpifpaf.transforms.EVAL_TRANSFORM])
-    return net, processor, preprocess
+                                                openpifpaf.transforms.EVAL_TRANSFORM,
+                                                ])
+    return net, decoder, preprocess
+
 
 
 
@@ -345,12 +347,12 @@ class Ui_MainWindow(object):
             im = np.asarray(pil_im)
             data = openpifpaf.datasets.PilImageList([pil_im], preprocess=self.preprocess)
             if '{}.predictions.json'.format(self.get_image().split('/')[-1]) not in os.listdir(directory_out):
-	            loader = torch.utils.data.DataLoader(data, batch_size=1, pin_memory=True, collate_fn=openpifpaf.datasets.collate_images_anns_meta)
-	            for images_batch, _, __ in loader:
-	                predictions = self.processor.batch(self.net, images_batch, device=device)[0]
-	                tab_predict = [p.json_data() for p in predictions]
-	            with open(directory_out+'/{}.predictions.json'.format(self.get_image().split('/')[-1]), 'w') as outfile:
-	                json.dump(tab_predict, outfile)
+                loader = torch.utils.data.DataLoader(data, batch_size=1, pin_memory=True, collate_fn=openpifpaf.datasets.collate_images_anns_meta)
+                for images_batch, _, __ in loader:
+                    predictions = self.processor.batch(self.net, images_batch, device=device)[0]
+                    tab_predict = [p.json_data() for p in predictions]
+                with open(directory_out+'/{}.predictions.json'.format(self.get_image().split('/')[-1]), 'w') as outfile:
+                    json.dump(tab_predict, outfile)
 
 
 
@@ -364,16 +366,16 @@ class Ui_MainWindow(object):
             #data = data.to
             directory_anno = self.path+'/anno_'+self.path.split('/')[-1]
             if os.path.exists(directory_anno):
-	            if self.get_image().split('/')[-1]+'.json' not in os.listdir(directory_anno):
-	            	img_out, Y, X, bboxes = run_and_rectangle(img, data, self.model, device)
-	            else:
-	            	data2 = json.load(open(directory_anno+'/{}.json'.format(self.get_image().split('/')[-1]), 'r'))
-	            	if len(data) == len(data2["Y"]):
-	            		img_out, Y, X, bboxes = run_and_rectangle_saved(img, data, self.model, device, data2)
-	            	else:
-	            		img_out, Y, X, bboxes = run_and_rectangle(img, data, self.model, device)
+                if self.get_image().split('/')[-1]+'.json' not in os.listdir(directory_anno):
+                    img_out, Y, X, bboxes = run_and_rectangle(img, data, self.model, device)
+                else:
+                    data2 = json.load(open(directory_anno+'/{}.json'.format(self.get_image().split('/')[-1]), 'r'))
+                    if len(data) == len(data2["Y"]):
+                        img_out, Y, X, bboxes = run_and_rectangle_saved(img, data, self.model, device, data2)
+                    else:
+                        img_out, Y, X, bboxes = run_and_rectangle(img, data, self.model, device)
             else:
-            	img_out, Y, X, bboxes = run_and_rectangle(img, data, self.model, device)
+                img_out, Y, X, bboxes = run_and_rectangle(img, data, self.model, device)
             #print(Y, X)
             #exit(0)
             self.Y = Y
@@ -411,7 +413,7 @@ class Ui_MainWindow(object):
             #print(self.tab_im)
             self.i = self.tab_im.index(name)+1
             if self.i >= len(self.tab_im):
-            	self.i = 0
+                self.i = 0
         else:
             self.i = 0
 
@@ -441,7 +443,7 @@ class Ui_MainWindow(object):
             #print(self.tab_im)
             self.i = self.tab_im.index(name)+1
             if self.i >= len(self.tab_im):
-            	self.i = 0
+                self.i = 0
         else:
             self.i = 0
 
