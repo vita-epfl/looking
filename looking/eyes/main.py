@@ -71,7 +71,6 @@ dataset_loader_test = torch.utils.data.DataLoader(jaad_val, batch_size=8, shuffl
 
 best_ap, best_ac, best_epoch = 0, 0, 0
 
-"""
 criterion = nn.BCELoss()
 test_ap = []
 test_ac = []
@@ -115,10 +114,8 @@ for epoch in range(EPOCHS):
 		print(f'Best epoch: {best_epoch}, AP: {best_ap}, Acc: {best_ac}')
 		torch.save(model, PATH_MODEL + 'eyes_model.pkl')
 
-"""
 
-model = LookingModel(INPUT_SIZE).to(device)
-model.load_state_dict(torch.load('eyes_model.pkl'))
+model = torch.load(PATH_MODEL + 'eyes_model.pkl')
 model.eval()
 jaad_test = JAAD_Dataset(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, data_transform)
 ap, acc = jaad_test.evaluate(model, device, 1)
