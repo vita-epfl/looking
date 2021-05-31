@@ -1,0 +1,11 @@
+#!/bin/bash
+#SBATCH --account=vita
+#SBATCH --chdir ./
+#SBATCH --nodes 1
+#SBATCH --ntasks 1
+#SBATCH --gres=gpu:2
+#SBATCH --time 12:00:00
+#SBATCH --mem 8G
+echo STARTING AT `date`
+python main.py --epochs 50 
+echo FINISHED at `date`
