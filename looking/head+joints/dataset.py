@@ -14,15 +14,14 @@ from utils import *
 np.random.seed(0)
 
 class Kitti_Dataset(Dataset):
-        """Face Landmarks dataset."""
+    """Face Landmarks dataset."""
 
     def __init__(self, path, split, transform=None):
         """
         Args:
-                csv_file (string): Path to the csv file with annotations.
-                root_dir (string): Directory with all the images.
-                transform (callable, optional): Optional transform to be applied
-                        on a sample.
+            csv_file (string): Path to the csv file with annotations.
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied on a sample.
         """
         self.data = None
         self.path = path + 'Kitti_new_crops/'

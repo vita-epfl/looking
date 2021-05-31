@@ -51,11 +51,11 @@ PATH_MODEL = './models/'
 assert model_type in ['resnet18', 'resnet50']
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
+device = torch.device("cuda" if use_cuda else "cpu")
 print('Device: ', device)
 
 
-if model_type == "alexnet":
+"""if model_type == "alexnet":
     data_transform = transforms.Compose([
         SquarePad(),
         transforms.ToTensor(),
@@ -108,7 +108,7 @@ else:
 print("model type {} | split type : {}".format(model_type, split))
 
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
+device = torch.device("cuda" if use_cuda else "cpu")
 print('Device: ', device)
 
 
@@ -118,7 +118,7 @@ jaad_val = JAAD_Dataset(DATA_PATH, JAAD_PATH, "val", SPLIT_PATH, split, data_tra
 
 
 if model_type=='resnet18':
-    model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}_new_crops.p".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
+    model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}_new_crops.p".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps_romain.p".format(split), device).to(device)
 elif model_type=='resnet50':
     model = LookingNet_early_fusion_50(PATH_MODEL + "resnet50_head_{}.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
 
@@ -166,31 +166,33 @@ for e in range(EPOCHS):
 
     if ap > ap_max:
         ap_max = ap
-        torch.save(model.state_dict(), PATH_MODEL + "model_combined_{}_{}_new_crops.p".format(model_type, video))
+        torch.save(model.state_dict(), PATH_MODEL + "model_combined_{}_{}_new_crops.p".format(model_type, split))
     model.train()
 
 data_test_jaad = JAAD_Dataset(DATA_PATH, JAAD_PATH,"test", SPLIT_PATH, split, data_transform)
 ap, acc = data_test_jaad.evaluate(model, device, 10)
-print('Performance on JAAD | acc:{} | ap:{}'.format(acc,ap))
+print('Performance on JAAD | acc:{} | ap:{}'.format(acc,ap))"""
 
 if kitti:
-    #model = []
-    #model = torch.load(PATH_MODEL + "model_combined_{}_{}_new_crops.p".format(video, pose), map_location=torch.device(device))
-    jaad_val = Kitti_Dataset(DATA_PATH, "test", pose)
+    data_transform = transforms.Compose([
+                SquarePad(),
+        transforms.ToTensor(),
+        transforms.ToPILImage(),
+        transforms.Resize((224,224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225])
+        ])
+    if model_type=='resnet18':
+        model = LookingNet_early_fusion_18(PATH_MODEL + "resnet18_head_{}_new_crops.p".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps_romain.p".format(split), device).to(device)
+    elif model_type=='resnet50':
+        model = LookingNet_early_fusion_50(PATH_MODEL + "resnet50_head_{}.pkl".format(split), PATH_MODEL + "looking_model_jaad_{}_full_kps.pkl".format(split), device).to(device)
 
-
-    joints_test, labels_test = jaad_val.get_joints()
-
-    out_test = model(joints_test.to(device))
-    acc_test = binary_acc(out_test.to(device), labels_test.view(-1,1).to(device))
-    ap_test = average_precision(out_test.to(device), labels_test.to(device))
-
-    print("Kitti | AP : {} | Acc : {}".format(ap_test, acc_test))
-
-
-    data_test= Kitti_Dataset(DATA_PATH, "test", pose)
-    dataset_loader_test = torch.utils.data.DataLoader(data_test,batch_size=8, shuffle=True)
+    model.load_state_dict(torch.load(PATH_MODEL + "model_combined_{}_{}_new_crops.p".format(model_type, split)))
     model.eval()
+    model.cuda()
+    data_test= Kitti_Dataset(DATA_PATH, "test", data_transform)
+    dataset_loader_test = torch.utils.data.DataLoader(data_test,batch_size=8, shuffle=True)
     acc = 0
     ap = 0
 
