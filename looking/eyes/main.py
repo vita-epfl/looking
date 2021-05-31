@@ -6,6 +6,8 @@ from torchvision import transforms, datasets
 from torchvision import datasets, models, transforms
 import torchvision.transforms.functional as F
 import argparse
+from network import *
+
 
 torch.manual_seed(0)
 
@@ -23,10 +25,10 @@ parser.add_argument('--split_path', '-jsp', type=str, help='proportion for the t
 parser.add_argument('--data_path', '-dp', type=str, help='proportion for the training', default="/home/caristan/code/looking/looking/data/")
 
 
-
+args = parser.parse_args()
 
 EPOCHS = args.epochs
-
+LEARNING_RATE= args.learning_rate
 
 DATA_PATH = args.data_path
 SPLIT_PATH = args.split_path
@@ -99,20 +101,20 @@ for epoch in range(EPOCHS):
 			#break
 	model.eval()
 	torch.cuda.empty_cache()
-	model.to("cpu")
 
-	ap_test, acc_test = jaad_val.evaluate(model, device)
+	ap_test, acc_test = jaad_val.evaluate(model, device, 1)
 
 	test_ap.append(ap_test)
 	test_ac.append(acc_test)
-	#print(acc0, acc1)
-
-	print_summary(epoch+1, EPOCHS, acc_test, ap_test)
 
 	model.train()
 	if ap_test > best_ap:
 		best_epoch = epoch
 		best_ap = ap_test
 		best_ac = acc_test
-		print(f'Best epoch: {best_epoch}, AP: {best_ap}, Acc: {best_acc}')
-		torch.save(model, PATH_MODEL + 'eyes_model.pkl'))
+		print(f'Best epoch: {best_epoch}, AP: {best_ap}, Acc: {best_ac}')
+		torch.save(model, PATH_MODEL + 'eyes_model.pkl')
+model.eval()
+jaad_test = JAAD_Dataset(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, data_transform)
+ap, acc = jaad_test.evaluate(model, device, 1)
+print("AP JAAD : {} | Acc JAAD : {}".format(ap, acc))

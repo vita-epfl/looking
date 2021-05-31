@@ -7,5 +7,5 @@
 #SBATCH --time 12:00:00
 #SBATCH --mem 8G
 echo STARTING AT `date`
-python main.py --epochs 50 
+python main.py --epochs 50
 echo FINISHED at `date`

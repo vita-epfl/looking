@@ -49,7 +49,6 @@ class JAAD_Dataset(Dataset):
 		sample = {'image': Image.open(self.path+self.path_jaad+self.X[idx]), 'label':label}
 		if self.transform:
 			sample['image'] = torch.flatten(self.transform(sample['image']))
-			print(len(sample['image')])
 		return sample['image'], sample['label']
 
 	def evaluate(self, model, device, it):
@@ -141,7 +140,7 @@ class new_Dataset(Dataset):
 		label = torch.Tensor([label])
 		sample = {'image': Image.open(self.path+self.path_jaad+self.data_x[idx]), 'label': label}
 		if self.transform:
-			sample['image'] = self.transform(sample['image'])
+			sample['image'] = torch.flatten(self.transform(sample['image']))
 		return sample['image'], sample['label']
 
 	def preprocess(self):
