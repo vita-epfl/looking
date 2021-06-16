@@ -79,48 +79,66 @@ def bb_intersection_over_union(boxA, boxB):
 
 
 def eye_crops(img, kps):
-	default_l = 5
-	idx = [0, 1]
-	kps1, kps2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
-	# l is euclidean dist between keypoints
-	l = np.linalg.norm(np.array(kps2)-np.array(kps1))
-	center_x = (kps1[0] + kps2[0])/2
-	center_y = (kps1[1] + kps2[1])/2
-	"""if l < default_l:
-		l = default_l"""
-	bbox = [kps1[0]-1.5*max(l, 5), kps1[1]-1*max(l, 5), kps2[0]+1.5*max(l, 5), kps2[1]+1*max(l, 5)]
-	for i in range(len(bbox)):
-		if bbox[i] < 0:
-			bbox[i] = 0
-		else:
-			bbox[i] = int(bbox[i])
+    default_l = 10
+    idx = [1,2]
+    #kps1, kps2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
+    candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+    if candidate1[0] > candidate2[0]:
+        kps1 = candidate2
+        kps2 = candidate1
+    else:
+        kps1 = candidate1
+        kps2 = candidate2
+    #img = im.copy()
+    try:
+        #print(img[[int(k) for k in kps1][0]][[int(k) for k in kps1][1]])
+        #img[[int(k) for k in kps1][0]][[int(k) for k in kps1][1]] = [0,0,255]
+        #img[[int(k) for k in kps2][0]][[int(k) for k in kps2][1]] = [0,0,255]
+        #img = cv2.circle(img, ([int(k) for k in kps1][0],[int(k) for k in kps1][1]), radius=1, color=(0, 0, 255), thickness=-1)
+        #img = cv2.circle(img, ([int(k) for k in kps2][0],[int(k) for k in kps2][1]), radius=1, color=(255, 0, 0), thickness=-1)
+        # l is euclidean dist between keypoints
+        l = np.linalg.norm(np.array(kps2)-np.array(kps1))
+        center_x = (kps1[0] + kps2[0])/2
+        center_y = (kps1[1] + kps2[1])/2
+        """if l < default_l:
+            l = default_l"""
+        # Not balanced as pifpad tends to locate eyes lower than they are
+        bbox = [kps1[0]-0.9*max(l, default_l), kps1[1]-0.9*max(l, default_l), kps2[0]+0.9*max(l, default_l), kps2[1]+0.5*max(l, default_l)]
+        #bbox = [kps1[0]-1.2*max(l, 5), kps1[1]-0.8*max(l, 5), kps2[0]+1.2*max(l, 5), kps2[1]+0.8*max(l, 5)]
+        for i in range(len(bbox)):
+            if bbox[i] < 0:
+                bbox[i] = 0
+            else:
+                bbox[i] = int(bbox[i])
 
-	x1, y1, x2, y2 = bbox
+        x1, y1, x2, y2 = bbox
 
-	# No head in picture
-	default_l = 5
-	if x1 >= img.shape[1]:
-		x1 = img.shape[1]-default_l
-	if y1 >= img.shape[0]:
-		y1 = img.shape[0]-default_l
-	if x2 == 0:
-		x2 += default_l
-	if y2 == 0:
-		y2 += default_l
-	if x1 == x2:
-		x2 += default_l
-	if y1 == y2:
-		y2 += default_l
+        # No eyes in picture
+        default_l = 5
+        if x1 >= img.shape[1]:
+            x1 = img.shape[1]-default_l
+        if y1 >= img.shape[0]:
+            y1 = img.shape[0]-default_l
+        if x2 == 0:
+            x2 += default_l
+        if y2 == 0:
+            y2 += default_l
+        if x1 == x2:
+            x2 += default_l
+        if y1 == y2:
+            y2 += default_l
 
-	# shape img 1080*1920
-	if y2 > img.shape[0]:
-		y2 = img.shape[0]
-	if x2 > img.shape[1]:
-		x2 = img.shape[1]
-
-	return img[int(y1):int(y2), int(x1):int(x2)]
-
-## paths
+        # shape img 1080*1920
+        if y2 > img.shape[0]:
+            y2 = img.shape[0]
+        if x2 > img.shape[1]:
+            x2 = img.shape[1]
+        return img[int(y1):int(y2), int(x1):int(x2)]
+    except:
+        # Eyes not in pic: return black image
+        not_in_pic = img.copy()
+        not_in_pic.fill(0)
+        return not_in_pic[0:14, 0:25]
 
 # Cluster
 path_jaad = "/work/vita/datasets/JAAD/images/"
@@ -141,7 +159,6 @@ file_out = open(os.path.join(dir_out, "ground_truth_2k30_eyes_crop_pifpaf.txt"),
 data = convert_file_to_data(file)
 name_pic = 0
 
-min_shape, max_shape = (np.inf, np.inf, np.inf), (0, 0, 0)
 for i in tqdm(range(len(data["Y"]))):
 	path = data["path"][i]
 	data_json = json.load(open(path_joints+path+'.predictions.json', 'r'))
@@ -161,24 +178,17 @@ for i in tqdm(range(len(data["Y"]))):
 				sc = di["score"]
 		if iou_max > 0.3:
 			kps = convert_kps(data_json[j]["keypoints"])
-			name_head = str(name_pic).zfill(10)+'.png'
+			name_eyes = str(name_pic).zfill(10)+'.png'
 			img = Image.open(path_jaad+path).convert('RGB')
 			img = np.asarray(img)
-			head = eye_crops(img, data_json[j]["keypoints"])
+			eyes = eye_crops(img, data_json[j]["keypoints"])
 
-			if head.shape[0] * head.shape[1] > max_shape[0] * max_shape[1]:
-				max_shape = head.shape
-			elif head.shape[0] * head.shape[1] < min_shape[0] * min_shape[1]:
-				min_shape = head.shape
-
-			Image.fromarray(head).convert('RGB').save(path_out+name_head)
-			#print(path, path_out+name_head)
+			Image.fromarray(eyes).convert('RGB').save(path_out+name_eyes)
+			#print(path, path_out+name_eyes)
 			kps_out = {"X":kps}
-			json.dump(kps_out, open(path_out+name_head+'.json', "w"))
-			line = path+','+data["names"][i]+','+str(bb_final[0])+','+str(bb_final[1])+','+str(bb_final[2])+','+str(bb_final[3])+','+str(sc)+','+str(iou_max)+','+name_head+','+str(data["Y"][i])+'\n'
+			json.dump(kps_out, open(path_out+name_eyes+'.json', "w"))
+			line = path+','+data["names"][i]+','+str(bb_final[0])+','+str(bb_final[1])+','+str(bb_final[2])+','+str(bb_final[3])+','+str(sc)+','+str(iou_max)+','+name_eyes+','+str(data["Y"][i])+'\n'
 			name_pic += 1
 			file_out.write(line)
-print('min_shape', min_shape)
-print('max_shape', max_shape)
 file_out.close()
 file.close()

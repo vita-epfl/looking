@@ -15,44 +15,53 @@ def enlarge_bbox(bb, enlarge=1):
 	return bb
 
 
-def new_crop(img, kps):
-	default_l = 10
-	idx = [2, 3]
+def crop_head(img, kps):
+    default_l = 10
+    idx = [3, 4]
+    #kps1, kps2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
+    candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+    if candidate1[0] > candidate2[0]:
+        kps1 = candidate2
+        kps2 = candidate1
+    else:
+        kps1 = candidate1
+        kps2 = candidate2
+    # l is euclidean dist between keypoints
+    l = np.linalg.norm(np.array(kps2)-np.array(kps1))
+    if l < default_l:
+        l = default_l
 
-	kps1, kps2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
-	# l is euclidean dist between keypoints
-	l = np.linalg.norm(np.array(kps2)-np.array(kps1))
-	if l < default_l:
-		l = default_l
-	bbox = [kps1[0]-1*l, kps1[1]-2*l, kps2[0]+1*l, kps2[1]+2*l]
-	for i in range(len(bbox)):
-		if bbox[i] < 0:
-			bbox[i] = 0
-		else:
-			bbox[i] = int(bbox[i])
+    bbox = [kps1[0]-0.5*max(l, default_l), kps1[1]-1*max(l, default_l), kps2[0]+0.5*max(l, default_l), kps2[1]+1*max(l, default_l)]
+    for i in range(len(bbox)):
+        if bbox[i] < 0:
+            bbox[i] = 0
+        else:
+            bbox[i] = int(bbox[i])
 
-	x1, y1, x2, y2 = bbox
+    x1, y1, x2, y2 = bbox
 
-	# No head in picture
-	default_l = 5
-	if x1 >= img.shape[1]:
-		x1 = img.shape[1] - default_l
-	if y1 >= img.shape[0]:
-		y1 = img.shape[0] - default_l
-	if x2 == 0:
-		x2 += default_l
-	if y2 == 0:
-		y2 += default_l
-	if x1 == x2:
-		x2 += default_l
-	if y1 == y2:
-		y2 += default_l
+    # No head in picture
+    default_l = 5
+    if x1 == img.shape[1]:
+        x1 -= default_l
+    if y1 == img.shape[0]:
+        y1 -= default_l
+    if x2 == 0:
+        x2 += default_l
+    if y2 == 0:
+        y2 += default_l
+    if x1 == x2:
+        x2 += default_l
+    if y1 == y2:
+        y2 += default_l
 
-	if y2 > img.shape[0]:
-		y2 = img.shape[0]
-	if x2 > img.shape[1]:
-		x2 = img.shape[1]
-	return img[int(y1):int(y2), int(x1):int(x2)]
+    # shape img 1080*1920
+    if y2 > img.shape[0]:
+        y2 = img.shape[0]
+    if x2 > img.shape[1]:
+        x2 = img.shape[1]
+
+    return img[int(y1):int(y2), int(x1):int(x2)]
 
 train = True
 test = True
@@ -77,7 +86,7 @@ if train:
 			label = data["Y"][d]
 
 			bbox = enlarge_bbox(data['bbox'][d])
-			head = new_crop(im, keypoints)
+			head = crop_head(im, keypoints)
 			file_out.write(name+','+name_head+',train,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
 
 			di = {"X":keypoints}
@@ -107,7 +116,7 @@ if test:
 			label = data["Y"][d]
 
 			bbox = enlarge_bbox(data['bbox'][d])
-			head = new_crop(im, keypoints)
+			head = crop_head(im, keypoints)
 
 			file_out.write(name+','+name_head+',test,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
 			di = {"X":keypoints}

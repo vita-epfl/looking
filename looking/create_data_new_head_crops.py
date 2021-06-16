@@ -75,68 +75,59 @@ def bb_intersection_over_union(boxA, boxB):
 	# return the intersection over union value
 	return iou
 
-def crop_jaad(img, bbox):
-	for i in range(len(bbox)):
-		if bbox[i] < 0:
-			bbox[i] = 0
-		else:
-			bbox[i] = int(bbox[i])
+def crop_head(img, kps):
+    default_l = 10
+    idx = [3, 4]
+    #kps1, kps2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
+    candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+    if candidate1[0] > candidate2[0]:
+        kps1 = candidate2
+        kps2 = candidate1
+    else:
+        kps1 = candidate1
+        kps2 = candidate2
+    # l is euclidean dist between keypoints
+    l = np.linalg.norm(np.array(kps2)-np.array(kps1))
+    if l < default_l:
+        l = default_l
 
-	x1, y1, x2, y2 = bbox
-	#print(y1, y2)
-	h = y2-y1
-	return img[int(y1):int(y1+(h/3)), x1:int(x2)]
+    bbox = [kps1[0]-0.5*max(l, default_l), kps1[1]-1*max(l, default_l), kps2[0]+0.5*max(l, default_l), kps2[1]+1*max(l, default_l)]
+    for i in range(len(bbox)):
+        if bbox[i] < 0:
+            bbox[i] = 0
+        else:
+            bbox[i] = int(bbox[i])
 
-def new_crop_jaad(img, kps, bbox_original):
-	default_l = 10
-	idx = [2, 3]
-	kps1, kps2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
-	# l is euclidean dist between keypoints
-	l = np.linalg.norm(np.array(kps2)-np.array(kps1))
-	if l < default_l:
-		l = default_l
-	bbox = [kps1[0]-1*l, kps1[1]-2*l, kps2[0]+1*l, kps2[1]+2*l]
-	for i in range(len(bbox)):
-		if bbox[i] < 0:
-			bbox[i] = 0
-		else:
-			bbox[i] = int(bbox[i])
+    x1, y1, x2, y2 = bbox
 
-	x1, y1, x2, y2 = bbox
+    # No head in picture
+    default_l = 5
+    if x1 == img.shape[1]:
+        x1 -= default_l
+    if y1 == img.shape[0]:
+        y1 -= default_l
+    if x2 == 0:
+        x2 += default_l
+    if y2 == 0:
+        y2 += default_l
+    if x1 == x2:
+        x2 += default_l
+    if y1 == y2:
+        y2 += default_l
 
-	# No head in picture
-	default_l = 5
-	if x1 == img.shape[1]:
-		x1 -= default_l
-	if y1 == img.shape[0]:
-		y1 -= default_l
-	if x2 == 0:
-		x2 += default_l
-	if y2 == 0:
-		y2 += default_l
-	if x1 == x2:
-		x2 += default_l
-	if y1 == y2:
-		y2 += default_l
+    # shape img 1080*1920
+    if y2 > img.shape[0]:
+        y2 = img.shape[0]
+    if x2 > img.shape[1]:
+        x2 = img.shape[1]
 
-	# shape img 1080*1920
-	if y2 > img.shape[0]:
-		y2 = img.shape[0]
-	if x2 > img.shape[1]:
-		x2 = img.shape[1]
-
-	return img[int(y1):int(y2), int(x1):int(x2)]
-
-## paths
-
+    return img[int(y1):int(y2), int(x1):int(x2)]
 # Cluster
 path_jaad = "/work/vita/datasets/JAAD/images/"
 path_joints = "/scratch/izar/caristan/data/jaad_pifpaf_new/"
 
 dir_out = "./splits"
 path_out = "/scratch/izar/caristan/data/JAAD_2k30_new_head/"
-
-
 
 
 
@@ -174,7 +165,7 @@ for i in tqdm(range(len(data["Y"]))):
 			name_head = str(name_pic).zfill(10)+'.png'
 			img = Image.open(path_jaad+path).convert('RGB')
 			img = np.asarray(img)
-			head = new_crop_jaad(img, data_json[j]["keypoints"], bb_final)
+			head = crop_head(img, data_json[j]["keypoints"])
 			Image.fromarray(head).convert('RGB').save(path_out+name_head)
 			#print(path, path_out+name_head)
 			kps_out = {"X":kps}
