@@ -81,8 +81,8 @@ def bb_intersection_over_union(boxA, boxB):
 def eye_crops(img, kps):
     default_l = 10
     idx = [1,2]
-    #kps1, kps2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
-    candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+    candidate1, candidate2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
+    #candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
     if candidate1[0] > candidate2[0]:
         kps1 = candidate2
         kps2 = candidate1
