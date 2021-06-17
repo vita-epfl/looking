@@ -102,14 +102,14 @@ def crop_head(img, kps):
 
     # No head in picture
     default_l = 5
-    if x1 == img.shape[1]:
-        x1 -= default_l
-    if y1 == img.shape[0]:
-        y1 -= default_l
-    if x2 == 0:
-        x2 += default_l
-    if y2 == 0:
-        y2 += default_l
+    if x1 >= img.shape[1]:
+        x1 = img.shape[1] - default_l
+    if y1 >= img.shape[0]:
+        y1 = img.shape[0] - default_l
+    if x2 <= 0:
+        x2 = default_l
+    if y2 <= 0:
+        y2 = default_l
     if x1 == x2:
         x2 += default_l
     if y1 == y2:
