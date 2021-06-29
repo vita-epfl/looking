@@ -1,0 +1,11 @@
+torch
+Pillow
+opencv-python
+scikit-learn
+openpifpaf
+numpy
+scikit-image
+tensorboard
+tqdm
+gdown
+seaborn
