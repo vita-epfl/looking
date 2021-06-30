@@ -164,7 +164,7 @@ def crop_head(img, kps, dataset):
 	if x2 > img.shape[1]:
 		x2 = img.shape[1]
 	if y2 > img.shape[0]:
-		y1 = img.shape[0]
+		y2 = img.shape[0]
 	if x1 < 0:
 		x1 = 0
 	if y1 < 0:
@@ -215,7 +215,7 @@ def crop_eyes(img, kps, dataset):
 	if x2 > img.shape[1]:
 		x2 = img.shape[1]
 	if y2 > img.shape[0]:
-		y1 = img.shape[0]
+		y2 = img.shape[0]
 	if x1 < 0:
 		x1 = 0
 	if y1 < 0:
@@ -227,7 +227,6 @@ def crop_eyes(img, kps, dataset):
 	if y1 == y2:
 		y2 += 1
 
-	print(img.shape, y1, y2, x1, x2)
 	return img[int(y1):int(y2), int(x1):int(x2)]
 
 
