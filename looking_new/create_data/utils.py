@@ -20,7 +20,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 def extract_scenes(file):
 	tab = []
 	for line in file:
-		line = line[:-1]	
+		line = line[:-1]
 		tab.append(line)
 	return tab
 
@@ -56,16 +56,6 @@ def enlarge_bbox_kitti(bb, enlarge=1):
 	bb[2] += delta_w
 	bb[3] += delta_h
 	return bb
-
-def crop_kitti(img, bbox):
-	for i in range(len(bbox)):
-		if bbox[i] < 0:
-			bbox[i] = 0
-		else:
-			bbox[i] = int(bbox[i])
-	x1, y1, w, h = bbox
-	h /= 3
-	return img[int(y1):int(y1+h), x1:int(x1+w)]
 
 
 def convert_bb(bb):
@@ -110,16 +100,135 @@ def bb_intersection_over_union(boxA, boxB):
 	# return the intersection over union value
 	return iou
 
-def crop_jaad(img, bbox):
+def crop_image(img, bbox):
 	for i in range(len(bbox)):
 		if bbox[i] < 0:
 			bbox[i] = 0
+		if bbox[0] > img.shape[1]:
+			bbox[0] = img.shape[1]
+		if bbox[2] > img.shape[1]:
+			bbox[2] = img.shape[1]
+		if bbox[1] > img.shape[0]:
+			bbox[1] = img.shape[0]
+		if bbox[1] > img.shape[0]:
+			bbox[1] = img.shape[0]
 		else:
 			bbox[i] = int(bbox[i])
+	im_cropped = img[bbox[1]:bbox[3], bbox[0]:bbox[2]]
+	return im_cropped
 
+
+def crop_head(img, kps, dataset):
+	default_size = (20, 20)
+	# ears
+	idx = [3,4]
+	if dataset == 'jaad':
+		nose = [kps[0], kps[1], kps[2]]
+		candidate1, candidate2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
+	elif dataset == 'kitti':
+		nose = [kps[0], kps[17], kps[34]]
+		candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+
+	if candidate1[0] > candidate2[0]:
+		kps1 = candidate2
+		kps2 = candidate1
+	else:
+		kps1 = candidate1
+		kps2 = candidate2
+
+	# distance between ears
+	l_ears = np.linalg.norm(np.array(kps2)-np.array(kps1))
+	# distance between nose and ear
+	l_nose1 = np.linalg.norm(np.array(kps1)-np.array(nose))
+	l_nose2 = np.linalg.norm(np.array(kps2)-np.array(nose))
+	l_x = max(l_nose1, l_nose2, l_ears)
+
+	# center on the y axis
+	if l_x == l_ears:
+		center_x = (kps1[0] + kps2[0])/2
+	elif l_x == l_nose1:
+		center_x = (kps1[0] + nose[0])/2
+	elif l_x == l_nose2:
+		center_x = (kps2[0] + nose[0])/2
+
+	bbox = [center_x-0.7*l_x, nose[1]-0.7*l_x, center_x+0.7*l_x, nose[1]+0.7*l_x]
 	x1, y1, x2, y2 = bbox
-	h = y2-y1
-	return img[int(y1):int(y1+(h/3)), x1:int(x2)]
+	x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+	# Head not in image, return black box of default size
+	if max(x1, x2) <= 0 or min(x1, x2) >= img.shape[1] or max(y1, y2) <= 0 or min(y1, y2) >= img.shape[0]:
+		not_in_pic = img.copy()
+		not_in_pic.fill(0)
+		return not_in_pic[0:default_size[1], 0:default_size[0]]
+
+	# if only one is out of the frame
+	if x2 > img.shape[1]:
+		x2 = img.shape[1]
+	if y2 > img.shape[0]:
+		y1 = img.shape[0]
+	if x1 < 0:
+		x1 = 0
+	if y1 < 0:
+		y1 = 0
+
+	# Person too far and everything is in the same pixel, return just the pixel
+	if x1 == x2:
+		x2 += 1
+	if y1 == y2:
+		y2 += 1
+
+	return img[int(y1):int(y2), int(x1):int(x2)]
+
+def crop_eyes(img, kps, dataset):
+	default_size = (15, 10)
+	# eyes
+	idx = [1,2]
+
+	if dataset == 'jaad':
+		nose = [kps[0], kps[1], kps[2]]
+		candidate1, candidate2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
+	elif dataset == 'kitti':
+		nose = [kps[0], kps[17], kps[34]]
+		candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+
+	if candidate1[0] > candidate2[0]:
+		kps1 = candidate2
+		kps2 = candidate1
+	else:
+		kps1 = candidate1
+		kps2 = candidate2
+
+	# distance between eyes in x axis
+	l = np.linalg.norm(np.array(kps2)-np.array(kps1))
+	# center of the eyes on the y axis
+	center_y = (kps1[1] + kps2[1])/2
+	#l_y = np.linalg.norm(np.array(nose[1])-np.array(min(kps1[1], kps2[1])))
+	bbox = [kps1[0]-0.3*l, center_y-0.5*l, kps2[0]+0.3*l, center_y+0.5*l]
+	x1, y1, x2, y2 = bbox
+	x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+	# Eyes not in image, return black box of default size
+	if max(x1, x2) <= 0 or min(x1, x2) >= img.shape[1] or max(y1, y2) <= 0 or min(y1, y2) >= img.shape[0]:
+		not_in_pic = img.copy()
+		not_in_pic.fill(0)
+		return not_in_pic[0:default_size[1], 0:default_size[0]]
+
+	# if only one is out of the frame
+	if x2 > img.shape[1]:
+		x2 = img.shape[1]
+	if y2 > img.shape[0]:
+		y1 = img.shape[0]
+	if x1 < 0:
+		x1 = 0
+	if y1 < 0:
+		y1 = 0
+
+	# Person too far and everything is in the same pixel, return just the pixel
+	if x1 == x2:
+		x2 += 1
+	if y1 == y2:
+		y2 += 1
+
+	return img[int(y1):int(y2), int(x1):int(x2)]
+
 
 def file_to_dict(file):
 	data = {"path": [], "names": [], "bb": [], "im": [], "label": [], "video": [], "iou": []}
@@ -148,7 +257,7 @@ class JAAD_loader():
 		self.imdb.generate_database()
 		self.data = pickle.load(open(os.path.join(path_jaad,'data_cache/jaad_database.pkl'), 'rb'))
 		self.folder_txt = folder_txt
-	
+
 	def generate(self):
 		"""
 			Generate the annotations in a dictionary
@@ -162,14 +271,14 @@ class JAAD_loader():
 
 						path = os.path.join(videos,str(ped_anno[d]['frames'][i]).zfill(5)+'.png')
 						bbox = [ped_anno[d]['bbox'][i][0], ped_anno[d]['bbox'][i][1], ped_anno[d]['bbox'][i][2], ped_anno[d]['bbox'][i][3]]
-						
+
 						data['path'].append(path)
 						data["bbox"].append(bbox)
 						data['Y'].append(ped_anno[d]['behavior']['look'][i])
 						data['names'].append(d)
 						data["video"].append(videos)
 		return data
-	
+
 	def generate_ap_gt_test(self):
 		di_gt = {}
 
@@ -187,7 +296,7 @@ class JAAD_loader():
 								di_gt[name] = []
 							di_gt[name].append(bbox)
 		return di_gt
-	
+
 	def generate_ap_test(self, enlarge=3):
 		if not os.path.isfile(os.path.join(self.folder_txt, 'ground_truth.txt')):
 			print('ERROR: Ground truth file not found, please create the JAAD dataset first')
@@ -209,7 +318,7 @@ class JAAD_loader():
 				if path not in di:
 					di[path] = []
 					scores[path] = []
-		
+
 				bbox = [float(line_s[2]), float(line_s[3]), float(line_s[4]), float(line_s[5])]
 				score = float(line_s[-3])
 
@@ -220,17 +329,27 @@ class JAAD_loader():
 
 class JAAD_creator():
 	"""
-		Class definition for creating our custom JAAD dataset for heads / joints / heads+joints training 
+		Class definition for creating our custom JAAD dataset for heads / joints / heads+joints training
 	"""
 	def __init__(self, txt_out, dir_out, path_joints, path_jaad):
 		self.txt_out = txt_out
 		self.dir_out = dir_out
 		self.path_joints = path_joints
 		self.path_jaad = path_jaad
-	
+
+		if not os.path.exists(os.path.join(self.dir_out, 'fullbodies')):
+			os.makedirs(os.path.join(self.dir_out, 'fullbodies'))
+
+		if not os.path.exists(os.path.join(self.dir_out, 'heads')):
+			os.makedirs(os.path.join(self.dir_out, 'heads'))
+
+		if not os.path.exists(os.path.join(self.dir_out, 'eyes')):
+			os.makedirs(os.path.join(self.dir_out, 'eyes'))
+
+
 	def create(self, dict_annotation):
 		"""
-			Create the files given the dictionary with the annotations 
+			Create the files given the dictionary with the annotations
 		"""
 
 		file_out = open(os.path.join(self.txt_out, "ground_truth.txt"), "w+")
@@ -238,7 +357,7 @@ class JAAD_creator():
 		for i in tqdm(range(len(dict_annotation["Y"]))):
 			path = dict_annotation["path"][i]
 			data_json = json.load(open(os.path.join(self.path_joints,path+'.predictions.json'), 'r'))
-			
+
 			if len(data_json)> 0:
 				iou_max = 0
 				j = None
@@ -253,18 +372,24 @@ class JAAD_creator():
 						j = k
 						bb_final = bb
 						sc = di["score"]
-				
+
 				if iou_max > 0.3:
 					kps = convert_kps(data_json[j]["keypoints"])
 					name_head = str(name_pic).zfill(10)+'.png'
 
 					img = Image.open(os.path.join(self.path_jaad,path)).convert('RGB')
 					img = np.asarray(img)
-					head = crop_jaad(img, bb_final)
-					
-					Image.fromarray(head).convert('RGB').save(os.path.join(self.dir_out,name_head))
+
+					fullbody = crop_image(img, bb_final)
+					head = crop_head(img, kps, 'jaad')
+					eyes = crop_eyes(img, kps, 'jaad')
+
+					Image.fromarray(fullbody).convert('RGB').save(os.path.join(self.dir_out,'fullbodies/' + name_head))
+					Image.fromarray(head).convert('RGB').save(os.path.join(self.dir_out,'heads/' + name_head))
+					Image.fromarray(eyes).convert('RGB').save(os.path.join(self.dir_out,'eyes/' + name_head))
+
 					kps_out = {"X":kps}
-					
+
 					json.dump(kps_out, open(os.path.join(self.dir_out,name_head+'.json'), "w"))
 					line = path+','+dict_annotation["names"][i]+','+str(bb_final[0])+','+str(bb_final[1])+','+str(bb_final[2])+','+str(bb_final[3])+','+str(sc)+','+str(iou_max)+','+name_head+','+str(dict_annotation["Y"][i])+'\n'
 					name_pic += 1
@@ -278,7 +403,7 @@ class JAAD_splitter():
 	def __init__(self, file_gt, folder_txt='./splits_jaad'):
 		self.folder_txt = folder_txt
 		self.file_gt = open(os.path.join(folder_txt, file_gt), 'r')
-		
+
 		file_train = open(os.path.join(self.folder_txt, "train.txt"), "r")
 		file_val = open(os.path.join(self.folder_txt, "val.txt"), "r")
 		file_test = open(os.path.join(self.folder_txt, "test.txt"), "r")
@@ -344,14 +469,14 @@ class JAAD_splitter():
 				line = ','.join([data["path"][i], data["names"][i], str(data["bb"][i][0]), str(data["bb"][i][1]), str(data["bb"][i][2]), str(data["bb"][i][3]), data["im"][i], str(data['label'][i])])
 				if data['iou'][i] >= 0.5:
 					file_test.write(line+'\n')
-		
+
 		file_train.close()
 		file_val.close()
 		file_test.close()
 
 class Kitti_creator():
 	"""
-		Wrapper class for Kitti dataset creation 
+		Wrapper class for Kitti dataset creation
 	"""
 	def __init__(self, path_images_train, path_annotation_train, path_images_test, path_annotation_test, path_out, path_out_txt):
 		self.path_images_train = path_images_train
@@ -360,6 +485,16 @@ class Kitti_creator():
 		self.path_annotation_test = path_annotation_test
 		self.path_out = path_out
 		self.path_out_txt = path_out_txt
+
+		if not os.path.exists(os.path.join(self.path_out, 'fullbodies')):
+			os.makedirs(os.path.join(self.path_out, 'fullbodies'))
+
+		if not os.path.exists(os.path.join(self.path_out, 'heads')):
+			os.makedirs(os.path.join(self.path_out, 'heads'))
+
+		if not os.path.exists(os.path.join(self.path_out, 'eyes')):
+			os.makedirs(os.path.join(self.path_out, 'eyes'))
+
 
 		try:
 			os.makedirs(self.path_out_txt)
@@ -374,7 +509,7 @@ class Kitti_creator():
 		print('Creating the Kitti dataset...')
 		name_pic = 0
 		file_out = open(os.path.join(self.path_out_txt,"ground_truth_kitti.txt"), "w")
-		for idx_line, file in enumerate(tqdm(glob(os.path.join(self.path_annotation_train,'*.json')))):
+		"""for idx_line, file in enumerate(tqdm(glob(os.path.join(self.path_annotation_train,'*.json')))):
 			data = json.loads(open(file, 'r').read())
 			name = file.split('/')[-1][:-5]
 			pil_im = Image.open(os.path.join(self.path_images_train,name)).convert('RGB')
@@ -382,22 +517,29 @@ class Kitti_creator():
 			for d in range(len(data["Y"])):
 				name_head = str(name_pic).zfill(10)+'.png'
 				keypoints = data["X"][d]
-				
+
 				label = data["Y"][d]
-				
+
 				bbox = enlarge_bbox(data['bbox'][d])
-				head = crop_kitti(im, bbox)
+				fullbody = crop_image(im, convert_bb(bbox))
+				head = crop_head(im, keypoints, 'kitti')
+				eyes = crop_eyes(im, keypoints, 'kitti')
 
 				if idx_line > int(0.95*len(glob(os.path.join(self.path_annotation_train,'*.json')))):
 					file_out.write(name+','+name_head+',val,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
 				else:
 					file_out.write(name+','+name_head+',train,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
 
+
 				di = {"X":keypoints}
 				json.dump(di, open(os.path.join(self.path_out,name_head+".json"), 'w'))
 
-				Image.fromarray(head).convert('RGB').save(os.path.join(self.path_out,name_head))
+				Image.fromarray(fullbody).convert('RGB').save(os.path.join(self.path_out,'fullbodies/' + name_head))
+				Image.fromarray(head).convert('RGB').save(os.path.join(self.path_out,'heads/' + name_head))
+				Image.fromarray(eyes).convert('RGB').save(os.path.join(self.path_out,'eyes/' + name_head))
+
 				name_pic += 1
+"""
 		for file in tqdm(glob(os.path.join(self.path_annotation_test,'*.json'))):
 			data = json.loads(open(file, 'r').read())
 			name = file.split('/')[-1][:-5]
@@ -406,18 +548,23 @@ class Kitti_creator():
 			for d in range(len(data["Y"])):
 				name_head = str(name_pic).zfill(10)+'.png'
 				keypoints = data["X"][d]
-				
+
 				label = data["Y"][d]
-				
+
 				bbox = enlarge_bbox(data['bbox'][d])
-				head = crop_kitti(im, bbox)
+				fullbody = crop_image(im, convert_bb(bbox))
+				head = crop_head(im, keypoints, 'kitti')
+				eyes = crop_eyes(im, keypoints, 'kitti')
 
 				file_out.write(name+','+name_head+',test,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
 
 				di = {"X":keypoints}
 				json.dump(di, open(os.path.join(self.path_out,name_head+".json"), 'w'))
 
-				Image.fromarray(head).convert('RGB').save(os.path.join(self.path_out,name_head))
+				Image.fromarray(fullbody).convert('RGB').save(os.path.join(self.path_out,'fullbodies/' + name_head))
+				Image.fromarray(head).convert('RGB').save(os.path.join(self.path_out,'heads/' + name_head))
+				Image.fromarray(eyes).convert('RGB').save(os.path.join(self.path_out,'eyes/' + name_head))
+
 				name_pic += 1
 		file_out.close()
 
@@ -429,7 +576,7 @@ class Kitti_label_loader():
 		self.path_anno_gt = path_anno_gt
 		self.path_anno = path_anno
 		self.path_predicted = path_predicted
-	
+
 	def load_annotation_im_gt(self, im_name):
 		txt_file = open(os.path.join(self.path_anno_gt, im_name[:-4]+'.txt'), 'r')
 		bboxes = []
@@ -439,7 +586,7 @@ class Kitti_label_loader():
 				bb = [float(line_s[4]), float(line_s[5]), float(line_s[6]), float(line_s[7])]
 				bboxes.append(bb)
 		return bboxes
-	
+
 	def load_annotation_im(self, im, enlarge=1):
 		new_data = []
 		data = json.load(open(os.path.join(self.path_anno,im+'.predictions.json'), 'r'))
@@ -448,7 +595,7 @@ class Kitti_label_loader():
 		for d in data_:
 			new_data.append(convert_bb(enlarge_bbox_kitti(d,enlarge)))
 		return new_data, scores_
-	
+
 	def create_dicts(self, enlarge=1):
 		di_gt = {}
 		di_predicted = {}
@@ -485,13 +632,13 @@ class AP_computer():
 		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
-		
+
 		try:
 			os.makedirs(self.path_out_txt_pred)
 		except OSError as e:
 			if e.errno != errno.EEXIST:
 				raise
-		
+
 		try:
 			os.makedirs(self.path_out_txt_gt)
 		except OSError as e:
