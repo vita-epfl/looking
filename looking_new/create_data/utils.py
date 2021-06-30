@@ -123,11 +123,11 @@ def crop_head(img, kps, dataset):
 	# ears
 	idx = [3,4]
 	if dataset == 'jaad':
-		nose = [kps[0], kps[1], kps[2]]
+		nose = [kps[0], kps[1]]
 		candidate1, candidate2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
 	elif dataset == 'kitti':
-		nose = [kps[0], kps[17], kps[34]]
-		candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+		nose = [kps[0], kps[17]]
+		candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]]], [kps[idx[1]], kps[17+idx[1]],]
 
 	if candidate1[0] > candidate2[0]:
 		kps1 = candidate2
