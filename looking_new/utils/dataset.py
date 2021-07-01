@@ -47,6 +47,7 @@ class JAAD_Dataset(Dataset):
         if self.type == 'joints':
             sample = {'input':self.X[idx].to(self.device) ,'label':label}
         elif self.type == 'eyes':
+            sample = {'input': Image.open(os.path.join(self.path_data, 'eyes/'+self.X[idx])), 'label':label}
             if self.transform:
                 sample['image'] = torch.flatten(self.transform(sample['image']))
             else:
