@@ -46,6 +46,11 @@ class JAAD_Dataset(Dataset):
 
         if self.type == 'joints':
             sample = {'input':self.X[idx].to(self.device) ,'label':label}
+        elif self.type == 'eyes':
+            if self.transform:
+                sample['image'] = torch.flatten(self.transform(sample['image']))
+            else:
+                sample['image'] = torch.flatten(sample['image'])
         # Image crop
         elif '+' not in self.type:
             sample = {'input': Image.open(os.path.join(self.path_data, self.type+'/'+self.X[idx])), 'label':label}
@@ -524,7 +529,7 @@ class Kitti_dataset(Dataset):
                         tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
                     kps.append(tensor)
                     label.append(int(line_s[-1]))
-                    self.heights.append(int(line_s[-2]))
+                    self.heights.append(int(float(line_s[-2])))
             self.file.close()
             return torch.Tensor(kps), torch.Tensor(label)
         elif '+' not in self.type:
@@ -537,7 +542,7 @@ class Kitti_dataset(Dataset):
                 if line_s[2] == self.split:
                     X.append(line_s[1])
                     Y.append(int(line_s[-1]))
-                    self.heights.append(int(line_s[-2]))
+                    self.heights.append(int(float(line_s[-2])))
             self.file.close()
             return X, Y
         else:
@@ -557,7 +562,7 @@ class Kitti_dataset(Dataset):
                     tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
                     kps.append(tensor)
                     Y.append(int(line_s[-1]))
-                    self.heights.append(int(line_s[-2]))
+                    self.heights.append(int(float(line_s[-2])))
             self.file.close()
             return X, torch.tensor(kps), Y
 
