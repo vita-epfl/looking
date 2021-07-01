@@ -15,7 +15,7 @@ np.random.seed(0)
 
 
 class JAAD_Dataset(Dataset):
-    """Wrapper for JAAD Dataset (head, joints, head+joints)"""
+    """Wrapper for JAAD Dataset (head, joints, head+joints, ...)"""
     def __init__(self, path_data, type_='joints', split='train', pose="full", split_strategy="original", transform=None, path_txt='./splits_jaad', device=torch.device('cpu')):
         self.path_data = path_data
         self.type = type_
@@ -27,11 +27,11 @@ class JAAD_Dataset(Dataset):
         self.name = 'jaad'
         assert self.pose in ['full', 'head', 'body']
         assert self.split_strategy in ['instances', 'scenes']
-        assert self.type in ['heads', 'joints', 'heads+joints']
-        
+        assert self.type in ['joints', 'heads', 'eyes', 'fullbodies', 'heads+joints', 'eyes+joints', 'fullbodies+joints']
+
         self.txt = open(os.path.join(path_txt, 'jaad_{}_{}.txt'.format(self.split, self.split_strategy)), 'r')
-        
-        if self.type == 'heads+joints':
+
+        if '+' in self.type:
             self.X, self.kps, self.Y = self.preprocess()
         else:
             self.X, self.Y = self.preprocess()
@@ -46,12 +46,14 @@ class JAAD_Dataset(Dataset):
 
         if self.type == 'joints':
             sample = {'input':self.X[idx].to(self.device) ,'label':label}
-        elif self.type == 'heads':
-            sample = {'input': Image.open(os.path.join(self.path_data,self.X[idx])), 'label':label}
+        # Image crop
+        elif '+' not in self.type:
+            sample = {'input': Image.open(os.path.join(self.path_data, self.type+'/'+self.X[idx])), 'label':label}
             if self.transform:
                 sample['input'] = self.transform(sample['input']).to(self.device)
+        # Multimodel: crop+joints_type
         else:
-            sample_ = {'image': Image.open(os.path.join(self.path_data,self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
+            sample_ = {'image': Image.open(os.path.join(self.path_data,self.type.split('+')[0]+'/'+self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
             if self.transform:
                 sample_['image'] = self.transform(sample_['image'])
             sample = {'input':(sample_['image'].to(self.device), sample_['keypoints'].to(self.device)), 'label':sample_['label']}
@@ -84,7 +86,7 @@ class JAAD_Dataset(Dataset):
                 tab_Y.append(int(line_s[-1]))
                 self.heights.append(height)
             return torch.tensor(kps), tab_Y
-        elif self.type == 'heads':
+        elif '+' not in self.type:
             tab_X = []
             tab_Y = []
             for line in self.txt:
@@ -107,15 +109,14 @@ class JAAD_Dataset(Dataset):
                 line_s = line.split(",")
                 tab_X.append(line_s[-2])
                 joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
-                #print(joints)
                 X = joints[:17]
                 Y = joints[17:34]
                 X_new, Y_new = normalize(X, Y, True)
                 tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-                kps.append(tensor) 
+                kps.append(tensor)
                 tab_Y.append(int(line_s[-1]))
             return tab_X, torch.tensor(kps), tab_Y
-    
+
     def eval_ablation(self, heights, preds, ground_truths):
         """
             Evaluate using the ablation study
@@ -160,7 +161,7 @@ class JAAD_Dataset(Dataset):
         model = model.eval()
         model = model.to(device)
         if self.type == 'joints':
-            
+
             tab_X, tab_Y = self.X.cpu().detach().numpy(), self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -223,18 +224,18 @@ class JAAD_Dataset(Dataset):
                     distances.append(distance)
                     #break
 
-                
-                
+
+
                 acc /= len(new_data)
                 ap = average_precision(out_lab, test_lab)
-                
+
 
                 accs.append(acc)
                 aps.append(ap)
             if heights_:
                 return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
-        elif self.type == 'heads':
+        elif '+' not in self.type:
             tab_X, tab_Y = self.X, self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -261,10 +262,10 @@ class JAAD_Dataset(Dataset):
 
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-                new_data = Eval_Dataset_heads(self.path_data, total_samples, total_labels, self.transform)
+                new_data = Eval_Dataset_crop(self.path_data, total_samples, total_labels, self.type, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
-                
+
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
@@ -282,7 +283,7 @@ class JAAD_Dataset(Dataset):
                     test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
                     out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
 
-                    
+
                 acc /= len(new_data)
                 #rint(torch.round(out_lab).shape)
                 #print(test_lab.shape)
@@ -327,11 +328,11 @@ class JAAD_Dataset(Dataset):
             N_pos = len(idx_Y1)
             aps = []
             accs = []
-            
+
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
-            
+
                 neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
                 neg_samples_kps = np.array(kps)[idx_Y0[:N_pos]]
                 neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
@@ -339,10 +340,10 @@ class JAAD_Dataset(Dataset):
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_samples_kps = np.concatenate((positive_samples_kps, neg_samples_kps)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-                
-                new_data = Eval_Dataset_heads_joints(self.path_data, total_samples, total_labels, total_samples_kps, self.transform)
+
+                new_data = Eval_Dataset_multimodel(self.path_data, total_samples, total_labels, total_samples_kps, self.type, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
-                
+
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
@@ -360,7 +361,7 @@ class JAAD_Dataset(Dataset):
 
                 acc /= len(new_data)
                 #acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
-                
+
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
                 accs.append(acc)
@@ -393,10 +394,10 @@ class Eval_Dataset_joints(Dataset):
         sample = {'image': self.data_x[idx], 'label':label}
         return torch.Tensor(sample['image']), sample['label']
 
-class Eval_Dataset_heads(Dataset):
+class Eval_Dataset_crop(Dataset):
     """JAAD dataset for training and inference"""
 
-    def __init__(self, path_jaad, data_x, data_y, transform=None, heights=None):
+    def __init__(self, path_jaad, data_x, data_y, type, transform=None, heights=None):
         """
         Args:
             split : train, val and test
@@ -418,7 +419,7 @@ class Eval_Dataset_heads(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         label = self.data_y[idx]
-        sample = {'image': Image.open(os.path.join(self.path, self.data_x[idx])), 'label':label}
+        sample = {'image': Image.open(os.path.join(self.path, type + '/' + self.data_x[idx])), 'label':label}
         if self.transform:
             sample['image'] = self.transform(sample['image'])
         return sample['image'], sample['label']
@@ -436,15 +437,15 @@ class Eval_Dataset_heads(Dataset):
             tab_Y.append(int(line_s[-1]))
         return tab_X, tab_Y
 
-class Eval_Dataset_heads_joints(Dataset):
+class Eval_Dataset_multimodel(Dataset):
 	"""JAAD dataset for training and inference"""
 
-	def __init__(self, path_data, data_x, data_y, kps, transform, heights=None):
+	def __init__(self, path_data, data_x, data_y, kps, type, transform, heights=None):
 		"""
 		Args:
 			split : train, val and test
 			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
-			transform : data tranformation to be applied 
+			transform : data tranformation to be applied
 		"""
 		self.data = None
 		self.path_data = path_data
@@ -461,14 +462,14 @@ class Eval_Dataset_heads_joints(Dataset):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
 		label = self.data_y[idx]
-		sample = {'keypoints': self.kps[idx], 'image':Image.open(os.path.join(self.path_data, self.data_x[idx])),'label':label}
+		sample = {'keypoints': self.kps[idx], 'image':Image.open(os.path.join(self.path_data, type + '/' + self.data_x[idx])),'label':label}
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
 		return sample['image'], torch.tensor(sample['keypoints']), sample['label']
 
 class Kitti_dataset(Dataset):
     """
-        Class definition for Kitti dataset (Head / joints / Head+joints)
+        Class definition for Kitti dataset (Head / joints / Head+joints / ...)
     """
     def __init__(self, split, type_, path_gt_txt, path_data, pose="full", transform=None, device=torch.device('cpu')):
         """
@@ -482,12 +483,12 @@ class Kitti_dataset(Dataset):
         self.pose = pose
         self.type = type_
         self.device = device
-        assert self.type in ['joints', 'heads', 'heads+joints']
+        assert self.type in ['joints', 'heads', 'eyes', 'fullbodies', 'heads+joints', 'eyes+joints', 'fullbodies+joints']
         assert self.pose in ["head", 'full', 'body']
         assert self.split in ['train', 'test', 'val']
         self.file  = open(os.path.join(self.path_gt_txt,'ground_truth_kitti.txt'), "r")
 
-        if self.type == 'heads+joints':
+        if '+' in self.type:
             self.X, self.kps, self.Y = self.preprocess()
         else:
             self.X, self.Y = self.preprocess()
@@ -526,7 +527,7 @@ class Kitti_dataset(Dataset):
                     self.heights.append(int(line_s[-2]))
             self.file.close()
             return torch.Tensor(kps), torch.Tensor(label)
-        elif self.type == 'heads':
+        elif '+' not in self.type:
             output = []
             X = []
             Y = []
@@ -554,12 +555,12 @@ class Kitti_dataset(Dataset):
                     Ys = joints[17:34]
                     X_new, Y_new = normalize(Xs, Ys, True)
                     tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-                    kps.append(tensor) 
+                    kps.append(tensor)
                     Y.append(int(line_s[-1]))
                     self.heights.append(int(line_s[-2]))
             self.file.close()
             return X, torch.tensor(kps), Y
-    
+
     def __getitem__(self, idx):
         """
         Getter function to load the instances of the dataset
@@ -572,14 +573,14 @@ class Kitti_dataset(Dataset):
             kps = self.X[idx, :]
             sample = {'image': kps, 'label': label}
             return sample['image'].to(self.device), torch.Tensor([float(sample['label'])])
-        elif self.type == 'heads':
-            inp = Image.open(os.path.join(self.path_data,self.X[idx]))
+        elif '+' not in self.type:
+            inp = Image.open(os.path.join(self.path_data, self.type + '/' + self.X[idx]))
             sample = {'image': inp, 'label': label}
             if self.transform:
                 sample['image'] = self.transform(sample['image'])
             return sample['image'].to(self.device), torch.Tensor([float(sample['label'])])
         else:
-            inp = Image.open(os.path.join(self.path_data,self.X[idx]))
+            inp = Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/' + self.X[idx]))
             sample = {'image': inp, 'keypoints':self.kps[idx], 'label': label}
             if self.transform:
                 sample['image'] = self.transform(sample['image'])
@@ -615,7 +616,7 @@ class Kitti_dataset(Dataset):
         ap_1, ap_2, ap_3, ap_4 = average_precision_score(ground_truths_1, preds_1), average_precision_score(ground_truths_2, preds_2), average_precision_score(ground_truths_3, preds_3), average_precision_score(ground_truths_4, preds_4)
 
 
-        
+
         acc_1, acc_2, acc_3, acc_4 = get_acc_per_distance(ground_truths_1, preds_1), get_acc_per_distance(ground_truths_2, preds_2), get_acc_per_distance(ground_truths_3, preds_3), get_acc_per_distance(ground_truths_4, preds_4)
 
         #print('Far :{} | Middle : {} | Close : {}'.format(ap_1, ap_2, ap_3))
@@ -716,11 +717,11 @@ class Kitti_dataset(Dataset):
                     aps4.append(ap_4)
                     distances.append(distance)
 
-                
-                
+
+
                 acc /= len(new_data)
                 ap = average_precision(out_lab, test_lab)
-                
+
 
                 accs.append(acc)
                 aps.append(ap)
@@ -728,7 +729,7 @@ class Kitti_dataset(Dataset):
                 return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             else:
                 return np.mean(aps), np.mean(accs)
-        elif self.type == 'heads':
+        elif '+' not in self.type:
             tab_X, tab_Y = self.X, self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -751,7 +752,7 @@ class Kitti_dataset(Dataset):
 
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-                new_data = Eval_Dataset_heads(self.path_data, total_samples, total_labels, self.transform)
+                new_data = Eval_Dataset_crop(self.path_data, total_samples, total_labels, self.type, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
                 if heights_:
@@ -786,12 +787,12 @@ class Kitti_dataset(Dataset):
                     aps4.append(ap_4)
                     distances.append(distance)
 
-                
-                
+
+
                 acc /= len(new_data)
                 ap = average_precision(out_lab, test_lab)
                 #break
-                
+
             if heights_:
                 return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
@@ -814,11 +815,11 @@ class Kitti_dataset(Dataset):
             aps3 = []
             aps4 = []
             distances = []
-            
+
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
-            
+
                 neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
                 neg_samples_kps = np.array(kps)[idx_Y0[:N_pos]]
                 neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
@@ -826,10 +827,10 @@ class Kitti_dataset(Dataset):
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_samples_kps = np.concatenate((positive_samples_kps, neg_samples_kps)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-                
-                new_data = Eval_Dataset_heads_joints(self.path_data, total_samples, total_labels, total_samples_kps, self.transform)
+
+                new_data = Eval_Dataset_multimodel(self.path_data, total_samples, total_labels, total_samples_kps, self.type, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
-                
+
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])
@@ -860,7 +861,7 @@ class Kitti_dataset(Dataset):
             if heights_:
                 return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
-    
+
 
 class Jack_Nu_dataset(Dataset):
     """
@@ -879,7 +880,7 @@ class Jack_Nu_dataset(Dataset):
         self.device = device
         self.name = name
         assert self.name in ['jack', 'nu']
-        assert self.type in ['joints', 'heads', 'heads+joints']
+        assert self.type in ['joints', 'heads', 'eyes', 'fullbodies', 'heads+joints', 'eyes+joints', 'fullbodies+joints']
         assert self.pose in ["head", 'full', 'body']
         assert self.split in ['train', 'test', 'val']
         self.file  = open(os.path.join(self.path_gt_txt,'ground_truth_{}.txt'.format(self.name)), "r")
@@ -895,12 +896,12 @@ class Jack_Nu_dataset(Dataset):
 
         if self.type == 'joints':
             sample = {'input':self.kps[idx].to(self.device) ,'label':label}
-        elif self.type == 'heads':
-            sample = {'input': Image.open(os.path.join(self.path_data,self.X[idx])), 'label':label}
+        elif '+' not in self.type:
+            sample = {'input': Image.open(os.path.join(self.path_data, self.type + '/' + self.X[idx])), 'label':label}
             if self.transform:
                 sample['input'] = self.transform(sample['input']).to(self.device)
         else:
-            sample_ = {'image': Image.open(os.path.join(self.path_data,self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
+            sample_ = {'image': Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/' + self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
             if self.transform:
                 sample_['image'] = self.transform(sample_['image'])
             sample = {'input':(sample_['image'].to(self.device), sample_['keypoints'].to(self.device)), 'label':sample_['label']}
@@ -941,7 +942,7 @@ class Jack_Nu_dataset(Dataset):
                 Y.append(int(line_s[-1])) # append the label
         self.file.close()
         return X, torch.tensor(kps), Y
-    
+
     def eval_ablation(self, heights, preds, ground_truths):
         """
             Evaluate using the ablation study
@@ -972,7 +973,7 @@ class Jack_Nu_dataset(Dataset):
         ap_1, ap_2, ap_3, ap_4 = average_precision_score(ground_truths_1, preds_1), average_precision_score(ground_truths_2, preds_2), average_precision_score(ground_truths_3, preds_3), average_precision_score(ground_truths_4, preds_4)
 
 
-        
+
         acc_1, acc_2, acc_3, acc_4 = get_acc_per_distance(ground_truths_1, preds_1), get_acc_per_distance(ground_truths_2, preds_2), get_acc_per_distance(ground_truths_3, preds_3), get_acc_per_distance(ground_truths_4, preds_4)
 
         distances = [perc_1, perc_2, perc_3]
@@ -984,7 +985,7 @@ class Jack_Nu_dataset(Dataset):
         model = model.eval()
         model = model.to(device)
         if self.type == 'joints':
-            
+
             tab_X, tab_Y = self.kps.cpu().detach().numpy(), self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -1036,7 +1037,7 @@ class Jack_Nu_dataset(Dataset):
             if heights_:
                 return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
-        elif self.type == 'heads':
+        elif '+' not in self.type:
             tab_X, tab_Y = self.X, self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -1059,7 +1060,7 @@ class Jack_Nu_dataset(Dataset):
 
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-                new_data = Eval_Dataset_heads(self.path_data, total_samples, total_labels, self.transform)
+                new_data = Eval_Dataset_crop(self.path_data, total_samples, total_labels, self.type, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
 
                 if heights_:
@@ -1115,11 +1116,11 @@ class Jack_Nu_dataset(Dataset):
             aps3 = []
             aps4 = []
             distances = []
-            
+
             for i in range(it):
                 np.random.seed(i)
                 np.random.shuffle(idx_Y0)
-            
+
                 neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
                 neg_samples_kps = np.array(kps)[idx_Y0[:N_pos]]
                 neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
@@ -1127,10 +1128,10 @@ class Jack_Nu_dataset(Dataset):
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_samples_kps = np.concatenate((positive_samples_kps, neg_samples_kps)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-                
-                new_data = Eval_Dataset_heads_joints(self.path_data, total_samples, total_labels, total_samples_kps, self.transform)
+
+                new_data = Eval_Dataset_multimodel(self.path_data, total_samples, total_labels, total_samples_kps, self.type, self.transform)
                 data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
-                
+
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
                 test_lab = torch.Tensor([])

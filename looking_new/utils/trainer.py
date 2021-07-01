@@ -23,9 +23,9 @@ class Parser():
         self.nu_args = config['Nuscenes_dataset']
         self.jack_args = config['JackRabbot_dataset']
         use_cuda = torch.cuda.is_available()
-        self.device = torch.device("cuda:{}".format(self.general['device']) if use_cuda else "cpu")
+        self.device = torch.device("cuda" if use_cuda else "cpu")
         print('Device: ', self.device)
-    
+
     def get_model(self):
         criterion_type = self.general['loss']
         optimizer_type = self.general['optimizer']
@@ -42,13 +42,13 @@ class Parser():
         else:
             criterion = FocalLoss(alpha=1, gamma=3)
 
-        
-        
+        # Select model type
         model_type = self.model_type['type']
         pose = self.general['pose']
         self.grad_map = None
-        assert model_type in ['joints', 'heads', 'heads+joints']
+        assert model_type in ['joints', 'heads', 'eyes', 'fullbodies', 'heads+joints', 'eyes+joints', 'fullbodies+joints']
         assert pose in ['head', 'body', 'full']
+        # Joints
         if model_type == 'joints':
             self.grad_map = self.general.getboolean('grad_map')
             if pose == "head":
@@ -58,6 +58,17 @@ class Parser():
             else:
                 INPUT_SIZE = 51
             model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
+        # Eyes
+        elif model_type == 'eyes':
+            self.data_transform = transforms.Compose([
+                    SquarePad(),
+                    transforms.ToTensor(),
+                transforms.ToPILImage(),
+                    transforms.Resize((10,15)),
+                transforms.ToTensor()])
+            INPUT_SIZE = 450
+            model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
+        # Heads
         elif model_type == 'heads':
             backbone = self.model_type['backbone']
             fine_tune = self.model_type.getboolean('fine_tune')
@@ -68,7 +79,7 @@ class Parser():
                         SquarePad(),
                         transforms.ToTensor(),
                     transforms.ToPILImage(),
-                        transforms.Resize((227,227)),
+                        transforms.Resize((256,256)),
                     transforms.ToTensor(),
                         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                             std=[0.229, 0.224, 0.225])])
@@ -94,6 +105,44 @@ class Parser():
                         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                             std=[0.229, 0.224, 0.225])
                 ])
+        # Fullbodies
+        elif model_type == 'fullbodies':
+            backbone = self.model_type['backbone']
+            fine_tune = self.model_type.getboolean('fine_tune')
+            assert backbone in ['alexnet', 'resnet18', 'resnet50']
+            if backbone == 'alexnet':
+                model = AlexNet_head(self.device, fine_tune)
+                self.data_transform = transforms.Compose([
+                        SquarePad(),
+                        transforms.ToTensor(),
+                    transforms.ToPILImage(),
+                        transforms.Resize((256,256)),
+                    transforms.ToTensor(),
+                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])])
+            elif backbone == 'resnet18':
+                model = ResNet18_head(self.device)
+                self.data_transform = transforms.Compose([
+                        SquarePad(),
+                        transforms.ToTensor(),
+                    transforms.ToPILImage(),
+                        transforms.Resize((224,224)),
+                    transforms.ToTensor(),
+                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])
+                ])
+            else:
+                model = ResNet50_head(self.device)
+                self.data_transform = transforms.Compose([
+                        SquarePad(),
+                        transforms.ToTensor(),
+                    transforms.ToPILImage(),
+                        transforms.Resize((224,224)),
+                    transforms.ToTensor(),
+                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])
+                ])
+        # Multimodels
         else:
             backbone = self.model_type['backbone']
             fine_tune = self.model_type.getboolean('fine_tune')
@@ -108,17 +157,17 @@ class Parser():
             ])
             assert backbone in ['resnet18', 'resnet50']
             if self.model_type['trained_on'] == 'JAAD':
-                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], self.data_args['split']])+'.p'
+                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], self.data_args['split']])+'.pkl'
                 if backbone == 'resnet18':
-                    name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
+                    name_model_backbone = '_'.join(['ResNet18_' + model_type, criterion.__class__.__name__, self.data_args['split']])+'.pkl'
                 else:
-                    name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
+                    name_model_backbone = '_'.join(['ResNet50_' + model_type, criterion.__class__.__name__, self.data_args['split']])+'.pkl'
             else:
-                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.p'
+                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.pkl'
                 if backbone == 'resnet18':
-                    name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, ''])+'.p'
+                    name_model_backbone = '_'.join(['ResNet18_' + model_type, criterion.__class__.__name__, ''])+'.pkl'
                 else:
-                    name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, ''])+'.p'
+                    name_model_backbone = '_'.join(['ResNet50_' + model_type, criterion.__class__.__name__, ''])+'.pkl'
             path_output_model_backbone = os.path.join(self.general['path'], self.model_type['trained_on'], 'Heads')
             path_backbone = os.path.join(path_output_model_backbone, name_model_backbone)
 
@@ -133,12 +182,13 @@ class Parser():
                 if not os.path.isfile(path_model_joints):
                     print('ERROR: Joints model not trained, please train your joints model first')
                     exit(0)
-                
+
             if backbone == 'resnet18':
                 model = LookingNet_early_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
             else:
                 model = LookingNet_early_fusion_50(path_backbone, path_model_joints, self.device, fine_tune)
-                #model = LookingNet_early_fusion_50_reduced(path_backbone, path_model_joints, self.device, fine_tune)
+
+        # Set parameters for training
         self.model_type_ = model_type
         self.pose = pose
         self.lr = float(self.general['learning_rate'])
@@ -147,7 +197,7 @@ class Parser():
         if optimizer_type == 'adam':
 	        optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
         else:
-            if fine_tune and model_type=='heads':
+            if fine_tune and model_type=='heads' or model_type=='fullbodies':
                 optimizer = torch.optim.SGD(model.net.classifier.parameters(), lr=self.lr, momentum=0.9)
             else:
                 optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
@@ -178,7 +228,7 @@ class Parser():
                     dataset_train.append(Kitti_dataset('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
                     dataset_val.append(Kitti_dataset('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
             return dataset_train, dataset_val
-                 
+
         else:
             path_txt = os.path.join(self.data_args['path_txt'], 'splits_'+data_type.lower())
             dataset_train = []
@@ -201,7 +251,7 @@ class Parser():
                 dataset_train = Jack_Nu_dataset('jack', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
                 dataset_val = Jack_Nu_dataset('jack', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
             return dataset_train, dataset_val
-    
+
     def get_data_test(self, data_type):
         split_strategy = self.eval_params['split']
         path_txt = os.path.join(self.data_args['path_txt'], 'splits_'+data_type.lower())
@@ -231,24 +281,24 @@ class Parser():
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
-            
+
             features = [self.model.__class__.__name__, self.criterion.__class__.__name__]
             if self.model_type['type'] == 'joints':
                 features.append(self.general['pose'])
 
             if 'JAAD' in names:
                 features.append('{}'.format(self.data_args['split']))
-            
+
             if self.weighted:
                 features.append('weighted')
 
-            
-            
-            name_model = '_'.join(features)+'.p'
+
+
+            name_model = '_'.join(features)+'.pkl'
             #else:
             #    name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose']].extend(additional_features))+'.p'
             self.path_model = os.path.join(self.path_output, name_model)
-            
+
         else:
             self.dataset_train, self.dataset_val = self.get_data(self.data_args['name'])
             self.path_output = os.path.join(self.general['path'], self.data_args['name'], self.model_type['type'].title())
@@ -257,19 +307,19 @@ class Parser():
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
-            
+
             additional_features = ''
             if 'JAAD' in self.data_args['name']:
                 additional_features += '{}'.format(self.data_args['split'])
 
             if self.model_type['type'] != 'joints':
-                name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, additional_features])+'.p'
+                name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, additional_features])+'.pkl'
             else:
-                name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose'], additional_features])+'.p'
+                name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, self.general['pose'], additional_features])+'.pkl'
             self.path_model = os.path.join(self.path_output, name_model)
             if self.grad_map:
                 self.out_grad = self.path_model[:-2]+'_grads.png'
- 
+
     def load_model_for_eval(self):
         self.model.load_state_dict(torch.load(self.path_model))
         self.model = self.model.to(self.device).eval()
@@ -324,12 +374,12 @@ class Evaluator():
             print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
         else:
             ap, acc, ap_1, ap_2, ap_3, ap_4, distances = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
-            
+
             print('Distances : ', np.mean(distances, axis=0))
             print('Ap Far : {:.1f} | Middle 1 : {:.1f} | Middle_2 : {:.1f} | Close :{:.1f}'.format(ap_1*100, ap_2*100, ap_3*100, ap_4*100))
             #print('Ac Far : {:.1f} | Middle 1 : {:.1f} | Middle_2 : {:.1f} | Close :{:.1f}'.format(ac_1*100, ac_2*100, ac_3*100, ac_4*100))
             print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
-        
+
 
 
 class Trainer():
@@ -368,20 +418,20 @@ class Trainer():
         best_ac = 0
         grads_x = []
         grads = []
-        
+
         for epoch in range(self.parser.epochs):
             #self.parser.model = self.parser.model.train().to(self.parser.device)
             losses = []
             accuracies = []
 
             for x_batch, y_batch in train_loader:
-                
+
                 y_batch = y_batch.to(self.parser.device)
                 self.parser.optimizer.zero_grad()
                 output = self.parser.model(x_batch)
                 loss = self.parser.criterion(output, y_batch.float())
                 running_loss += loss.item()
-                
+
                 loss.backward()
                 losses.append(loss.item())
                 accuracies.append(binary_acc(output.type(torch.float), y_batch).item())
@@ -398,7 +448,7 @@ class Trainer():
             best_ap, best_ac, ap_val, acc_val = self.eval_epoch(best_ap, best_ac)
             print('')
             print('Epoch {} | mAP_val : {} | mAcc_val :{}'.format(epoch+1, ap_val, acc_val))
-            
+
             if self.get_grads:
                 grads_x = []
                 self.parser.optimizer.zero_grad()
@@ -452,7 +502,7 @@ class Trainer():
             aps, accs = np.mean(tab_ap), np.mean(tab_acc)
         else:
             aps, accs = self.parser.dataset_val.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)
-        
+
         if aps > best_ap:
             best_ap = aps
             best_ac = accs
