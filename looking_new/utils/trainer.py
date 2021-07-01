@@ -330,6 +330,8 @@ class Evaluator():
     """
     def __init__(self, parser):
         self.parser = parser
+        use_cuda = torch.cuda.is_available()
+        self.device = torch.device("cuda" if use_cuda else "cpu")
         print(self.parser.path_model)
         if os.path.isfile(self.parser.path_model):
             print('Model file exists.. Loading model file ...')
@@ -339,7 +341,7 @@ class Evaluator():
             exit(0)
         self.height_ = self.parser.eval_params.getboolean('height')
     def evaluate_distance(self):
-        ap, acc, ap_1, ap_2, ap_3 = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
+        ap, acc, ap_1, ap_2, ap_3 = data_test.evaluate(self.parser.model, self.device, 10, True)
         print('Far : {} | Middle : {} | Close :{}'.format(ap_1, ap_2, ap_3))
         print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
 
@@ -370,10 +372,10 @@ class Evaluator():
             acc = binary_acc(output_all.type(torch.float).view(-1), labels_all).item()
         else:"""
         if self.height_==False:
-            ap, acc = data_test.evaluate(self.parser.model, self.parser.device, 10)
+            ap, acc = data_test.evaluate(self.parser.model, self.device, 10)
             print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
         else:
-            ap, acc, ap_1, ap_2, ap_3, ap_4, distances = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
+            ap, acc, ap_1, ap_2, ap_3, ap_4, distances = data_test.evaluate(self.parser.model, self.device, 10, True)
 
             print('Distances : ', np.mean(distances, axis=0))
             print('Ap Far : {:.1f} | Middle 1 : {:.1f} | Middle_2 : {:.1f} | Close :{:.1f}'.format(ap_1*100, ap_2*100, ap_3*100, ap_4*100))
@@ -389,6 +391,8 @@ class Trainer():
     def __init__(self, parser):
         self.parser = parser
         self.get_grads = parser.grad_map
+        use_cuda = torch.cuda.is_available()
+        self.device = torch.device("cuda" if use_cuda else "cpu")
     def get_sampler(self, concat_dataset):
         weigths = 1./ torch.Tensor([len(data) for data in concat_dataset])
         di = {}
@@ -402,7 +406,7 @@ class Trainer():
         return sampler
 
     def train(self):
-        self.parser.model = self.parser.model.to(self.parser.device).train()
+        self.parser.model = self.parser.model.to(self.device).train()
         if self.parser.multi_dataset:
             concat_dataset = torch.utils.data.ConcatDataset(self.parser.dataset_train)
             if self.parser.weighted:
@@ -426,7 +430,7 @@ class Trainer():
 
             for x_batch, y_batch in train_loader:
 
-                y_batch = y_batch.to(self.parser.device)
+                y_batch = y_batch.to(self.device)
                 self.parser.optimizer.zero_grad()
                 output = self.parser.model(x_batch)
                 loss = self.parser.criterion(output, y_batch.float())
@@ -495,13 +499,13 @@ class Trainer():
             tab_ap = []
             tab_acc = []
             for data in self.parser.dataset_val:
-                aps, accs = data.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)
+                aps, accs = data.evaluate(self.parser.model, self.device, it=self.parser.eval_it)
                 tab_ap.append(aps)
                 tab_acc.append(accs)
             #exit(0)
             aps, accs = np.mean(tab_ap), np.mean(tab_acc)
         else:
-            aps, accs = self.parser.dataset_val.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)
+            aps, accs = self.parser.dataset_val.evaluate(self.parser.model, self.device, it=self.parser.eval_it)
 
         if aps > best_ap:
             best_ap = aps

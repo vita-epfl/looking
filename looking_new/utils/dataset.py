@@ -23,7 +23,8 @@ class JAAD_Dataset(Dataset):
         self.split_strategy = split_strategy
         self.pose = pose
         self.transform = transform
-        self.device = device
+        use_cuda = torch.cuda.is_available()
+        self.device = torch.device("cuda" if use_cuda else "cpu")
         self.name = 'jaad'
         assert self.pose in ['full', 'head', 'body']
         assert self.split_strategy in ['instances', 'scenes']
