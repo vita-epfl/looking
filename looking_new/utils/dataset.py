@@ -390,6 +390,7 @@ class Eval_Dataset_joints(Dataset):
         self.data_x = data_x
         self.data_y = data_y
         self.heights = heights
+        self.type = type
 
     def __len__(self):
         return len(self.data_y)
@@ -417,6 +418,7 @@ class Eval_Dataset_crop(Dataset):
         self.data_x = data_x
         self.data_y = data_y
         self.heights = heights
+        self.type = type
 
 
     def __len__(self):
@@ -426,7 +428,7 @@ class Eval_Dataset_crop(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         label = self.data_y[idx]
-        sample = {'image': Image.open(os.path.join(self.path, type + '/' + self.data_x[idx])), 'label':label}
+        sample = {'image': Image.open(os.path.join(self.path, self.type + '/' + self.data_x[idx])), 'label':label}
         if self.transform:
             sample['image'] = self.transform(sample['image'])
         return sample['image'], sample['label']
@@ -461,6 +463,7 @@ class Eval_Dataset_multimodel(Dataset):
 		self.kps = kps
 		self.transform = transform
 		self.heights = heights
+        self.type = type
 
 	def __len__(self):
 		return len(self.data_y)
@@ -469,7 +472,7 @@ class Eval_Dataset_multimodel(Dataset):
 		if torch.is_tensor(idx):
 			idx = idx.tolist()
 		label = self.data_y[idx]
-		sample = {'keypoints': self.kps[idx], 'image':Image.open(os.path.join(self.path_data, type + '/' + self.data_x[idx])),'label':label}
+		sample = {'keypoints': self.kps[idx], 'image':Image.open(os.path.join(self.path_data, self.type + '/' + self.data_x[idx])),'label':label}
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
 		return sample['image'], torch.tensor(sample['keypoints']), sample['label']
