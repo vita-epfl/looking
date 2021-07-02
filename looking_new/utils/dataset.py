@@ -430,7 +430,9 @@ class Eval_Dataset_crop(Dataset):
 		label = self.data_y[idx]
 		sample = {'image': Image.open(os.path.join(self.path, self.type + '/' + self.data_x[idx])), 'label':label}
 		if self.transform:
-			sample['image'] = self.transform(sample['image'])
+			sample['image'] = self.transform(sample['image']))
+		if self.type == 'eyes':
+			sample['image'] = torch.flatten(sample['image'])
 		return sample['image'], sample['label']
 
 	def preprocess(self):
