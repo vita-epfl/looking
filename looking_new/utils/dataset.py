@@ -48,7 +48,7 @@ class JAAD_Dataset(Dataset):
 		if self.type == 'joints':
 			sample = {'input':self.X[idx].to(self.device) ,'label':label}
 		elif self.type == 'eyes':
-			sample = {'input': Image.open(os.path.join(self.path_data, 'eyes/'+self.X[idx])), 'label':label}
+			sample = {'input': Image.open(os.path.join(self.path_data, self.type + '/'+self.X[idx])), 'label':label}
 			if self.transform:
 				sample['input'] = torch.flatten(self.transform(sample['input'])).to(self.device)
 			else:
@@ -431,7 +431,7 @@ class Eval_Dataset_crop(Dataset):
 		sample = {'image': Image.open(os.path.join(self.path, self.type + '/' + self.data_x[idx])), 'label':label}
 		if self.transform:
 			sample['image'] = self.transform(sample['image'])
-		if self.type == 'eyes':
+		if self.type == 'eyes' or self.type == 'heads':
 			sample['image'] = torch.flatten(sample['image'])
 		return sample['image'], sample['label']
 
@@ -585,6 +585,12 @@ class Kitti_dataset(Dataset):
 			kps = self.X[idx, :]
 			sample = {'image': kps, 'label': label}
 			return sample['image'].to(self.device), torch.Tensor([float(sample['label'])])
+		elif self.type == 'eyes':
+			sample = {'image': Image.open(os.path.join(self.path_data, self.type + '/'+self.X[idx])), 'label':label}
+			if self.transform:
+				sample['image'] = torch.flatten(self.transform(sample['input'])).to(self.device)
+			else:
+				sample['image'] = torch.flatten(sample['input']).to(self.device)
 		elif '+' not in self.type:
 			inp = Image.open(os.path.join(self.path_data, self.type + '/' + self.X[idx]))
 			sample = {'image': inp, 'label': label}
