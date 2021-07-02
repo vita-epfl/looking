@@ -50,9 +50,9 @@ class JAAD_Dataset(Dataset):
 		elif self.type == 'eyes':
 			sample = {'input': Image.open(os.path.join(self.path_data, 'eyes/'+self.X[idx])), 'label':label}
 			if self.transform:
-				sample['input'] = torch.flatten(self.transform(sample['input']))
+				sample['input'] = torch.flatten(self.transform(sample['input'])).to(self.device)
 			else:
-				sample['input'] = torch.flatten(sample['input'])
+				sample['input'] = torch.flatten(sample['input']).to(self.device)
 		# Image crop
 		elif '+' not in self.type:
 			sample = {'input': Image.open(os.path.join(self.path_data, self.type+'/'+self.X[idx])), 'label':label}

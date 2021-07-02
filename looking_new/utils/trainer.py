@@ -65,7 +65,9 @@ class Parser():
                     transforms.ToTensor(),
                 transforms.ToPILImage(),
                     transforms.Resize((10,15)),
-                transforms.ToTensor()])
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225])]])
             INPUT_SIZE = 450
             model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
         # Heads
