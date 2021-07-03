@@ -413,11 +413,11 @@ class Trainer():
             concat_dataset = torch.utils.data.ConcatDataset(self.parser.dataset_train)
             if self.parser.weighted:
                 sampler = self.get_sampler(concat_dataset)
-                train_loader = DataLoader(concat_dataset, batch_size=self.parser.batch_size, sampler=sampler)
+                train_loader = DataLoader(concat_dataset, batch_size=self.parser.batch_size, sampler=sampler, drop_last=True)
             else:
-                train_loader = DataLoader(concat_dataset, batch_size=self.parser.batch_size, shuffle=True)
+                train_loader = DataLoader(concat_dataset, batch_size=self.parser.batch_size, shuffle=True, drop_last=True)
         else:
-            train_loader = DataLoader(self.parser.dataset_train, batch_size=self.parser.batch_size, shuffle=True)
+            train_loader = DataLoader(self.parser.dataset_train, batch_size=self.parser.batch_size, shuffle=True, drop_last=True)
         running_loss = 0
         i = 0
         best_ap = 0
@@ -459,7 +459,7 @@ class Trainer():
                 grads_x = []
                 self.parser.optimizer.zero_grad()
                 model = copy.deepcopy(self.parser.model).to('cpu').eval()
-                for joints, labels in DataLoader(self.parser.dataset_train, batch_size=len(self.parser.dataset_train)):
+                for joints, labels in DataLoader(self.parser.dataset_train, batch_size=len(self.parser.dataset_train), drop_last=True):
                     joints, labels = joints.to('cpu'), labels.to('cpu').type(torch.float)
                     break
                 joints.requires_grad=True
