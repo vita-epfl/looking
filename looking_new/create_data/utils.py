@@ -122,12 +122,8 @@ def crop_head(img, kps, dataset):
 	default_size = (20, 20)
 	# ears
 	idx = [3,4]
-	if dataset == 'jaad':
-		nose = [kps[0], kps[1]]
-		candidate1, candidate2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
-	elif dataset == 'kitti':
-		nose = [kps[0], kps[17]]
-		candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]]], [kps[idx[1]], kps[17+idx[1]],]
+	nose = [kps[0], kps[17]]
+	candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]]], [kps[idx[1]], kps[17+idx[1]],]
 
 	if candidate1[0] > candidate2[0]:
 		kps1 = candidate2
@@ -182,13 +178,8 @@ def crop_eyes(img, kps, dataset):
 	default_size = (15, 10)
 	# eyes
 	idx = [1,2]
-
-	if dataset == 'jaad':
-		nose = [kps[0], kps[1], kps[2]]
-		candidate1, candidate2 = kps[3*idx[0]:3*idx[0]+2], kps[3*idx[1]:3*idx[1]+2]
-	elif dataset == 'kitti':
-		nose = [kps[0], kps[17], kps[34]]
-		candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
+	nose = [kps[0], kps[17], kps[34]]
+	candidate1, candidate2 = [kps[idx[0]], kps[17+idx[0]], kps[34+idx[0]]], [kps[idx[1]], kps[17+idx[1]], kps[34+idx[1]]]
 
 	if candidate1[0] > candidate2[0]:
 		kps1 = candidate2
@@ -381,8 +372,8 @@ class JAAD_creator():
 					img = np.asarray(img)
 
 					fullbody = crop_image(img, bb_final)
-					head = crop_head(img, kps, 'jaad')
-					eyes = crop_eyes(img, kps, 'jaad')
+					head = crop_head(img, kps)
+					eyes = crop_eyes(img, kps)
 
 					Image.fromarray(fullbody).convert('RGB').save(os.path.join(self.dir_out,'fullbodies/' + name_head))
 					Image.fromarray(head).convert('RGB').save(os.path.join(self.dir_out,'heads/' + name_head))
@@ -509,7 +500,7 @@ class Kitti_creator():
 		print('Creating the Kitti dataset...')
 		name_pic = 0
 		file_out = open(os.path.join(self.path_out_txt,"ground_truth_kitti.txt"), "w")
-		"""for idx_line, file in enumerate(tqdm(glob(os.path.join(self.path_annotation_train,'*.json')))):
+		for idx_line, file in enumerate(tqdm(glob(os.path.join(self.path_annotation_train,'*.json')))):
 			data = json.loads(open(file, 'r').read())
 			name = file.split('/')[-1][:-5]
 			pil_im = Image.open(os.path.join(self.path_images_train,name)).convert('RGB')
@@ -522,8 +513,8 @@ class Kitti_creator():
 
 				bbox = enlarge_bbox(data['bbox'][d])
 				fullbody = crop_image(im, convert_bb(bbox))
-				head = crop_head(im, keypoints, 'kitti')
-				eyes = crop_eyes(im, keypoints, 'kitti')
+				head = crop_head(im, keypoints)
+				eyes = crop_eyes(im, keypoints)
 
 				if idx_line > int(0.95*len(glob(os.path.join(self.path_annotation_train,'*.json')))):
 					file_out.write(name+','+name_head+',val,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
@@ -539,7 +530,7 @@ class Kitti_creator():
 				Image.fromarray(eyes).convert('RGB').save(os.path.join(self.path_out,'eyes/' + name_head))
 
 				name_pic += 1
-"""
+
 		for file in tqdm(glob(os.path.join(self.path_annotation_test,'*.json'))):
 			data = json.loads(open(file, 'r').read())
 			name = file.split('/')[-1][:-5]
@@ -553,8 +544,8 @@ class Kitti_creator():
 
 				bbox = enlarge_bbox(data['bbox'][d])
 				fullbody = crop_image(im, convert_bb(bbox))
-				head = crop_head(im, keypoints, 'kitti')
-				eyes = crop_eyes(im, keypoints, 'kitti')
+				head = crop_head(im, keypoints)
+				eyes = crop_eyes(im, keypoints)
 
 				file_out.write(name+','+name_head+',test,'+str(bbox[0])+','+str(bbox[1])+','+str(bbox[2])+','+str(bbox[3])+','+str(label)+'\n')
 
