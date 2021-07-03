@@ -118,7 +118,7 @@ def crop_image(img, bbox):
 	return im_cropped
 
 
-def crop_head(img, kps, dataset):
+def crop_head(img, kps):
 	default_size = (20, 20)
 	# ears
 	idx = [3,4]
@@ -174,7 +174,7 @@ def crop_head(img, kps, dataset):
 
 	return img[int(y1):int(y2), int(x1):int(x2)]
 
-def crop_eyes(img, kps, dataset):
+def crop_eyes(img, kps):
 	default_size = (15, 10)
 	# eyes
 	idx = [1,2]
