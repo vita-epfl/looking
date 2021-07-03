@@ -36,6 +36,7 @@ class JAAD_Dataset(Dataset):
 			self.X, self.kps, self.Y = self.preprocess()
 		else:
 			self.X, self.Y = self.preprocess()
+		print(len(self.Y))
 
 	def __len__(self):
 		return len(self.Y)
@@ -100,7 +101,7 @@ class JAAD_Dataset(Dataset):
 				line = line[:-1]
 				line_s = line.split(",")
 				im_name = line_s[-2]
-				if self.type == 'heads':
+				if self.split in ['train'] and self.type == 'heads':
 					im = Image.open(os.path.join(self.path_data, self.type + '/'+im_name))
 					# Do not keep if not in full image (20x20 black image)
 					if not (im.size == (20,20) and im.getbbox() == None):
@@ -111,7 +112,7 @@ class JAAD_Dataset(Dataset):
 						Y = joints[17:34]
 						X_new, Y_new, height = normalize(X, Y, divide=True, height_=True)
 						self.heights.append(height)
-				elif self.type == 'eyes':
+				elif self.split in ['train'] and self.type == 'eyes':
 					im = Image.open(os.path.join(self.path_data, self.type + '/'+im_name))
 					# Do not keep if not in full image (15x10 black image)
 					if not (im.size == (15,10) and im.getbbox() == None):
@@ -140,7 +141,7 @@ class JAAD_Dataset(Dataset):
 				line = line[:-1]
 				line_s = line.split(",")
 				im_name = line_s[-2]
-				if 'heads' in self.type:
+				if self.split in ['train'] and 'heads' in self.type:
 					im = Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/'+im_name))
 					# Do not keep if not in full image (20x20 black image)
 					if not (im.size == (20,20) and im.getbbox() == None):
@@ -152,7 +153,7 @@ class JAAD_Dataset(Dataset):
 						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 						kps.append(tensor)
 						tab_Y.append(int(line_s[-1]))
-				elif 'eyes' in self.type:
+				elif self.split in ['train'] and 'eyes' in self.type:
 					im = Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/'+im_name))
 					# Do not keep if not in full image (15x10 black image)
 					if not (im.size == (15,10) and im.getbbox() == None):
