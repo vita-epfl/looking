@@ -36,7 +36,6 @@ class JAAD_Dataset(Dataset):
 			self.X, self.kps, self.Y = self.preprocess()
 		else:
 			self.X, self.Y = self.preprocess()
-		print(len(self.Y))
 
 	def __len__(self):
 		return len(self.Y)
@@ -112,7 +111,7 @@ class JAAD_Dataset(Dataset):
 						Y = joints[17:34]
 						X_new, Y_new, height = normalize(X, Y, divide=True, height_=True)
 						self.heights.append(height)
-				elif self.split in ['train'] and self.type == 'eyes':
+				elif self.split in ['train', 'val'] and self.type == 'eyes':
 					im = Image.open(os.path.join(self.path_data, self.type + '/'+im_name))
 					# Do not keep if not in full image (15x10 black image)
 					if not (im.size == (15,10) and im.getbbox() == None):
