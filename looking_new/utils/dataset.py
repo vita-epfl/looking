@@ -140,7 +140,7 @@ class JAAD_Dataset(Dataset):
 				line = line[:-1]
 				line_s = line.split(",")
 				im_name = line_s[-2]
-				"""if self.split in ['train'] and 'heads' in self.type:
+				if self.split in ['train', 'val'] and 'heads' in self.type:
 					im = Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/'+im_name))
 					# Do not keep if not in full image (20x20 black image)
 					if not (im.size == (20,20) and im.getbbox() == None):
@@ -152,7 +152,7 @@ class JAAD_Dataset(Dataset):
 						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 						kps.append(tensor)
 						tab_Y.append(int(line_s[-1]))
-				elif self.split in ['train'] and 'eyes' in self.type:
+				elif self.split in ['train', 'val'] and 'eyes' in self.type:
 					im = Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/'+im_name))
 					# Do not keep if not in full image (15x10 black image)
 					if not (im.size == (15,10) and im.getbbox() == None):
@@ -164,15 +164,15 @@ class JAAD_Dataset(Dataset):
 						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 						kps.append(tensor)
 						tab_Y.append(int(line_s[-1]))
-				else:"""
-				tab_X.append(line_s[-2])
-				joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
-				X = joints[:17]
-				Y = joints[17:34]
-				X_new, Y_new = normalize(X, Y, True)
-				tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-				kps.append(tensor)
-				tab_Y.append(int(line_s[-1]))
+				else:
+					tab_X.append(line_s[-2])
+					joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
+					X = joints[:17]
+					Y = joints[17:34]
+					X_new, Y_new = normalize(X, Y, True)
+					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+					kps.append(tensor)
+					tab_Y.append(int(line_s[-1]))
 			return tab_X, torch.tensor(kps), tab_Y
 
 	def eval_ablation(self, heights, preds, ground_truths):
