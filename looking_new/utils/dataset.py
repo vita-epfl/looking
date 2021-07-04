@@ -149,7 +149,14 @@ class JAAD_Dataset(Dataset):
 						X = joints[:17]
 						Y = joints[17:34]
 						X_new, Y_new = normalize(X, Y, True)
-						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+						if self.pose == "head":
+							X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+							tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+						elif self.pose == 'body':
+							X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+							tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+						else:
+							tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 						kps.append(tensor)
 						tab_Y.append(int(line_s[-1]))
 				elif self.split in ['train', 'val'] and 'eyes' in self.type:
@@ -161,7 +168,14 @@ class JAAD_Dataset(Dataset):
 						X = joints[:17]
 						Y = joints[17:34]
 						X_new, Y_new = normalize(X, Y, True)
-						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+						if self.pose == "head":
+							X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+							tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+						elif self.pose == 'body':
+							X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+							tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+						else:
+							tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 						kps.append(tensor)
 						tab_Y.append(int(line_s[-1]))
 				else:
@@ -170,7 +184,14 @@ class JAAD_Dataset(Dataset):
 					X = joints[:17]
 					Y = joints[17:34]
 					X_new, Y_new = normalize(X, Y, True)
-					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+					if self.pose == "head":
+						X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+						tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+					elif self.pose == 'body':
+						X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+						tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+					else:
+						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 					kps.append(tensor)
 					tab_Y.append(int(line_s[-1]))
 			return tab_X, torch.tensor(kps), tab_Y
