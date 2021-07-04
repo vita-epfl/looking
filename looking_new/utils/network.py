@@ -86,7 +86,7 @@ class Linear(nn.Module):
 
         self.l2 = nn.Linear(self.linear_size, self.linear_size)
         self.bn2 = nn.BatchNorm1d(self.linear_size)
-        
+
     def forward(self, x):
         # stage I
 
@@ -97,7 +97,7 @@ class Linear(nn.Module):
 
         # stage II
 
-        
+
         y = self.l2(y)
         y = self.bn2(y)
         y = self.relu(y)
@@ -154,12 +154,12 @@ class ResNet50_head(nn.Module):
             nn.Sigmoid()
         )
         self.net = net
-    
+
     def forward(self, x):
         return self.net(x)
 
 class LookingNet_early_fusion_18(nn.Module):
-    def __init__(self, PATH, PATH_look, device, fine_tune=True):
+    def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
         super(LookingNet_early_fusion_18, self).__init__()
         self.backbone = ResNet18_head(device)
         if fine_tune:
@@ -168,7 +168,7 @@ class LookingNet_early_fusion_18(nn.Module):
                 m.requires_grad = False
         self.backbone.eval()
 
-        self.looking_model = LookingModel(51)
+        self.looking_model = LookingModel(input_size)
         if fine_tune:
             self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
             for m in self.looking_model.parameters():
@@ -281,7 +281,7 @@ class LookingNet_early_fusion_50_reduced(nn.Module):
         return self.final(out_final)
 
 class LookingNet_early_fusion_50(nn.Module):
-    def __init__(self, PATH, PATH_look, device, fine_tune=True):
+    def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
         super(LookingNet_early_fusion_50, self).__init__()
         self.backbone = ResNet50_head(device)
         if fine_tune:
@@ -290,7 +290,7 @@ class LookingNet_early_fusion_50(nn.Module):
                 m.requires_grad = False
             self.backbone = self.backbone.eval()
 
-        self.looking_model = LookingModel(51)
+        self.looking_model = LookingModel(input_size)
         if fine_tune:
             self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
             for m in self.looking_model.parameters():

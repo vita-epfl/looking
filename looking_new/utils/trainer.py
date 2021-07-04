@@ -120,8 +120,7 @@ class Parser():
 					transforms.ToTensor(),
 					transforms.Normalize(mean=[0.485, 0.456, 0.406],
 										std=[0.229, 0.224, 0.225])])
-				INPUT_SIZE = 450
-				model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
+				#model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
 			else:
 				self.data_transform = transforms.Compose([
 							SquarePad(),
@@ -160,10 +159,17 @@ class Parser():
 					print('ERROR: Joints model not trained, please train your joints model first')
 					exit(0)
 
-			if backbone == 'resnet18':
-				model = LookingNet_early_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
+			if pose == "head":
+				INPUT_SIZE = 15
+			elif pose == "body":
+				INPUT_SIZE = 36
 			else:
-				model = LookingNet_early_fusion_50(path_backbone, path_model_joints, self.device, fine_tune)
+				INPUT_SIZE = 51
+
+			if backbone == 'resnet18':
+				model = LookingNet_early_fusion_18(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+			else:
+				model = LookingNet_early_fusion_50(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
 
 		# Set parameters for training
 		self.model_type_ = model_type
@@ -265,6 +271,9 @@ class Parser():
 
 			if 'JAAD' in names:
 				features.append('{}'.format(self.data_args['split']))
+			if '+' in self.model_type['type']:
+				features.append('{}'.format(self.general['pose']))
+
 
 			if self.weighted:
 				features.append('weighted')
@@ -288,6 +297,8 @@ class Parser():
 			additional_features = ''
 			if 'JAAD' in self.data_args['name']:
 				additional_features += '{}'.format(self.data_args['split'])
+			if '+' in self.model_type['type']:
+				additional_features += '{}'.format(self.general['pose'])
 
 			if self.model_type['type'] != 'joints':
 				name_model = '_'.join([self.model.__class__.__name__, self.criterion.__class__.__name__, additional_features])+'.pkl'
