@@ -70,45 +70,8 @@ class Parser():
                                     std=[0.229, 0.224, 0.225])])
             INPUT_SIZE = 450
             model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
-        # Heads
-        elif model_type == 'heads':
-            backbone = self.model_type['backbone']
-            fine_tune = self.model_type.getboolean('fine_tune')
-            assert backbone in ['alexnet', 'resnet18', 'resnet50']
-            if backbone == 'alexnet':
-                model = AlexNet_head(self.device, fine_tune)
-                self.data_transform = transforms.Compose([
-                        SquarePad(),
-                        transforms.ToTensor(),
-                    transforms.ToPILImage(),
-                        transforms.Resize((256,256)),
-                    transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                            std=[0.229, 0.224, 0.225])])
-            elif backbone == 'resnet18':
-                model = ResNet18_head(self.device)
-                self.data_transform = transforms.Compose([
-                        SquarePad(),
-                        transforms.ToTensor(),
-                    transforms.ToPILImage(),
-                        transforms.Resize((224,224)),
-                    transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                            std=[0.229, 0.224, 0.225])
-                ])
-            else:
-                model = ResNet50_head(self.device)
-                self.data_transform = transforms.Compose([
-                        SquarePad(),
-                        transforms.ToTensor(),
-                    transforms.ToPILImage(),
-                        transforms.Resize((224,224)),
-                    transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                            std=[0.229, 0.224, 0.225])
-                ])
-        # Fullbodies
-        elif model_type == 'fullbodies':
+        # Heads or Fullbodies
+    elif model_type == 'heads' or model_type == 'fullbodies':
             backbone = self.model_type['backbone']
             fine_tune = self.model_type.getboolean('fine_tune')
             assert backbone in ['alexnet', 'resnet18', 'resnet50']
@@ -148,22 +111,34 @@ class Parser():
         else:
             backbone = self.model_type['backbone']
             fine_tune = self.model_type.getboolean('fine_tune')
-            self.data_transform = transforms.Compose([
+            if 'eyes' in model_type:
+                self.data_transform = transforms.Compose([
                         SquarePad(),
                         transforms.ToTensor(),
                     transforms.ToPILImage(),
-                        transforms.Resize((224,224)),
+                        transforms.Resize((10,15)),
                     transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                            std=[0.229, 0.224, 0.225])
-            ])
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                        std=[0.229, 0.224, 0.225])])
+                INPUT_SIZE = 450
+                model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
+            else:
+                self.data_transform = transforms.Compose([
+                            SquarePad(),
+                            transforms.ToTensor(),
+                        transforms.ToPILImage(),
+                            transforms.Resize((224,224)),
+                        transforms.ToTensor(),
+                            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                                std=[0.229, 0.224, 0.225])
+                ])
             assert backbone in ['resnet18', 'resnet50']
             if self.model_type['trained_on'] == 'JAAD':
                 name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], self.data_args['split']])+'.pkl'
                 if backbone == 'resnet18':
-                    name_model_backbone = '_'.join(['ResNet18_' + model_type, criterion.__class__.__name__, self.data_args['split']])+'.pkl'
+                    name_model_backbone = '_'.join(['ResNet18_' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
                 else:
-                    name_model_backbone = '_'.join(['ResNet50_' + model_type, criterion.__class__.__name__, self.data_args['split']])+'.pkl'
+                    name_model_backbone = '_'.join(['ResNet50_' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
             else:
                 name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.pkl'
                 if backbone == 'resnet18':
