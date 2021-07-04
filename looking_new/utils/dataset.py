@@ -123,13 +123,13 @@ class JAAD_Dataset(Dataset):
 						X_new, Y_new, height = normalize(X, Y, divide=True, height_=True)
 						self.heights.append(height)
 				else:
-				tab_X.append(line_s[-2])
-				tab_Y.append(int(line_s[-1]))
-				joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
-				X = joints[:17]
-				Y = joints[17:34]
-				X_new, Y_new, height = normalize(X, Y, divide=True, height_=True)
-				self.heights.append(height)
+					tab_X.append(line_s[-2])
+					tab_Y.append(int(line_s[-1]))
+					joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
+					X = joints[:17]
+					Y = joints[17:34]
+					X_new, Y_new, height = normalize(X, Y, divide=True, height_=True)
+					self.heights.append(height)
 
 			return tab_X, tab_Y
 		else:
