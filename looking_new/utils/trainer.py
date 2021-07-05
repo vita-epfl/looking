@@ -112,7 +112,17 @@ class Parser():
 		else:
 			backbone = self.model_type['backbone']
 			fine_tune = self.model_type.getboolean('fine_tune')
-			self.data_transform = transforms.Compose([
+			if 'eyes' in model_type:
+				self.data_transform = transforms.Compose([
+						SquarePad(),
+						transforms.ToTensor(),
+					transforms.ToPILImage(),
+						transforms.Resize((10,15)),
+					transforms.ToTensor(),
+					transforms.Normalize(mean=[0.485, 0.456, 0.406],
+										std=[0.229, 0.224, 0.225])])
+			else:
+				self.data_transform = transforms.Compose([
 						SquarePad(),
 						transforms.ToTensor(),
 					transforms.ToPILImage(),
