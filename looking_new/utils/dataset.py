@@ -60,7 +60,7 @@ class JAAD_Dataset(Dataset):
 				sample['input'] = self.transform(sample['input']).to(self.device)
 		# Multimodel: crop+joints_type
 		else:
-			sample_ = {'image': Image.open(os.path.join(self.path_data,self.type.split('+')[0]+'/'+self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
+			sample = {'image': Image.open(os.path.join(self.path_data,self.type.split('+')[0]+'/'+self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
 			if self.type.split('+')[0] == 'eyes':
 				if self.transform:
 					sample['image'] = torch.flatten(self.transform(sample['image'])).to(self.device)
@@ -68,8 +68,8 @@ class JAAD_Dataset(Dataset):
 					sample['image'] = torch.flatten(sample['image']).to(self.device)
 			else:
 				if self.transform:
-					sample_['image'] = self.transform(sample_['image'])
-			sample = {'input':(sample_['image'].to(self.device), sample_['keypoints'].to(self.device)), 'label':sample_['label']}
+					sample['image'] = self.transform(sample['image'])
+			sample = {'input':(sample['image'].to(self.device), sample['keypoints'].to(self.device)), 'label':sample['label']}
 		return sample['input'], torch.Tensor([float(sample['label'])])
 
 	def get_joints(self):
