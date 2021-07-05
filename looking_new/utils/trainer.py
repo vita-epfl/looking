@@ -87,7 +87,7 @@ class Parser():
 						transforms.Normalize(mean=[0.485, 0.456, 0.406],
 											std=[0.229, 0.224, 0.225])])
 			elif backbone == 'resnet18':
-				model = ResNet18_head(self.device)
+				model = ResNet18_heads(self.device)
 				self.data_transform = transforms.Compose([
 						SquarePad(),
 						transforms.ToTensor(),
@@ -98,7 +98,7 @@ class Parser():
 											std=[0.229, 0.224, 0.225])
 				])
 			else:
-				model = ResNet50_head(self.device)
+				model = ResNet50_heads(self.device)
 				self.data_transform = transforms.Compose([
 						SquarePad(),
 						transforms.ToTensor(),
