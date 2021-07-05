@@ -44,6 +44,7 @@ class Parser():
 
 		# Select model type
 		model_type = self.model_type['type']
+		fusion = self.model_type['fusion']
 		pose = self.general['pose']
 		self.grad_map = None
 		assert model_type in ['joints', 'heads', 'eyes', 'fullbodies', 'heads+joints', 'eyes+joints', 'fullbodies+joints']
@@ -158,12 +159,22 @@ class Parser():
 				INPUT_SIZE = 36
 			else:
 				INPUT_SIZE = 51
-			if 'eyes' in model_type:
-				model = LookingNet_early_fusion_eyes(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
-			elif backbone == 'resnet18':
-				model = LookingNet_early_fusion_18(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+			assert fusion in ['early', 'late']
+			if fusion == 'early':
+				if 'eyes' in model_type:
+					model = LookingNet_early_fusion_eyes(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+				elif backbone == 'resnet18':
+					model = LookingNet_early_fusion_18(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+				else:
+					model = LookingNet_early_fusion_50(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
 			else:
-				model = LookingNet_early_fusion_50(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+				if 'eyes' in model_type:
+					model = LookingNet_late_fusion_eyes(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+				elif backbone == 'resnet18':
+					model = LookingNet_late_fusion_18(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+				else:
+					model = LookingNet_late_fusion_50(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+
 
 		# Set parameters for training
 		self.model_type_ = model_type

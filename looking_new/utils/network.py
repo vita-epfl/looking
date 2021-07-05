@@ -158,13 +158,14 @@ class ResNet50_heads(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+
 class LookingNet_early_fusion_eyes(nn.Module):
     def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
-        super(LookingNet_early_fusion_18, self).__init__()
-        self.backbone = LookingModel(450)
+        super(LookingNet_early_fusion_eyes, self).__init__()
+        self.eyes = LookingModel(450)
         if fine_tune:
-            self.backbone.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
-            for m in self.backbone.net.parameters():
+            self.eyes.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
+            for m in self.eyes.parameters():
                 m.requires_grad = False
         self.backbone.eval()
 
@@ -176,41 +177,71 @@ class LookingNet_early_fusion_eyes(nn.Module):
             self.looking_model.eval()
 
 
-
-        self.encoder_head = nn.Sequential(
-            nn.Linear(512, 64, bias=False),
-            nn.BatchNorm1d(64),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-            nn.Linear(64, 16),
-            nn.BatchNorm1d(16),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True)
-        )
         self.final = nn.Sequential(
-            nn.Linear(272, 1, bias=False),
+            nn.Linear(512, 1, bias=False),
             nn.Sigmoid()
         )
 
 
     def forward(self, x):
-        head, keypoint = x
+        eyes, keypoint = x
         activation = {}
         def get_activation(name):
             def hook(model, input, output):
                 activation[name] = output.detach().squeeze()
             return hook
-        def get_activation2(name):
+
+        # End of third linear stage
+        self.eyes.dropout.register_forward_hook(get_activation('eyes'))
+        self.looking_model.dropout.register_forward_hook(get_activation('look'))
+
+        output_eyes = self.eyes(eyes)
+        out_kps = self.looking_model(keypoint)
+
+        layer_look = activation["look"]
+        layer_eyes = activation["eyes"]
+
+        out_final = torch.cat(layer_eyes, layer_look, 1).type(torch.float)
+
+        return self.final(out_final)
+
+class LookingNet_late_fusion_eyes(nn.Module):
+    def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
+        super(LookingNet_late_fusion_eyes, self).__init__()
+        self.eyes = LookingModel(450)
+        if fine_tune:
+            self.eyes.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
+            for m in self.eyes.parameters():
+                m.requires_grad = False
+        self.backbone.eval()
+
+        self.looking_model = LookingModel(input_size)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+        self.final = nn.Sequential(
+            nn.Linear(512, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def forward(self, x):
+        eyes, keypoint = x
+        activation = {}
+        def get_activation(name):
             def hook(model, input, output):
-                activation[name] = output.detach()
+                activation[name] = output.detach().squeeze()
             return hook
 
         # End of third linear stage
-        self.backbone.net.avgpool.linear_stages[2].bn2.register_forward_hook(get_activation('eyes'))
-        self.looking_model.dropout.register_forward_hook(get_activation('look'))
+        self.eyes.linear_stages[2].bn2.register_forward_hook(get_activation('eyes'))
+        self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
 
-        #x = torch.randn(1, 25)
-        output_head = self.backbone(head)
+        output_eyes = self.eyes(eyes)
         out_kps = self.looking_model(keypoint)
 
         layer_look = activation["look"]
@@ -324,10 +355,6 @@ class LookingNet_early_fusion_18(nn.Module):
             def hook(model, input, output):
                 activation[name] = output.detach().squeeze()
             return hook
-        def get_activation2(name):
-            def hook(model, input, output):
-                activation[name] = output.detach()
-            return hook
 
         self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
         self.looking_model.dropout.register_forward_hook(get_activation('look'))
@@ -386,10 +413,6 @@ class LookingNet_late_fusion_50(nn.Module):
             def hook(model, input, output):
                 activation[name] = output.detach().squeeze()
             return hook
-        def get_activation2(name):
-            def hook(model, input, output):
-                activation[name] = output.detach()
-            return hook
 
         self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
         self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
@@ -446,10 +469,6 @@ class LookingNet_early_fusion_50(nn.Module):
         def get_activation(name):
             def hook(model, input, output):
                 activation[name] = output.detach().squeeze()
-            return hook
-        def get_activation2(name):
-            def hook(model, input, output):
-                activation[name] = output.detach()
             return hook
 
         self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
