@@ -216,7 +216,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
         layer_look = activation["look"]
         layer_eyes = activation["eyes"]
 
-        out_final = torch.cat(layer_eyes, layer_look), 1).type(torch.float)
+        out_final = torch.cat(layer_eyes, layer_look, 1).type(torch.float)
 
         return self.final(out_final)
 
