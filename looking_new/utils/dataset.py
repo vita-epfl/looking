@@ -657,7 +657,6 @@ class Kitti_dataset(Dataset):
 						tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
 					else:
 						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 					kps.append(tensor)
 					Y.append(int(line_s[-1]))
 					self.heights.append(int(float(line_s[-2])))
