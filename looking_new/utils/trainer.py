@@ -111,40 +111,33 @@ class Parser():
 		else:
 			backbone = self.model_type['backbone']
 			fine_tune = self.model_type.getboolean('fine_tune')
-			if 'eyes' in model_type:
-				self.data_transform = transforms.Compose([
+			self.data_transform = transforms.Compose([
 						SquarePad(),
 						transforms.ToTensor(),
 					transforms.ToPILImage(),
-						transforms.Resize((10,15)),
+						transforms.Resize((224,224)),
 					transforms.ToTensor(),
-					transforms.Normalize(mean=[0.485, 0.456, 0.406],
-										std=[0.229, 0.224, 0.225])])
-				#model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
-			else:
-				self.data_transform = transforms.Compose([
-							SquarePad(),
-							transforms.ToTensor(),
-						transforms.ToPILImage(),
-							transforms.Resize((224,224)),
-						transforms.ToTensor(),
-							transforms.Normalize(mean=[0.485, 0.456, 0.406],
-												std=[0.229, 0.224, 0.225])
-				])
+						transforms.Normalize(mean=[0.485, 0.456, 0.406],
+											std=[0.229, 0.224, 0.225])
+			])
 			assert backbone in ['resnet18', 'resnet50']
 			if self.model_type['trained_on'] == 'JAAD':
 				name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], self.data_args['split']])+'.pkl'
-				if backbone == 'resnet18':
+				if 'eyes' in model_type:
+					name_model_backbone = '_'.join(['LookingModel', criterion.__class__.__name__, self.data_args['split']])+'.pkl'
+				elif backbone == 'resnet18':
 					name_model_backbone = '_'.join(['ResNet18_' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
 				else:
 					name_model_backbone = '_'.join(['ResNet50_' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
 			else:
 				name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.pkl'
-				if backbone == 'resnet18':
+				if 'eyes' in model_type:
+					name_model_backbone = '_'.join(['LookingModel', criterion.__class__.__name__])+'.pkl'
+				elif backbone == 'resnet18':
 					name_model_backbone = '_'.join(['ResNet18_' + model_type, criterion.__class__.__name__, ''])+'.pkl'
 				else:
 					name_model_backbone = '_'.join(['ResNet50_' + model_type, criterion.__class__.__name__, ''])+'.pkl'
-			path_output_model_backbone = os.path.join(self.general['path'], self.model_type['trained_on'], 'Heads')
+			path_output_model_backbone = os.path.join(self.general['path'], self.model_type['trained_on'], model_type.split('+')[0].title())
 			path_backbone = os.path.join(path_output_model_backbone, name_model_backbone)
 
 			path_output_model_joints = os.path.join(self.general['path'], self.model_type['trained_on'], 'Joints')
@@ -153,7 +146,7 @@ class Parser():
 			print(path_model_joints)
 			if fine_tune:
 				if not os.path.isfile(path_backbone):
-					print('ERROR: Heads model not trained, please train your heads model first')
+					print(f'ERROR: {model_type.split('+')[0].title()} model not trained, please train your heads model first')
 					exit(0)
 				if not os.path.isfile(path_model_joints):
 					print('ERROR: Joints model not trained, please train your joints model first')
@@ -165,8 +158,9 @@ class Parser():
 				INPUT_SIZE = 36
 			else:
 				INPUT_SIZE = 51
-
-			if backbone == 'resnet18':
+			if 'eyes' in model_type:
+				model = LookingNet_early_fusion_eyes(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
+			elif backbone == 'resnet18':
 				model = LookingNet_early_fusion_18(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
 			else:
 				model = LookingNet_early_fusion_50(path_backbone, path_model_joints, INPUT_SIZE, self.device, fine_tune)
@@ -359,7 +353,7 @@ class Evaluator():
 			ap = average_precision(output_all, labels_all)
 			acc = binary_acc(output_all.type(torch.float).view(-1), labels_all).item()
 		else:"""
-		if self.height_==False:
+		if not self.height_:
 			ap, acc = data_test.evaluate(self.parser.model, self.device, 10)
 			print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
 		else:
