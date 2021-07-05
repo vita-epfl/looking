@@ -167,7 +167,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
             self.eyes.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
             for m in self.eyes.parameters():
                 m.requires_grad = False
-        self.backbone.eval()
+        self.eyes.eval()
 
         self.looking_model = LookingModel(input_size)
         if fine_tune:
@@ -213,7 +213,7 @@ class LookingNet_late_fusion_eyes(nn.Module):
             self.eyes.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
             for m in self.eyes.parameters():
                 m.requires_grad = False
-        self.backbone.eval()
+        self.eyes.eval()
 
         self.looking_model = LookingModel(input_size)
         if fine_tune:
