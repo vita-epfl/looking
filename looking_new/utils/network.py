@@ -109,7 +109,7 @@ class Linear(nn.Module):
 
         return out
 
-class AlexNet_head(nn.Module):
+class AlexNet_heads(nn.Module):
     def __init__(self, device, fine_tune=False):
         super(AlexNet_head, self).__init__()
         net = models.alexnet(pretrained=True).to(device)
@@ -133,7 +133,7 @@ class AlexNet_head(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-class ResNet18_head(nn.Module):
+class ResNet18_heads(nn.Module):
     def __init__(self, device):
         super(ResNet18_head, self).__init__()
         self.net = models.resnet18(pretrained=True)
@@ -145,7 +145,7 @@ class ResNet18_head(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-class ResNet50_head(nn.Module):
+class ResNet50_heads(nn.Module):
     def __init__(self, device):
         super(ResNet50_head, self).__init__()
         net = models.resnext50_32x4d(pretrained=True)
@@ -158,9 +158,72 @@ class ResNet50_head(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-class LookingNet_early_fusion_18(nn.Module):
+class LookingNet_early_fusion_eyes(nn.Module):
     def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
         super(LookingNet_early_fusion_18, self).__init__()
+        self.backbone = LookingModel(450)
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
+            for m in self.backbone.net.parameters():
+                m.requires_grad = False
+        self.backbone.eval()
+
+        self.looking_model = LookingModel(input_size)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+
+        self.encoder_head = nn.Sequential(
+            nn.Linear(512, 64, bias=False),
+            nn.BatchNorm1d(64),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, 16),
+            nn.BatchNorm1d(16),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+        self.final = nn.Sequential(
+            nn.Linear(272, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        def get_activation2(name):
+            def hook(model, input, output):
+                activation[name] = output.detach()
+            return hook
+
+        # End of third linear stage
+        self.backbone.net.avgpool.linear_stages[2].bn2.register_forward_hook(get_activation('eyes'))
+        self.looking_model.dropout.register_forward_hook(get_activation('look'))
+
+        #x = torch.randn(1, 25)
+        output_head = self.backbone(head)
+        out_kps = self.looking_model(keypoint)
+
+        layer_look = activation["look"]
+        layer_eyes = activation["eyes"]
+
+        out_final = torch.cat(layer_eyes, layer_look), 1).type(torch.float)
+
+        return self.final(out_final)
+
+
+class LookingNet_late_fusion_18(nn.Module):
+    def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
+        super(LookingNet_late_fusion_18, self).__init__()
         self.backbone = ResNet18_head(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
@@ -219,9 +282,71 @@ class LookingNet_early_fusion_18(nn.Module):
 
         return self.final(out_final)
 
-class LookingNet_early_fusion_50_reduced(nn.Module):
-    def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_50_reduced, self).__init__()
+class LookingNet_early_fusion_18(nn.Module):
+    def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
+        super(LookingNet_early_fusion_18, self).__init__()
+        self.backbone = ResNet18_head(device)
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH))
+            for m in self.backbone.net.parameters():
+                m.requires_grad = False
+        self.backbone.eval()
+
+        self.looking_model = LookingModel(input_size)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+
+        self.encoder_head = nn.Sequential(
+            nn.Linear(512, 64, bias=False),
+            nn.BatchNorm1d(64),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, 16),
+            nn.BatchNorm1d(16),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+        self.final = nn.Sequential(
+            nn.Linear(272, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        def get_activation2(name):
+            def hook(model, input, output):
+                activation[name] = output.detach()
+            return hook
+
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        self.looking_model.dropout.register_forward_hook(get_activation('look'))
+
+        #x = torch.randn(1, 25)
+        output_head = self.backbone(head)
+        out_kps = self.looking_model(keypoint)
+
+        layer_look = activation["look"]
+        layer_resnet = activation["avgpool"]
+
+        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
+
+        return self.final(out_final)
+
+
+class LookingNet_late_fusion_50(nn.Module):
+    def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
+        super(LookingNet_late_fusion_50, self).__init__()
         self.backbone = ResNet50_head(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
@@ -229,7 +354,7 @@ class LookingNet_early_fusion_50_reduced(nn.Module):
                 m.requires_grad = False
             self.backbone = self.backbone.eval()
 
-        self.looking_model = LookingModel(51)
+        self.looking_model = LookingModel(input_size)
         if fine_tune:
             self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
             for m in self.looking_model.parameters():
@@ -239,17 +364,17 @@ class LookingNet_early_fusion_50_reduced(nn.Module):
 
 
         self.encoder_head = nn.Sequential(
-            nn.Linear(2048, 16, bias=False),
+            nn.Linear(2048, 64, bias=False),
+            nn.BatchNorm1d(64),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+            nn.Linear(64, 16),
             nn.BatchNorm1d(16),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True)
         )
         self.final = nn.Sequential(
-            nn.Linear(272, 64, bias=False),
-            nn.BatchNorm1d(64),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-            nn.Linear(64, 1),
+            nn.Linear(272, 1),
             nn.Sigmoid()
         )
 
@@ -328,7 +453,7 @@ class LookingNet_early_fusion_50(nn.Module):
             return hook
 
         self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
-        self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
+        self.looking_model.dropout.register_forward_hook(get_activation('look'))
 
         #x = torch.randn(1, 25)
         output_head = self.backbone(head)
