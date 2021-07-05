@@ -61,8 +61,14 @@ class JAAD_Dataset(Dataset):
 		# Multimodel: crop+joints_type
 		else:
 			sample_ = {'image': Image.open(os.path.join(self.path_data,self.type.split('+')[0]+'/'+self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
-			if self.transform:
-				sample_['image'] = self.transform(sample_['image'])
+			if self.type.split('+')[0] == 'eyes':
+				if self.transform:
+					sample['image'] = torch.flatten(self.transform(sample['image'])).to(self.device)
+				else:
+					sample['image'] = torch.flatten(sample['image']).to(self.device)
+			else:
+				if self.transform:
+					sample_['image'] = self.transform(sample_['image'])
 			sample = {'input':(sample_['image'].to(self.device), sample_['keypoints'].to(self.device)), 'label':sample_['label']}
 		return sample['input'], torch.Tensor([float(sample['label'])])
 
@@ -547,8 +553,14 @@ class Eval_Dataset_multimodel(Dataset):
 			idx = idx.tolist()
 		label = self.data_y[idx]
 		sample = {'keypoints': self.kps[idx], 'image':Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/' + self.data_x[idx])),'label':label}
-		if self.transform:
-			sample['image'] = self.transform(sample['image'])
+		if self.type.split('+')[0] == 'eyes':
+			if self.transform:
+				sample['image'] = torch.flatten(self.transform(sample['image']))
+			else:
+				sample['image'] = torch.flatten(sample['image'])
+		else:
+			if self.transform:
+				sample['image'] = self.transform(sample['image'])
 		return sample['image'], torch.tensor(sample['keypoints']), sample['label']
 
 class Kitti_dataset(Dataset):
@@ -660,9 +672,10 @@ class Kitti_dataset(Dataset):
 		elif self.type == 'eyes':
 			sample = {'image': Image.open(os.path.join(self.path_data, self.type + '/'+self.X[idx])), 'label':label}
 			if self.transform:
-				sample['image'] = torch.flatten(self.transform(sample['input'])).to(self.device)
+				sample['image'] = torch.flatten(self.transform(sample['input']))
 			else:
-				sample['image'] = torch.flatten(sample['input']).to(self.device)
+				sample['image'] = torch.flatten(sample['input'])
+			return sample['image'].to(self.device), torch.Tensor([float(sample['label'])])
 		elif '+' not in self.type:
 			inp = Image.open(os.path.join(self.path_data, self.type + '/' + self.X[idx]))
 			sample = {'image': inp, 'label': label}
@@ -672,8 +685,14 @@ class Kitti_dataset(Dataset):
 		else:
 			inp = Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/' + self.X[idx]))
 			sample = {'image': inp, 'keypoints':self.kps[idx], 'label': label}
-			if self.transform:
-				sample['image'] = self.transform(sample['image'])
+			if self.type.split('+')[0] == 'eyes':
+				if self.transform:
+					sample['image'] = torch.flatten(self.transform(sample['image']))
+				else:
+					sample['image'] = torch.flatten(sample['image'])
+			else:
+				if self.transform:
+					sample['image'] = self.transform(sample['image'])
 			return (sample['image'].to(self.device), sample['keypoints'].to(self.device)), torch.Tensor([float(sample['label'])])
 
 	def eval_ablation(self, heights, preds, ground_truths):
