@@ -111,7 +111,7 @@ class Linear(nn.Module):
 
 class AlexNet_heads(nn.Module):
     def __init__(self, device, fine_tune=False):
-        super(AlexNet_head, self).__init__()
+        super(AlexNet_heads, self).__init__()
         net = models.alexnet(pretrained=True).to(device)
         net.classifier  = nn.Sequential(
                     nn.Dropout(),
@@ -135,7 +135,7 @@ class AlexNet_heads(nn.Module):
 
 class ResNet18_heads(nn.Module):
     def __init__(self, device):
-        super(ResNet18_head, self).__init__()
+        super(ResNet18_heads, self).__init__()
         self.net = models.resnet18(pretrained=True)
         self.net.fc  = nn.Sequential(
             nn.Linear(in_features=512, out_features=1, bias=True),
@@ -147,7 +147,7 @@ class ResNet18_heads(nn.Module):
 
 class ResNet50_heads(nn.Module):
     def __init__(self, device):
-        super(ResNet50_head, self).__init__()
+        super(ResNet50_heads, self).__init__()
         net = models.resnext50_32x4d(pretrained=True)
         net.fc  = nn.Sequential(
             nn.Linear(in_features=2048, out_features=1, bias=True),
@@ -224,7 +224,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
 class LookingNet_late_fusion_18(nn.Module):
     def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
         super(LookingNet_late_fusion_18, self).__init__()
-        self.backbone = ResNet18_head(device)
+        self.backbone = ResNet18_heads(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
             for m in self.backbone.net.parameters():
@@ -285,7 +285,7 @@ class LookingNet_late_fusion_18(nn.Module):
 class LookingNet_early_fusion_18(nn.Module):
     def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
         super(LookingNet_early_fusion_18, self).__init__()
-        self.backbone = ResNet18_head(device)
+        self.backbone = ResNet18_heads(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
             for m in self.backbone.net.parameters():
@@ -347,7 +347,7 @@ class LookingNet_early_fusion_18(nn.Module):
 class LookingNet_late_fusion_50(nn.Module):
     def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
         super(LookingNet_late_fusion_50, self).__init__()
-        self.backbone = ResNet50_head(device)
+        self.backbone = ResNet50_heads(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
             for m in self.backbone.parameters():
@@ -408,7 +408,7 @@ class LookingNet_late_fusion_50(nn.Module):
 class LookingNet_early_fusion_50(nn.Module):
     def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
         super(LookingNet_early_fusion_50, self).__init__()
-        self.backbone = ResNet50_head(device)
+        self.backbone = ResNet50_heads(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
             for m in self.backbone.parameters():
