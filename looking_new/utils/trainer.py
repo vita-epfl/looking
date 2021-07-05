@@ -126,17 +126,17 @@ class Parser():
 				if 'eyes' in model_type:
 					name_model_backbone = '_'.join(['LookingModel', criterion.__class__.__name__, self.data_args['split']])+'.pkl'
 				elif backbone == 'resnet18':
-					name_model_backbone = '_'.join(['ResNet18_' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
+					name_model_backbone = '_'.join(['ResNet18_heads' , criterion.__class__.__name__, self.data_args['split']])+'.pkl'
 				else:
-					name_model_backbone = '_'.join(['ResNet50_' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
+					name_model_backbone = '_'.join(['ResNet50_heads' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
 			else:
 				name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.pkl'
 				if 'eyes' in model_type:
 					name_model_backbone = '_'.join(['LookingModel', criterion.__class__.__name__])+'.pkl'
 				elif backbone == 'resnet18':
-					name_model_backbone = '_'.join(['ResNet18_' + model_type, criterion.__class__.__name__, ''])+'.pkl'
+					name_model_backbone = '_'.join(['ResNet18_heads', criterion.__class__.__name__, ''])+'.pkl'
 				else:
-					name_model_backbone = '_'.join(['ResNet50_' + model_type, criterion.__class__.__name__, ''])+'.pkl'
+					name_model_backbone = '_'.join(['ResNet50_heads', criterion.__class__.__name__, ''])+'.pkl'
 			path_output_model_backbone = os.path.join(self.general['path'], self.model_type['trained_on'], model_type.split('+')[0].title())
 			path_backbone = os.path.join(path_output_model_backbone, name_model_backbone)
 
