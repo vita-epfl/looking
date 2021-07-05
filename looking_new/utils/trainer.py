@@ -128,7 +128,7 @@ class Parser():
 				elif backbone == 'resnet18':
 					name_model_backbone = '_'.join(['ResNet18_heads' , criterion.__class__.__name__, self.data_args['split']])+'.pkl'
 				else:
-					name_model_backbone = '_'.join(['ResNet50_heads' + model_type.split('+')[0], criterion.__class__.__name__, self.data_args['split']])+'.pkl'
+					name_model_backbone = '_'.join(['ResNet50_heads', criterion.__class__.__name__, self.data_args['split']])+'.pkl'
 			else:
 				name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.pkl'
 				if 'eyes' in model_type:
