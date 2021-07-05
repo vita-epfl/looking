@@ -647,9 +647,16 @@ class Kitti_dataset(Dataset):
 				if line_s[2] == self.split:
 					X.append(line_s[1])
 					joints = joints = np.array(json.load(open(os.path.join(self.path_data,line_s[1]+'.json')))["X"])
-					Xs = joints[:17]
-					Ys = joints[17:34]
-					X_new, Y_new = normalize(Xs, Ys, True)
+					X_new = joints[:17]
+					Y_new = joints[17:34]
+					if self.pose == "head":
+						X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+						tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+					elif self.pose == 'body':
+						X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+						tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+					else:
+						tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 					tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
 					kps.append(tensor)
 					Y.append(int(line_s[-1]))
