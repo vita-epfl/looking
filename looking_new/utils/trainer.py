@@ -146,7 +146,7 @@ class Parser():
 			print(path_model_joints)
 			if fine_tune:
 				if not os.path.isfile(path_backbone):
-					print(f'ERROR: {model_type.split('+')[0].title()} model not trained, please train your heads model first')
+					print('ERROR: {} model not trained, please train your heads model first'.format(model_type.split('+')[0].title()))
 					exit(0)
 				if not os.path.isfile(path_model_joints):
 					print('ERROR: Joints model not trained, please train your joints model first')
