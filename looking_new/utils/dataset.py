@@ -742,47 +742,13 @@ class Kitti_dataset(Dataset):
 
 		return ap_1, ap_2, ap_3, ap_4, distances
 		#return acc_1, acc_2, acc_3, acc_4, distances
+
+
 	def evaluate(self, model, device, it=1, heights_=False):
 		assert self.split in ["test", "val"]
 		model = model.eval()
 		model = model.to(device)
 		if self.type == 'joints':
-			"""
-			tab_X, tab_Y = self.X.cpu().detach().numpy(), self.Y
-			idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
-			idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
-			positive_samples = np.array(tab_X)[idx_Y1]
-			positive_samples_labels = np.array(tab_Y)[idx_Y1]
-			N_pos = len(idx_Y1)
-			aps = []
-			accs = []
-			for i in range(it):
-				np.random.seed(i)
-				np.random.shuffle(idx_Y0)
-				neg_samples = np.array(tab_X)[idx_Y0[:N_pos]]
-				neg_samples_labels = np.array(tab_Y)[idx_Y0[:N_pos]]
-
-				total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
-				total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
-				new_data = Eval_Dataset_joints(total_samples, total_labels)
-				data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=True)
-				acc = 0
-				out_lab = torch.Tensor([]).type(torch.float)
-				test_lab = torch.Tensor([])
-				for x_test, y_test in data_loader:
-					x_test, y_test = x_test.to(device), y_test.to(device)
-					output = model(x_test)
-					out_pred = output
-					pred_label = torch.round(out_pred)
-					le = x_test.shape[0]
-					acc += le*binary_acc(pred_label.type(torch.float), y_test.type(torch.float).view(-1,1)).item()
-					test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
-					out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
-				acc /= len(new_data)
-				ap = average_precision(out_lab, test_lab)
-				accs.append(acc)
-				aps.append(ap)
-			return np.mean(aps), np.mean(accs)"""
 			tab_X, tab_Y = self.X.cpu().detach().numpy(), self.Y
 			idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
 			idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
@@ -964,7 +930,7 @@ class Kitti_dataset(Dataset):
 				#acc = sum(torch.round(out_lab).to(device) == test_lab.to(device))/len(new_data)
 				ap = average_precision(out_lab, test_lab)
 				#print(ap)
-				accs.append(acc*100)
+				accs.append(acc)
 				aps.append(ap)
 				if heights_:
 					ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
