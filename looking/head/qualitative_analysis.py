@@ -34,12 +34,12 @@ SPLIT_PATH = args.split_path
 JAAD_PATH = args.jaad_split_path
 PATH_MODEL = args.path
 
-"""
+
 My local paths
 DATA_PATH = '../../data/'
 SPLIT_PATH_JAAD = '../splits/'
 PATH_MODEL = './models/'
-"""
+
 
 assert model_type in ['resnet18', 'resnet50', 'alexnet']
 
@@ -106,7 +106,7 @@ model.eval()
 jaad_test = JAAD_Dataset_head_test(DATA_PATH, JAAD_PATH, "test", SPLIT_PATH, split, data_transform)
 ap, acc, f_pos, f_neg = jaad_test.get_mislabeled_test(model, device)
 
-with open("false_pos_head_new_crops.txt", "w") as output:
+"""with open("false_pos_head_new_crops.txt", "w") as output:
     for row in f_pos:
         output.write(str(row)+'\n')
 with open("false_neg_head_new_crops.txt", "w") as output:
@@ -115,3 +115,4 @@ with open("false_neg_head_new_crops.txt", "w") as output:
 
 print("AP JAAD : {} | Acc JAAD : {}".format(ap, acc))
 print(f"False positives: {len(f_pos)}, False negatives: {len(f_neg)}")
+"""

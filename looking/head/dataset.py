@@ -288,9 +288,11 @@ class JAAD_Dataset_head_test(Dataset):
 		total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
 		total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
 		total_filenames = np.concatenate((pos_files, neg_files)).tolist()
+		with open("filenames_qualititative_study.txt", "w") as text_file:
+			text_file.write(total_filenames)
 		total_bboxes = np.concatenate((pos_bbox, neg_bbox)).tolist()
 
-		new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, total_bboxes, self.transform)
+		"""new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, total_bboxes, self.transform)
 		data_loader = torch.utils.data.DataLoader(new_data, batch_size=1, shuffle=True)
 
 		acc = 0
@@ -325,7 +327,8 @@ class JAAD_Dataset_head_test(Dataset):
 			elif test_lab[i] == 0 and pred == 1:
 				# False postitve
 				false_pos.append([filenames[i], bbox_l[i], pred])
-		return np.mean(aps), np.mean(accs), false_pos, false_neg
+		return np.mean(aps), np.mean(accs), false_pos, false_neg"""
+		return None, None, None, None
 
 
 
