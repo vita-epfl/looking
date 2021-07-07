@@ -271,7 +271,7 @@ class LookingNet_late_fusion_18(nn.Module):
 
 
 
-        """self.encoder_head = nn.Sequential(
+        self.encoder_head = nn.Sequential(
             nn.Linear(512, 64, bias=False),
             nn.BatchNorm1d(64),
             nn.Dropout(0.4),
@@ -283,16 +283,6 @@ class LookingNet_late_fusion_18(nn.Module):
         )
         self.final = nn.Sequential(
             nn.Linear(272, 1, bias=False),
-            nn.Sigmoid()
-        )"""
-        self.encoder_head = nn.Sequential(
-            nn.Linear(512, 256, bias=False),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-        )
-        self.final = nn.Sequential(
-            nn.Linear(512, 1, bias=False),
             nn.Sigmoid()
         )
 
@@ -342,7 +332,7 @@ class LookingNet_early_fusion_18(nn.Module):
 
 
 
-        """self.encoder_head = nn.Sequential(
+        self.encoder_head = nn.Sequential(
             nn.Linear(512, 64, bias=False),
             nn.BatchNorm1d(64),
             nn.Dropout(0.4),
@@ -354,16 +344,6 @@ class LookingNet_early_fusion_18(nn.Module):
         )
         self.final = nn.Sequential(
             nn.Linear(272, 1, bias=False),
-            nn.Sigmoid()
-        )"""
-        self.encoder_head = nn.Sequential(
-            nn.Linear(512, 256, bias=False),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-        )
-        self.final = nn.Sequential(
-            nn.Linear(512, 1, bias=False),
             nn.Sigmoid()
         )
 
@@ -410,7 +390,7 @@ class LookingNet_late_fusion_50(nn.Module):
 
 
 
-        """self.encoder_head = nn.Sequential(
+        self.encoder_head = nn.Sequential(
             nn.Linear(2048, 64, bias=False),
             nn.BatchNorm1d(64),
             nn.Dropout(0.4),
@@ -422,16 +402,6 @@ class LookingNet_late_fusion_50(nn.Module):
         )
         self.final = nn.Sequential(
             nn.Linear(272, 1),
-            nn.Sigmoid()
-        )"""
-        self.encoder_head = nn.Sequential(
-            nn.Linear(2048, 256, bias=False),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-        )
-        self.final = nn.Sequential(
-            nn.Linear(512, 1, bias=False),
             nn.Sigmoid()
         )
 
@@ -477,7 +447,7 @@ class LookingNet_early_fusion_50(nn.Module):
 
 
 
-        """self.encoder_head = nn.Sequential(
+        self.encoder_head = nn.Sequential(
             nn.Linear(2048, 64, bias=False),
             nn.BatchNorm1d(64),
             nn.Dropout(0.4),
@@ -489,16 +459,6 @@ class LookingNet_early_fusion_50(nn.Module):
         )
         self.final = nn.Sequential(
             nn.Linear(272, 1),
-            nn.Sigmoid()
-        )"""
-        self.encoder_head = nn.Sequential(
-            nn.Linear(2048, 256, bias=False),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-        )
-        self.final = nn.Sequential(
-            nn.Linear(512, 1, bias=False),
             nn.Sigmoid()
         )
 
