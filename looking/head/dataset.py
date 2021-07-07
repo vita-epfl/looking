@@ -188,9 +188,9 @@ class JAAD_Dataset_head_test(Dataset):
 		assert self.type in ['original', 'video']
 
 		if self.type == "video":
-			self.txt = open(self.split_path + 'jaad_' + self.split + '_scenes_2k30_new_head.txt', "r")
+			self.txt = open(self.split_path + 'jaad_' + self.split + '_scenes_2k30.txt', "r")
 		elif self.type == "original":
-			self.txt = open(self.split_path + 'jaad_'+self.split + '_original_2k30_new_head.txt', "r")
+			self.txt = open(self.split_path + 'jaad_'+self.split + '_original_2k30.txt', "r")
 		else:
 			print("please select a valid type of split ")
 			exit(0)
