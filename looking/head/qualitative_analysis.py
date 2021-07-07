@@ -35,10 +35,10 @@ JAAD_PATH = args.jaad_split_path
 PATH_MODEL = args.path
 
 
-My local paths
+"""My local paths
 DATA_PATH = '../../data/'
 SPLIT_PATH_JAAD = '../splits/'
-PATH_MODEL = './models/'
+PATH_MODEL = './models/'"""
 
 
 assert model_type in ['resnet18', 'resnet50', 'alexnet']

@@ -289,7 +289,7 @@ class JAAD_Dataset_head_test(Dataset):
 		total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
 		total_filenames = np.concatenate((pos_files, neg_files)).tolist()
 		with open("filenames_qualititative_study.txt", "w") as text_file:
-			text_file.write(total_filenames)
+			text_file.write('\n'.join(total_filenames))
 		total_bboxes = np.concatenate((pos_bbox, neg_bbox)).tolist()
 
 		"""new_data = new_Dataset_qualitative(self.path, self.path_jaad, total_samples, total_labels, total_filenames, total_bboxes, self.transform)
