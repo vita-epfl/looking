@@ -553,14 +553,10 @@ class Eval_Dataset_multimodel(Dataset):
 			idx = idx.tolist()
 		label = self.data_y[idx]
 		sample = {'keypoints': self.kps[idx], 'image':Image.open(os.path.join(self.path_data, self.type.split('+')[0] + '/' + self.data_x[idx])),'label':label}
+		if self.transform:
+			sample['image'] = self.transform(sample['image'])
 		if self.type.split('+')[0] == 'eyes':
-			if self.transform:
-				sample['image'] = torch.flatten(self.transform(sample['image']))
-			else:
-				sample['image'] = torch.flatten(sample['image'])
-		else:
-			if self.transform:
-				sample['image'] = self.transform(sample['image'])
+			sample['image'] = torch.flatten(sample['image'])
 		return sample['image'], torch.tensor(sample['keypoints']), sample['label']
 
 class Kitti_dataset(Dataset):
