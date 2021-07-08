@@ -190,7 +190,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
 
 
         self.final = nn.Sequential(
-            nn.Linear(512, 1, bias=False),
+            nn.Linear(256, 1, bias=False),
             nn.Sigmoid()
         )
 
