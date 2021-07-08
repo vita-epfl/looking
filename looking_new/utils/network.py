@@ -220,7 +220,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
         for i in range(3):
             y = self.linear_stages[i](y)
 
-        return self.final(out_final)
+        return self.final(y)
 
 class LookingNet_late_fusion_eyes(nn.Module):
     def __init__(self, PATH, PATH_look, input_size, device, fine_tune=True):
@@ -393,7 +393,7 @@ class LookingNet_early_fusion_18(nn.Module):
         for i in range(3):
             y = self.linear_stages[i](y)
 
-        return self.final(out_final)
+        return self.final(y)
 
 
 class LookingNet_late_fusion_50(nn.Module):
@@ -521,4 +521,4 @@ class LookingNet_early_fusion_50(nn.Module):
         for i in range(3):
             y = self.linear_stages[i](y)
 
-        return self.final(out_final)
+        return self.final(y)
