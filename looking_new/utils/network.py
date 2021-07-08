@@ -212,8 +212,8 @@ class LookingNet_early_fusion_eyes(nn.Module):
         # 256
         out_kps = self.looking_model(keypoint)
 
-        layer_look = activation["eyes"]
-        layer_resnet = activation["avgpool"]
+        layer_look = activation["look"]
+        layer_resnet = activation["eyes"]
 
         merged = torch.cat((layer_resnet, layer_look), 1).type(torch.float)
         y = self.merge(merged)
