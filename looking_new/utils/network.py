@@ -204,7 +204,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
             return hook
 
         # End of third linear stage
-        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        self.eyes.dropout.register_forward_hook(get_activation('eyes'))
         self.looking_model.dropout.register_forward_hook(get_activation('look'))
 
         # 256
@@ -212,7 +212,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
         # 256
         out_kps = self.looking_model(keypoint)
 
-        layer_look = activation["look"]
+        layer_look = activation["eyes"]
         layer_resnet = activation["avgpool"]
 
         merged = torch.cat((layer_resnet, layer_look), 1).type(torch.float)
