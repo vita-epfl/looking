@@ -215,7 +215,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
         layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
 
-        merged = torch.cat(layer_resnet, layer_look, 1).type(torch.float)
+        merged = torch.cat((layer_resnet, layer_look), 1).type(torch.float)
         y = self.merge(merged)
         for i in range(3):
             y = self.linear_stages[i](y)
@@ -388,7 +388,7 @@ class LookingNet_early_fusion_18(nn.Module):
         layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
 
-        merged = torch.cat(self.encoder_head(layer_resnet), layer_look, 1).type(torch.float)
+        merged = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
         y = self.merge(merged)
         for i in range(3):
             y = self.linear_stages[i](y)
@@ -516,7 +516,7 @@ class LookingNet_early_fusion_50(nn.Module):
         layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
 
-        merged = torch.cat(self.encoder_head(layer_resnet), layer_look, 1).type(torch.float)
+        merged = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
         y = self.merge(merged)
         for i in range(3):
             y = self.linear_stages[i](y)
