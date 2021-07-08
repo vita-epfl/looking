@@ -208,7 +208,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
         self.looking_model.dropout.register_forward_hook(get_activation('look'))
 
         # 256
-        output_head = self.eyes(head)
+        output_head = self.eyes(eyes)
         # 256
         out_kps = self.looking_model(keypoint)
 
