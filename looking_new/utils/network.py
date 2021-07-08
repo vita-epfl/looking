@@ -359,7 +359,7 @@ class LookingNet_early_fusion_18(nn.Module):
         )
 
         self.encoder_head = nn.Sequential(
-            nn.Linear(512, 64, bias=False),
+            nn.Linear(512, 256, bias=False),
             nn.BatchNorm1d(256),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True),
@@ -477,7 +477,7 @@ class LookingNet_early_fusion_50(nn.Module):
 
 
         self.encoder_head = nn.Sequential(
-            nn.Linear(2048, 64, bias=False),
+            nn.Linear(2048, 256, bias=False),
             nn.BatchNorm1d(256),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True),
