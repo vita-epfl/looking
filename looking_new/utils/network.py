@@ -177,7 +177,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
             self.looking_model.eval()
 
         self.linear_stages = []
-        for _ in range(num_stage):
+        for _ in range(3):
             self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
         self.linear_stages = nn.ModuleList(self.linear_stages)
 
@@ -347,7 +347,7 @@ class LookingNet_early_fusion_18(nn.Module):
             self.looking_model.eval()
 
         self.linear_stages = []
-        for _ in range(num_stage):
+        for _ in range(3):
             self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
         self.linear_stages = nn.ModuleList(self.linear_stages)
 
