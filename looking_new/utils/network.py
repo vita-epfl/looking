@@ -178,7 +178,7 @@ class LookingNet_early_fusion_eyes(nn.Module):
 
         self.linear_stages = []
         for _ in range(3):
-            self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
+            self.linear_stages.append(Linear(256, 0.2))
         self.linear_stages = nn.ModuleList(self.linear_stages)
 
         self.merge = nn.Sequential(
@@ -348,7 +348,7 @@ class LookingNet_early_fusion_18(nn.Module):
 
         self.linear_stages = []
         for _ in range(3):
-            self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
+            self.linear_stages.append(Linear(256, 0.2))
         self.linear_stages = nn.ModuleList(self.linear_stages)
 
         self.merge = nn.Sequential(
@@ -472,7 +472,7 @@ class LookingNet_early_fusion_50(nn.Module):
 
         self.linear_stages = []
         for _ in range(3):
-            self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
+            self.linear_stages.append(Linear(256, 0.2))
         self.linear_stages = nn.ModuleList(self.linear_stages)
 
 
