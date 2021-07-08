@@ -176,6 +176,18 @@ class LookingNet_early_fusion_eyes(nn.Module):
                 m.requires_grad = False
             self.looking_model.eval()
 
+        self.linear_stages = []
+        for _ in range(num_stage):
+            self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
+        self.linear_stages = nn.ModuleList(self.linear_stages)
+
+        self.merge = nn.Sequential(
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+        )
+
 
         self.final = nn.Sequential(
             nn.Linear(512, 1, bias=False),
@@ -192,16 +204,21 @@ class LookingNet_early_fusion_eyes(nn.Module):
             return hook
 
         # End of third linear stage
-        self.eyes.dropout.register_forward_hook(get_activation('eyes'))
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
         self.looking_model.dropout.register_forward_hook(get_activation('look'))
 
-        output_eyes = self.eyes(eyes)
+        # 256
+        output_head = self.backbone(head)
+        # 256
         out_kps = self.looking_model(keypoint)
 
         layer_look = activation["look"]
-        layer_eyes = activation["eyes"]
+        layer_resnet = activation["avgpool"]
 
-        out_final = torch.cat((layer_eyes, layer_look), 1).type(torch.float)
+        merged = torch.cat(layer_resnet, layer_look, 1).type(torch.float)
+        y = self.merge(merged)
+        for i in range(3):
+            y = self.linear_stages[i](y)
 
         return self.final(out_final)
 
@@ -270,7 +287,6 @@ class LookingNet_late_fusion_18(nn.Module):
             self.looking_model.eval()
 
 
-
         self.encoder_head = nn.Sequential(
             nn.Linear(512, 64, bias=False),
             nn.BatchNorm1d(64),
@@ -330,20 +346,26 @@ class LookingNet_early_fusion_18(nn.Module):
                 m.requires_grad = False
             self.looking_model.eval()
 
+        self.linear_stages = []
+        for _ in range(num_stage):
+            self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
+        self.linear_stages = nn.ModuleList(self.linear_stages)
 
+        self.merge = nn.Sequential(
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+        )
 
         self.encoder_head = nn.Sequential(
             nn.Linear(512, 64, bias=False),
-            nn.BatchNorm1d(64),
+            nn.BatchNorm1d(256),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True),
-            nn.Linear(64, 16),
-            nn.BatchNorm1d(16),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True)
         )
         self.final = nn.Sequential(
-            nn.Linear(272, 1, bias=False),
+            nn.Linear(256, 1, bias=False),
             nn.Sigmoid()
         )
 
@@ -359,14 +381,17 @@ class LookingNet_early_fusion_18(nn.Module):
         self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
         self.looking_model.dropout.register_forward_hook(get_activation('look'))
 
-        #x = torch.randn(1, 25)
         output_head = self.backbone(head)
+        # 256
         out_kps = self.looking_model(keypoint)
 
         layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
 
-        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
+        merged = torch.cat(self.encoder_head(layer_resnet), layer_look, 1).type(torch.float)
+        y = self.merge(merged)
+        for i in range(3):
+            y = self.linear_stages[i](y)
 
         return self.final(out_final)
 
@@ -445,20 +470,29 @@ class LookingNet_early_fusion_50(nn.Module):
                 m.requires_grad = False
             self.looking_model = self.looking_model.eval()
 
+        self.linear_stages = []
+        for _ in range(3):
+            self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
+        self.linear_stages = nn.ModuleList(self.linear_stages)
 
 
         self.encoder_head = nn.Sequential(
             nn.Linear(2048, 64, bias=False),
-            nn.BatchNorm1d(64),
+            nn.BatchNorm1d(256),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True),
-            nn.Linear(64, 16),
-            nn.BatchNorm1d(16),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True)
         )
+
+        self.merge = nn.Sequential(
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True),
+        )
+
+
         self.final = nn.Sequential(
-            nn.Linear(272, 1),
+            nn.Linear(256, 1),
             nn.Sigmoid()
         )
 
@@ -474,13 +508,17 @@ class LookingNet_early_fusion_50(nn.Module):
         self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
         self.looking_model.dropout.register_forward_hook(get_activation('look'))
 
-        #x = torch.randn(1, 25)
+        # 2048
         output_head = self.backbone(head)
+        # 256
         out_kps = self.looking_model(keypoint)
 
         layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
 
-        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
+        merged = torch.cat(self.encoder_head(layer_resnet), layer_look, 1).type(torch.float)
+        y = self.merge(merged)
+        for i in range(3):
+            y = self.linear_stages[i](y)
 
         return self.final(out_final)

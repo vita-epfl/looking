@@ -195,10 +195,7 @@ class Parser():
 		if optimizer_type == 'adam':
 			optimizer = torch.optim.Adam(model.parameters(), lr=self.lr)
 		else:
-			if fine_tune and model_type=='heads' or model_type=='fullbodies':
-				optimizer = torch.optim.SGD(model.net.classifier.parameters(), lr=self.lr, momentum=0.9)
-			else:
-				optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
+			optimizer = torch.optim.SGD(model.parameters(), lr=self.lr, momentum=0.9)
 		return model, criterion, optimizer, self.data_transform
 
 	def get_data(self, data_type):
