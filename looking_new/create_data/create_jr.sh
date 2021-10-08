@@ -3,6 +3,7 @@ BASE_PATH=$(pwd)
 PATH_OUT="/data/younes-data"
 ID_JR='1hazKAEdWQjjwPwmksL8XbyT9W8A6zn0Z'
 PATH_SPLITS="/home/younesbelkada/looking/looking_new/create_data/splits_jack"
+PATH_LOOK_ANNO="/data/younes-data/LOOK_annotations/JackRabbot"
 
 echo "Downloading JackRabbot dataset"
 
@@ -16,4 +17,4 @@ unzip reviewed.zip
 
 cd $BASE_PATH
 
-python create_nu_jr.py --train_file trainval.txt --test_file test.txt --path_txt $PATH_SPLITS --path_out "${PATH_OUT}/JackRabbot"
+python create_nu_jr.py --train_file trainval.txt --test_file test.txt --path_txt $PATH_SPLITS --path_out "${PATH_OUT}/JackRabbot" --path_anno $PATH_LOOK_ANNO

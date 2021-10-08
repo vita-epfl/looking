@@ -1,4 +1,4 @@
-from utils import JAAD_loader, JAAD_creator, Kitti_creator
+from utils import JAAD_loader, JAAD_creator, Kitti_creator, PIE_loader, PIE_creator
 import os
 import argparse
 
@@ -38,3 +38,10 @@ if 'Kitti' in data:
 
     kitti_creator = Kitti_creator(path_train, path_train_anno, path_test, path_test_anno, dir_out, txt_out)
     kitti_creator.create()
+
+if 'PIE' in data:
+    pie_loader = PIE_loader(jaad_path)
+    data = pie_loader.generate()
+
+    creator = PIE_creator(txt_out, dir_out, path_joints, os.path.join(jaad_path, 'images'))
+    creator.create(data)
