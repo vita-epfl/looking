@@ -43,7 +43,7 @@ class Predictor():
         print('device : {}'.format(self.device))
         self.path_images = args.images
         self.net, self.processor, self.preprocess = load_pifpaf(args)
-        self.path_model = './models/predictor/'
+        self.path_model = './models/JAAD/Joints/'
         try:
             os.makedirs(self.path_model)
         except OSError as e:
@@ -56,7 +56,7 @@ class Predictor():
     
     def get_model(self):
         model = LookingModel(INPUT_SIZE)
-        if not os.path.isfile(os.path.join(self.path_model, 'LookingModel.p')):
+        if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_BCELoss_full_scenes.p')):
             """
             DOWNLOAD(LOOKING_MODEL, os.path.join(self.path_model, 'Looking_Model.zip'), quiet=False)
             with ZipFile(os.path.join(self.path_model, 'Looking_Model.zip'), 'r') as zipObj:
@@ -65,10 +65,10 @@ class Predictor():
             exit(0)"""
             raise NotImplementedError
 
-        model.load_state_dict(torch.load(os.path.join(self.path_model, 'LookingModel.p')))
+        model.load_state_dict(torch.load(os.path.join(self.path_model, 'LookingModel_BCELoss_full_scenes.p')))
         return model.eval()
 
-    def predict_look(self, boxes, keypoints):
+    def predict_look(self, boxes, keypoints, im_size):
         label_look = []
         final_keypoints = []
         if len(boxes) != 0:
@@ -76,7 +76,8 @@ class Predictor():
                 kps = keypoints[i]
                 kps_final = np.array([kps[0], kps[1], kps[2]]).flatten().tolist()
                 X, Y = kps_final[:17], kps_final[17:34]
-                X, Y = normalize(X, Y, divide=True, height_=False)
+                X, Y = normalize_by_image_(X, Y, im_size)
+                #X, Y = normalize(X, Y, divide=True, height_=False)
                 kps_final_normalized = np.array([X, Y, kps_final[34:]]).flatten().tolist()
                 final_keypoints.append(kps_final_normalized)
             tensor_kps = torch.Tensor([final_keypoints])#
@@ -155,7 +156,7 @@ class Predictor():
             im_size = (cpu_image.size[0], cpu_image.size[1])
             boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
             #print(boxes, keypoints)
-            pred_labels = self.predict_look(boxes, keypoints)
+            pred_labels = self.predict_look(boxes, keypoints, im_size)
             #print(im_name, pred_labels)
             self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name)
             #exit(0)

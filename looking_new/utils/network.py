@@ -49,6 +49,22 @@ class LookingModel(nn.Module):
         self.w2 = nn.Linear(self.linear_size, self.output_size)
         self.sigmoid = nn.Sigmoid()
 
+    def forward_first_stage(self, x):
+        # pre-processing
+        y = self.w1(x)
+        y = self.batch_norm1(y)
+        y = self.relu(y)
+        y = self.dropout(y)
+        return y
+    
+    def forward_second_stage(self, y):
+        for i in range(self.num_stage):
+            y = self.linear_stages[i](y)
+        #y = self.binarize(y)
+        y = self.w2(y)
+        #y = self.binarize(y)
+        y = self.sigmoid(y)
+        return y
 
     def forward(self, x):
         # pre-processing
@@ -78,7 +94,6 @@ class Linear(nn.Module):
 
         self.relu = nn.ReLU(True)
         self.dropout = nn.Dropout(self.p_dropout)
-        #self.binarize = Binarize()
 
         ###
         self.l1 = nn.Linear(self.linear_size, self.linear_size)
@@ -110,9 +125,9 @@ class Linear(nn.Module):
         return out
 
 class AlexNet_head(nn.Module):
-    def __init__(self, device, fine_tune=False):
+    def __init__(self, device, fine_tune=True):
         super(AlexNet_head, self).__init__()
-        net = models.alexnet(pretrained=True).to(device)
+        net = models.alexnet(pretrained=fine_tune).to(device)
         net.classifier  = nn.Sequential(
                     nn.Dropout(),
                     nn.Linear(256 * 6 * 6, 4096),
@@ -128,39 +143,125 @@ class AlexNet_head(nn.Module):
                 param.requires_grad = False
             for param in net.classifier.parameters():
                 param.requires_grad = True
-
+        print('Fine Tune : ', fine_tune)
         self.net = net
     def forward(self, x):
         return self.net(x)
 
 class ResNet18_head(nn.Module):
-    def __init__(self, device):
+    def __init__(self, device, fine_tune=True):
         super(ResNet18_head, self).__init__()
         self.net = models.resnet18(pretrained=True)
         self.net.fc  = nn.Sequential(
             nn.Linear(in_features=512, out_features=1, bias=True),
             nn.Sigmoid()
         ).to(device)
+        if fine_tune:
+            for param in self.net.parameters():
+                param.requires_grad = False
+            for param in self.net.fc.parameters():
+                param.requires_grad = True
+        print('Fine Tune : ', fine_tune)
 
     def forward(self, x):
         return self.net(x)
 
 class ResNet50_head(nn.Module):
-    def __init__(self, device):
+    def __init__(self, device, fine_tune=True):
         super(ResNet50_head, self).__init__()
         net = models.resnext50_32x4d(pretrained=True)
         net.fc  = nn.Sequential(
             nn.Linear(in_features=2048, out_features=1, bias=True),
             nn.Sigmoid()
-        )
+        ).to(device)
+        if fine_tune:
+            for param in net.parameters():
+                param.requires_grad = False
+            for param in net.fc.parameters():
+                param.requires_grad = True
         self.net = net
-    
+        print('Fine Tune : ', fine_tune)
+
     def forward(self, x):
         return self.net(x)
 
-class LookingNet_early_fusion_18(nn.Module):
+class LookingNet_late_fusion_18_bb(nn.Module):
+    def __init__(self, PATH, device, fine_tune=True):
+        super(LookingNet_late_fusion_18_bb, self).__init__()
+        self.backbone = ResNet18_head(device)
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH))
+            for m in self.backbone.net.parameters():
+                m.requires_grad = False
+            self.backbone.eval()
+
+        self.encoder_bb = nn.Sequential(
+            nn.Linear(4, 2),
+            nn.ReLU(True)
+        )
+
+        self.final = nn.Sequential(
+            nn.Linear(514, 1),
+            nn.Sigmoid()
+        )
+
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        _ = self.backbone(head)
+
+        layer_resnet = activation["avgpool"]
+        layer_look = self.encoder_bb(keypoint)
+
+        out_final = torch.cat((layer_resnet, layer_look), 1).type(torch.float)
+        return self.final(out_final)
+
+class LookingNet_late_fusion_50_bb(nn.Module):
+    def __init__(self, PATH, device, fine_tune=True):
+        super(LookingNet_late_fusion_50_bb, self).__init__()
+        self.backbone = ResNet50_head(device)
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH))
+            for m in self.backbone.net.parameters():
+                m.requires_grad = False
+            self.backbone.eval()
+
+        self.encoder_bb = nn.Sequential(
+            nn.Linear(4, 2),
+            nn.ReLU(True)
+        )
+
+        self.final = nn.Sequential(
+            nn.Linear(2050, 1),
+            nn.Sigmoid()
+        )
+
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        _ = self.backbone(head)
+
+        layer_resnet = activation["avgpool"]
+        layer_look = self.encoder_bb(keypoint)
+
+        out_final = torch.cat((layer_resnet, layer_look), 1).type(torch.float)
+        return self.final(out_final)
+
+class LookingNet_late_fusion_18(nn.Module):
     def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_18, self).__init__()
+        super(LookingNet_late_fusion_18, self).__init__()
         self.backbone = ResNet18_head(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
@@ -175,20 +276,17 @@ class LookingNet_early_fusion_18(nn.Module):
                 m.requires_grad = False
             self.looking_model.eval()
 
-
+        self.relu = nn.ReLU(inplace=True)
 
         self.encoder_head = nn.Sequential(
-            nn.Linear(512, 64, bias=False),
-            nn.BatchNorm1d(64),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-            nn.Linear(64, 16),
-            nn.BatchNorm1d(16),
+            nn.Linear(512, 256, bias=False),
+            nn.BatchNorm1d(256),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True)
         )
+
         self.final = nn.Sequential(
-            nn.Linear(272, 1, bias=False),
+            nn.Linear(512, 1),
             nn.Sigmoid()
         )
 
@@ -204,53 +302,41 @@ class LookingNet_early_fusion_18(nn.Module):
             def hook(model, input, output):
                 activation[name] = output.detach()
             return hook
-
-        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
         self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
-
-        #x = torch.randn(1, 25)
-        output_head = self.backbone(head)
-        out_kps = self.looking_model(keypoint)
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        _ = self.backbone(head)
+        _ = self.looking_model(keypoint)
 
         layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
 
-        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
-
+        out_final = torch.cat((self.encoder_head(layer_resnet), self.relu(layer_look)), 1).type(torch.float)
         return self.final(out_final)
 
-class LookingNet_early_fusion_50_reduced(nn.Module):
+class LookingNet_early_fusion_50_new(nn.Module):
     def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_50_reduced, self).__init__()
+        super(LookingNet_early_fusion_50_new, self).__init__()
         self.backbone = ResNet50_head(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
-            for m in self.backbone.parameters():
+            for m in self.backbone.net.parameters():
                 m.requires_grad = False
-            self.backbone = self.backbone.eval()
+            self.backbone.eval()
 
         self.looking_model = LookingModel(51)
         if fine_tune:
             self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
             for m in self.looking_model.parameters():
                 m.requires_grad = False
-            self.looking_model = self.looking_model.eval()
+            self.looking_model.eval()
 
 
 
         self.encoder_head = nn.Sequential(
-            nn.Linear(2048, 16, bias=False),
-            nn.BatchNorm1d(16),
+            nn.Linear(2048, 256, bias=False),
+            nn.BatchNorm1d(256),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True)
-        )
-        self.final = nn.Sequential(
-            nn.Linear(272, 64, bias=False),
-            nn.BatchNorm1d(64),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-            nn.Linear(64, 1),
-            nn.Sigmoid()
         )
 
 
@@ -261,56 +347,89 @@ class LookingNet_early_fusion_50_reduced(nn.Module):
             def hook(model, input, output):
                 activation[name] = output.detach().squeeze()
             return hook
-        def get_activation2(name):
-            def hook(model, input, output):
-                activation[name] = output.detach()
-            return hook
-
         self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
-        self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
+        _ = self.backbone(head)
 
-        #x = torch.randn(1, 25)
-        output_head = self.backbone(head)
-        out_kps = self.looking_model(keypoint)
-
-        layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
+        encoded_head = self.encoder_head(layer_resnet)
 
-        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
+        output_first_stage = self.looking_model.forward_first_stage(keypoint)
+        y = self.looking_model.forward_second_stage(output_first_stage+encoded_head)
+        return y
 
-        return self.final(out_final)
 
-class LookingNet_early_fusion_50(nn.Module):
+class LookingNet_early_fusion_18_new(nn.Module):
     def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_50, self).__init__()
-        self.backbone = ResNet50_head(device)
+        super(LookingNet_early_fusion_18_new, self).__init__()
+        self.backbone = ResNet18_head(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))
-            for m in self.backbone.parameters():
+            for m in self.backbone.net.parameters():
                 m.requires_grad = False
-            self.backbone = self.backbone.eval()
+            self.backbone.eval()
 
         self.looking_model = LookingModel(51)
         if fine_tune:
             self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
             for m in self.looking_model.parameters():
                 m.requires_grad = False
-            self.looking_model = self.looking_model.eval()
+            self.looking_model.eval()
 
 
 
         self.encoder_head = nn.Sequential(
-            nn.Linear(2048, 64, bias=False),
-            nn.BatchNorm1d(64),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True),
-            nn.Linear(64, 16),
-            nn.BatchNorm1d(16),
+            nn.Linear(512, 256, bias=False),
+            nn.BatchNorm1d(256),
             nn.Dropout(0.4),
             nn.ReLU(inplace=True)
         )
+
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        _ = self.backbone(head)
+
+        layer_resnet = activation["avgpool"]
+        encoded_head = self.encoder_head(layer_resnet)
+
+        output_first_stage = self.looking_model.forward_first_stage(keypoint)
+        y = self.looking_model.forward_second_stage(output_first_stage+encoded_head)
+        return y
+
+class LookingNet_late_fusion_50(nn.Module):
+    def __init__(self, PATH, PATH_look, device, fine_tune=True):
+        super(LookingNet_late_fusion_50, self).__init__()
+        self.backbone = ResNet50_head(device)
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH))
+            for m in self.backbone.net.parameters():
+                m.requires_grad = False
+            self.backbone.eval()
+
+        self.looking_model = LookingModel(51)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+        self.relu = nn.ReLU(inplace=True)
+
+        self.encoder_head = nn.Sequential(
+            nn.Linear(2048, 256, bias=False),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+
         self.final = nn.Sequential(
-            nn.Linear(272, 1),
+            nn.Linear(512, 1),
             nn.Sigmoid()
         )
 
@@ -326,17 +445,217 @@ class LookingNet_early_fusion_50(nn.Module):
             def hook(model, input, output):
                 activation[name] = output.detach()
             return hook
-
-        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
         self.looking_model.linear_stages[2].bn2.register_forward_hook(get_activation('look'))
-
-        #x = torch.randn(1, 25)
-        output_head = self.backbone(head)
-        out_kps = self.looking_model(keypoint)
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        _ = self.backbone(head)
+        _ = self.looking_model(keypoint)
 
         layer_look = activation["look"]
         layer_resnet = activation["avgpool"]
 
-        out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
-
+        out_final = torch.cat((self.encoder_head(layer_resnet), self.relu(layer_look)), 1).type(torch.float)
+        #out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
         return self.final(out_final)
+
+class LookingNet_early_fusion_eyes(nn.Module):
+    def __init__(self, PATH_look, device, fine_tune=True):
+        super(LookingNet_early_fusion_eyes, self).__init__()
+        self.looking_model = LookingModel(51)
+        print("Fine tune : " , fine_tune)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+
+        self.encoder_eyes = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(900, 256, bias=False),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+
+
+    def forward(self, x):
+        
+        eyes, keypoint = x
+        encoded_eyes = self.encoder_eyes(eyes)
+
+        output_first_stage = self.looking_model.forward_first_stage(keypoint)
+        y = self.looking_model.forward_second_stage(output_first_stage+encoded_eyes)
+        return y
+
+class LookingNet_early_fusion_eyes_fine_tune(nn.Module):
+    def __init__(self, PATH_look, device, fine_tune=True):
+        super(LookingNet_early_fusion_eyes_fine_tune, self).__init__()
+        self.looking_model = LookingModel(51)
+        print("Fine tune : " , fine_tune)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+
+        self.encoder_eyes = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(900, 256, bias=False),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+
+        self.looking_module = Looking_early_module()
+    def forward(self, x):
+        
+        eyes, keypoint = x
+        encoded_eyes = self.encoder_eyes(eyes)
+
+        output_first_stage = self.looking_model.forward_first_stage(keypoint)
+        y = self.looking_module.forward(output_first_stage+encoded_eyes)
+        #y = self.looking_model.forward_second_stage(output_first_stage+encoded_eyes)
+        return y
+
+class Looking_early_module(nn.Module):
+    def __init__(self, p_dropout=0.2, output_size=1, linear_size=256, num_stage=3):
+        super(Looking_early_module, self).__init__()
+        self.p_dropout = p_dropout
+        self.linear_stages = []
+        self.linear_size = linear_size
+        self.output_size = output_size
+        self.num_stage = num_stage
+
+        for _ in range(num_stage):
+            self.linear_stages.append(Linear(self.linear_size, self.p_dropout))
+        self.linear_stages = nn.ModuleList(self.linear_stages)
+
+        self.w2 = nn.Linear(self.linear_size, self.output_size)
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, y):
+        for i in range(self.num_stage):
+            y = self.linear_stages[i](y)
+        #y = self.binarize(y)
+        y = self.w2(y)
+        #y = self.binarize(y)
+        y = self.sigmoid(y)
+        return y
+
+
+class LookingNet_early_fusion_18_concat(nn.Module):
+    def __init__(self, PATH, PATH_look, device, fine_tune=True):
+        super(LookingNet_early_fusion_18_concat, self).__init__()
+        self.backbone = ResNet18_head(device)
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
+            for m in self.backbone.net.parameters():
+                m.requires_grad = False
+            self.backbone.eval()
+
+        self.looking_model = LookingModel(51)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+
+        self.encoder_head = nn.Sequential(
+            nn.Linear(512, 256, bias=False),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+
+        
+        # post processing
+
+        self.looking_module = Looking_early_module()
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        _ = self.backbone(head)
+
+        layer_resnet = activation["avgpool"]
+        encoded_head = self.encoder_head(layer_resnet)
+
+        output_first_stage = self.looking_model.forward_first_stage(keypoint)
+        y = self.looking_module.forward(output_first_stage+encoded_head)
+        return y
+
+class LookingNet_early_fusion_50_fine_tune(nn.Module):
+    def __init__(self, PATH, PATH_look, device, fine_tune=True):
+        super(LookingNet_early_fusion_50_fine_tune, self).__init__()
+        self.backbone = ResNet50_head(device)
+        if fine_tune:
+            self.backbone.load_state_dict(torch.load(PATH))
+            for m in self.backbone.net.parameters():
+                m.requires_grad = False
+            self.backbone.eval()
+
+        self.looking_model = LookingModel(51)
+        if fine_tune:
+            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
+            for m in self.looking_model.parameters():
+                m.requires_grad = False
+            self.looking_model.eval()
+
+
+
+        self.encoder_head = nn.Sequential(
+            nn.Linear(2048, 256, bias=False),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        )
+
+        self.looking_module = Looking_early_module()
+
+    def forward(self, x):
+        head, keypoint = x
+        activation = {}
+        def get_activation(name):
+            def hook(model, input, output):
+                activation[name] = output.detach().squeeze()
+            return hook
+        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
+        _ = self.backbone(head)
+
+        layer_resnet = activation["avgpool"]
+        encoded_head = self.encoder_head(layer_resnet)
+
+        output_first_stage = self.looking_model.forward_first_stage(keypoint)
+        y = self.looking_module(output_first_stage+encoded_head)
+        #y = self.looking_model.forward_second_stage(output_first_stage+encoded_head)
+        return y
+
+class EyesModel(nn.Module):
+    def __init__(self, device):
+        super(EyesModel, self).__init__()
+
+        self.encoder_eyes = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(900, 256, bias=False),
+            nn.BatchNorm1d(256),
+            nn.Dropout(0.4),
+            nn.ReLU(inplace=True)
+        ).to(device)
+    
+        self.fc = nn.Sequential(
+            nn.Linear(256, 1),
+            nn.Sigmoid()
+        )
+    def forward(self, x):
+        encoded_eyes = self.encoder_eyes(x)
+        return self.fc(encoded_eyes)

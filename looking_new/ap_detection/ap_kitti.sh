@@ -2,8 +2,8 @@
 BASE_PATH=$(pwd)
 ID_PIF=100KhQD-C7HANHz9VPj-zgIYaEHLgRb68
 ID_GT=181gsyO_YkFrANkH1GJPpz-V_W09HRQhO
-PATH_OUT="/home/younesbelkada/Travail/data/AP_out"
-PATH_KITTI="/home/younesbelkada/Travail/data/Kitti/Kitti_images/Test"
+PATH_OUT="/data/younes-data/AP_out"
+PATH_KITTI="/data/younes-data/Kitti/Kitti_images/Test"
 
 mkdir -p $PATH_OUT
 cd $PATH_OUT

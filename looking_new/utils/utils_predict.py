@@ -35,6 +35,33 @@ def convert(data):
     A = np.array([X, Y, C]).flatten().tolist()
     return X, Y, C, A
 
+def normalize_by_image_(X, Y, image_size):
+    """
+        Normalize the image according to the paper.
+        Args:
+            - X: array of X positions of the keypoints
+            - Y: array of Y positions of the keypoints
+            - Image: Image array
+        Returns:
+            returns the normalized arrays
+    """
+    
+    image_width, image_height = image_size
+    
+    center_p = (int((X[11] + X[12]) / 2), int((Y[11] + Y[12]) / 2))
+    X_new = np.array(X)/image_width
+    Y_new = np.array(Y)-center_p[1]
+
+
+    width = abs(np.max(X) - np.min(X))
+    height = abs(np.max(Y) - np.min(Y))
+
+    X_new = X_new + ((np.array(X)-center_p[0])/width)
+    Y_new /= height
+    
+    return X_new, Y_new
+
+
 def prepare_pif_kps(kps_in):
     """Convert from a list of 51 to a list of 3, 17"""
 

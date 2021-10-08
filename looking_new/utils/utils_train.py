@@ -10,9 +10,16 @@ from sklearn.metrics import confusion_matrix
 ### Visualisation functions
 
 def convert_bb(bb):
+    """
+        Convert the bounding box format from:
+            x1, y1, w, h to x1, y1, x2, y2
+    """
     return [bb[0], bb[1], bb[0]+bb[2], bb[1]+bb[3]]
 
 def bb_intersection_over_union(boxA, boxB):
+    """
+        Code for computing the IoU given 2 converted boxes
+    """     
     # determine the (x, y)-coordinates of the intersection rectangle
     xA = max(boxA[0], boxB[0])
     yA = max(boxA[1], boxB[1])
@@ -37,6 +44,9 @@ def bb_intersection_over_union(boxA, boxB):
     return iou
 
 def drawline(img,pt1,pt2,color,thickness=1,style='dotted',gap=10):
+    """
+        Utility function for drawing lines
+    """
     dist =((pt1[0]-pt2[0])**2+(pt1[1]-pt2[1])**2)**.5
     pts= []
     for i in  np.arange(0,dist,gap):
@@ -62,6 +72,9 @@ def drawline(img,pt1,pt2,color,thickness=1,style='dotted',gap=10):
     return img
 
 def drawpoly(img,pts,color,thickness=1,style='dotted',):
+    """
+        Utility function for drawing polygones
+    """
     s=pts[0]
     e=pts[0]
     pts.append(pts.pop(0))
@@ -72,10 +85,20 @@ def drawpoly(img,pts,color,thickness=1,style='dotted',):
     return img
 
 def drawrect(img,pt1,pt2,color,thickness=1,style='dotted'):
+    """
+        Utility function for drawing rectangles
+    """
     pts = [pt1,(pt2[0],pt1[1]),pt2,(pt1[0],pt2[1])] 
     return drawpoly(img,pts,color,thickness,style)
 
 def convert(data):
+    """
+        Utility function to convert the data format of Pifpaf to our convention.
+        Args:
+            - joints with Pifpaf's format
+        Returns:
+            - 4 arrays, X coordinates, Y coordinates, C confidences scores and A the concatenated arrays
+    """
     X = []
     Y = []
     C = []
@@ -206,15 +229,30 @@ def run_and_kps(img, data):
     return img
 
 def extract_head(X, Y, C):
+    """
+        utility function to extract the head keypoints given the arrays of Xs, Ys, and C Confidence scores
+        Please refer to : https://openpifpaf.github.io/datasets.html to understand the order of the keypoints
+        Returns:
+            - X_new : Array of X positions of the head keypoints
+            - Y_new : Array of Y positions of the head keypoints
+            - C_new : Array of the confidence scores of the head keypoints
+    """
     X_new = X[:5]
-    Y_new = X[:5]
+    Y_new = Y[:5]
     C_new = C[:5]
     return np.array(X_new), np.array(Y_new), np.array(C_new)
 
-
 def extract_body(X, Y, C):
+    """
+        utility function to extract the body keypoints given the arrays of Xs, Ys, and C Confidence scores
+        Please refer to : https://openpifpaf.github.io/datasets.html to understand the order of the keypoints
+        Returns:
+            - X_new : Array of X positions of the body keypoints
+            - Y_new : Array of Y positions of the body keypoints
+            - C_new : Array of the confidence scores of the body keypoints
+    """
     X_new = X[5:]
-    Y_new = X[5:]
+    Y_new = Y[5:]
     C_new = C[5:]
     return np.array(X_new), np.array(Y_new), np.array(C_new)
 
@@ -222,14 +260,16 @@ def extract_body(X, Y, C):
 ### Metrics
 
 def binary_acc(y_pred, y_test):
+    """
+        Utility function to get the accuracy given the predictions and the ground truths
+        Args:
+            - y_pred : predicted labels
+            - y_test : ground truth labels
+        Returns:
+            Categorical accurcacy
+    """
     y_pred_tag = torch.round(torch.flatten(y_pred))
     y_test = torch.flatten(y_test)
-    #print(y_pred_tag.shape)
-    #print(y_test.shape)
-
-    #y_pred_tag = y_pred_tag
-    #y_test = y_test
-    # print(confusion_matrix(y_test.cpu().detach().numpy(), y_pred_tag.cpu().detach().numpy()))
     correct_results_sum = (y_pred_tag == y_test).sum().float()
     acc = correct_results_sum / y_test.shape[0]
     acc = acc * 100
@@ -267,19 +307,14 @@ def save_results(y_pred):
 
 def get_acc_per_distance(ground_truths_1, pred_1):
     idx_1 = (ground_truths_1==1)
-    #print(np.round(pred_1))
-    #print(ground_truths_1)
-    #print(np.round(pred_1) == ground_truths_1)
-    #exit(0)
-    #print(np.round(pred_1[idx_1]))
-    #print(ground_truths_1[idx_1])
-    #exit(0)
     return sum(np.round(pred_1) == ground_truths_1)/len(ground_truths_1)
 
 
 def normalize(X, Y, divide=True, height_=False):
+    """
+        Old normalization techniques, deprecated 
+    """
     center_p = (int((X[11] + X[12]) / 2), int((Y[11] + Y[12]) / 2))
-    # X_new = np.array(X)-center_p[0]
     X_new = np.array(X)
     Y_new = np.array(Y) - center_p[1]
     width = abs(np.max(X_new) - np.min(X_new))
@@ -294,6 +329,81 @@ def normalize(X, Y, divide=True, height_=False):
 
     return X_new, Y_new
 
+def normalize_by_image_(X, Y, height_=False, type_='JAAD'):
+    """
+        Normalize the image according to the paper.
+        Args:
+            - X: array of X positions of the keypoints
+            - Y: array of Y positions of the keypoints
+            - height_ : True if you want to return an array of heights
+            - type_ : str that describes the dataset type
+        Returns:
+            if height_ is enabled, returns the normalized arrays and an array of heights. else returns the normalized arrays
+    """
+    
+    """if type_ == 'JAAD':
+        image_width, image_height = 1980, 1280
+    elif type_ == 'Kitti':
+        image_width, image_height = 1238, 374
+    elif type_ == 'Jack':
+        image_width, image_height = 752, 480
+    elif type_ == 'Nu':
+        image_width, image_height = 1600, 900
+    else:
+        image_width, image_height = None, None"""
+    
+    if type_ == 'JAAD':
+        image_width, image_height = 1980, 1280
+    elif type_ == 'Kitti':
+        image_width, image_height = 1238, 374
+    elif type_ == 'JDRB':
+        image_width, image_height = 752, 480
+    elif type_ == 'Nuscenes':
+        image_width, image_height = 1600, 900
+    else:
+        image_width, image_height = None, None
+    
+    center_p = (int((X[11] + X[12]) / 2), int((Y[11] + Y[12]) / 2))
+    X_new = np.array(X)/image_width
+    Y_new = np.array(Y)-center_p[1]
+
+
+    width = abs(np.max(X) - np.min(X))
+    height = abs(np.max(Y) - np.min(Y))
+
+    X_new = X_new + ((np.array(X)-center_p[0])/width)
+    Y_new /= height
+    
+    if height_==True:
+       return X_new, Y_new, height
+
+    return X_new, Y_new
+
+"""
+def normalize_by_image(X, Y, height_=False, type_='JAAD'):
+    
+    if type_ == 'JAAD':
+        image_width, image_height = 1980, 1280
+    elif type_ == 'Kitti':
+        image_width, image_height = 1242, 375
+    elif type_ == 'Jack':
+        image_width, image_height = 752, 480
+    elif type_ == 'Nu':
+        image_width, image_height = 1600, 900
+    else:
+        image_width, image_height = None, None
+    
+    X_new = np.array(X)
+    Y_new = np.array(Y)
+    height = abs(np.max(Y_new) - np.min(Y_new))
+    
+    Y_new /= image_height
+    X_new /= image_width
+
+    if height_==True:
+       return X_new, Y_new, height
+
+    return X_new, Y_new"""
 
 def val_kitti(output, labels):
     output = output.detach().cpu().numpy()
@@ -304,8 +414,31 @@ def val_kitti(output, labels):
 
 
 def average_precision(output, target):
+    """
+        Utility function to compute the AP score of 2 torch tensors.
+        Args:
+            - output : the predicted labels
+            - target : the ground truth labels
+    """
     return average_precision_score(target.detach().cpu().numpy(), output.detach().cpu().numpy())
 
+def crop_eyes(image, keypoints):
+    """
+        Crop the eye region given the crop of the head. 
+        Args:
+            - image : PIL Image object of the head region
+            - keypoints : Tensor object of the keypoints
+        Returns:
+            the cropped eye region
+    """
+    keypoints_array = keypoints.detach().numpy().tolist()
+    width_eyes = abs(keypoints[3]-keypoints[4]) # right ear - left ear
+    center_eye_y = int((keypoints[18]-keypoints[19])/2)
+    height_eyes = abs(keypoints[17]-center_eye_y) # nose - eye
+    x1, y1 = min(keypoints[3], keypoints[4]) ,center_eye_y-int(height_eyes/2)
+    print(keypoints[18]-keypoints[19])
+    print(keypoints)
+    exit(0)
 
 def print_summary(i, EPOCHS, train_loss, acc, acc_val, ap, val_ap, acc1, acc0):
     text = "epoch {}/{} [".format(i, EPOCHS) + int(i * 10 / EPOCHS) * "=" + ">" + floor(
