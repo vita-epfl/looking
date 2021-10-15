@@ -1,6 +1,6 @@
 # Are you looking at the camera ? Official repository
 
-![Main image](https://raw.githubusercontent.com/vita-epfl/looking/younes/looking_new/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png?token=ALXVUF3F4QYCBPP7RXYD74TAS7RNS)
+![alt text](https://raw.githubusercontent.com/vita-epfl/looking/younes/looking_new/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png?token=ALXVUF3F4QYCBPP7RXYD74TAS7RNS)
 
 Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-daytime.html . Results obtained with the model trained on JackRabbot, Nuscenes, JAAD and Kitti. The model file is available at ```models/predictor``` and can be reused for testing with the predictor. 
 

@@ -4,7 +4,6 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Utility function to run pifpaf on folders')
 parser.add_argument('--path_data', dest='pd', type=str, help='path to the images', default="/data/younes-data/LOOK/LOOK")
-parser.add_argument('--name', dest='n', type=str, help='name of the dataset', default="jack")
 parser.add_argument('--path_out', dest='po', type=str, help='path to the output files', default="/data/younes-data/LOOK_keypoints")
 parser.add_argument('--check', dest='ch', type=str, help='pifpaf checkpoint', default="shufflenetv2k30")
 parser.add_argument('--instance-threshold', dest='th', type=float, help='instance threshold', default=0.1)
@@ -16,12 +15,7 @@ path_data = args.pd
 path_out = args.po
 instance_thresh = args.th
 checkpoint = args.ch
-name = args.n
-#if name != 'jack':
-#    subdirectories = glob(os.path.join(path_data, "*"))
-#else:
 
-#subdirectories = glob(os.path.join(path_data, "**/*"))
 subdirectories = [x[0] for x in os.walk(path_data) if len(glob(os.path.join(x[0], '*.png'))+glob(os.path.join(x[0], '*.jpg'))) != 0]
 
 
@@ -32,7 +26,6 @@ for s in subdirectories:
 
 for sub_folders in new_subdirectories:
     directory_out = os.path.join(path_out, sub_folders)
-    #exit(0)
     try:
         os.makedirs(directory_out)
     except OSError as e:
@@ -44,8 +37,5 @@ for sub_folders in new_subdirectories:
         ext = '*.png'
     directory_in = os.path.join(path_data, sub_folders, ext)
     
-    #print(directory_in, directory_out)
-    #exit(0)
     command = "python3 -m openpifpaf.predict --glob {} --json-output {} --force-complete-pose --checkpoint {} --instance-threshold {}".format(directory_in, directory_out, checkpoint, instance_thresh)
     os.system(command)
-    #break
