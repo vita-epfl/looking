@@ -1,5 +1,0 @@
-/home/younesbelkada/Travail/Project/JackRabbot/JackRabbot_test_annotated/reviewed/image_0/meyer-green-2019-03-16_0
-/home/younesbelkada/Travail/Project/JackRabbot/JackRabbot_test_annotated/reviewed/image_0/huang-lane-2019-02-12_0
-/home/younesbelkada/Travail/Project/JackRabbot/JackRabbot_test_annotated/reviewed/image_0/clark-center-2019-02-28_0
-/home/younesbelkada/Travail/Project/JackRabbot/JackRabbot_test_annotated/reviewed/image_4/bytes-cafe-2019-02-07_0
-/home/younesbelkada/Travail/Project/JackRabbot/JackRabbot_test_annotated/reviewed/image_8/bytes-cafe-2019-02-07_0

@@ -2,3 +2,9 @@
 *.zip
 *.p
 *.pyc
+*.txt
+*.png
+__pycache__
+*.gz
+*.zip
+*.csv
