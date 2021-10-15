@@ -29,8 +29,14 @@ IOU_THRESHOLD = 0.3
 
 def init_job():
     """
-    Initlalize the job by creating 3 txt files corresponding to each subset of the LOOK dataset
+    Initlalize the job by creating the necessary files and folders to run the code
     """
+    try:
+        os.makedirs(out_txt)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+    
     for f in folders:
         directory_out = os.path.join(path_output_files, f)
         try:
@@ -38,6 +44,7 @@ def init_job():
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+    
 
     return open(os.path.join(out_txt, 'ground_truth_look.txt'), 'w'), open(anno_file, 'r')
 

@@ -17,12 +17,11 @@ instance_thresh = args.th
 checkpoint = args.ch
 
 subdirectories = [x[0] for x in os.walk(path_data) if len(glob(os.path.join(x[0], '*.png'))+glob(os.path.join(x[0], '*.jpg'))) != 0]
-
-
 new_subdirectories = []
 for s in subdirectories:
     new_string = s.replace(path_data, '')
     new_subdirectories.append(new_string[1:])
+
 
 for sub_folders in new_subdirectories:
     directory_out = os.path.join(path_out, sub_folders)

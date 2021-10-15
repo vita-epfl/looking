@@ -1,4 +1,4 @@
-# Are you looking at the camera ? Official repository
+# Do pedestrians pay attention? Eye contact detection for autonomous driving - Official repository
 
 ![alt text](https://raw.githubusercontent.com/vita-epfl/looking/experiments_final/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png?token=ALXVUF3RZ5WINAFBRBGV663BNHF5G)
 
@@ -51,9 +51,7 @@ You have one config file to modify. **Do not change the variables name**
 | ```split``` | Splitting strategy, applicable only if [```JAAD````] selected above. Choice between [```scenes```, ```instances```] |
 | ```path_txt``` | path to the ground truth txt file, this parameter shouldn't be modified if the dataset has been created correctly |
 
-
-
 ## Evaluate your trained models
 
-## Visualizing some results
+## Predictor
 
