@@ -1,6 +1,6 @@
 # Do pedestrians pay attention? Eye contact detection for autonomous driving - Official repository
 
-![alt text](https://raw.githubusercontent.com/vita-epfl/looking/experiments_final/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png?token=ALXVUF5QS367655DKYUBK3TBNH3V4)
+![alt text](https://github.com/vita-epfl/looking/blob/experiments_final/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png)
 
 Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-daytime.html . Results obtained with the model trained on JackRabbot, Nuscenes, JAAD and Kitti. The model file is available at ```models/predictor``` and can be reused for testing with the predictor. 
 
