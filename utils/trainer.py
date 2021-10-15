@@ -41,12 +41,14 @@ class Parser():
         self.weighted = self.multi_args.getboolean('weighted')
         self.fine_tune = self.model_type.getboolean('fine_tune')
 
-        assert criterion_type in ['BCE', 'focal_loss']
+        assert criterion_type in ['BCE']
         assert optimizer_type in ['adam', 'sgd']
         if criterion_type == 'BCE':
             criterion = nn.BCELoss()
         else:
-            criterion = FocalLoss(alpha=1, gamma=3)
+            criterion = None
+            raise "Not Implemented - Please define your specific loss function or use the default one"
+            exit(0)
 
         
         
@@ -242,15 +244,7 @@ class Parser():
             dataset_train = []
             dataset_val = []
             for path_txt in paths_txt:
-                if 'nu' in path_txt:
-                    path_data = self.nu_args['path_data']
-                    dataset_train.append(LOOK_dataset('nu', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                    dataset_val.append(LOOK_dataset('nu', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                elif 'jack' in path_txt:
-                    path_data = self.jack_args['path_data']
-                    dataset_train.append(LOOK_dataset('jack', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                    dataset_val.append(LOOK_dataset('jack', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                elif 'jaad' in path_txt:
+                if 'jaad' in path_txt:
                     path_data = self.jaad_args['path_data']
                     dataset_train.append(JAAD_Dataset(path_data, self.model_type_, 'train', self.pose, split_strategy, self.data_transform, path_txt, self.device))
                     dataset_val.append(JAAD_Dataset(path_data, self.model_type_, 'val', self.pose, split_strategy, self.data_transform, path_txt, self.device))
@@ -258,19 +252,11 @@ class Parser():
                     path_data = self.pie_args['path_data']
                     dataset_train.append(PIE_Dataset(path_data, self.model_type_, 'train', self.pose, split_strategy, self.data_transform, path_txt, self.device))
                     dataset_val.append(PIE_Dataset(path_data, self.model_type_, 'val', self.pose, split_strategy, self.data_transform, path_txt, self.device))
-                elif 'kitti' in path_txt:
-                    path_data = self.kitti_args['path_data']
-                    #dataset_train.append(Kitti_dataset('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                    #dataset_val.append(Kitti_dataset('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                    dataset_train.append(LOOK_dataset('kitti', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                    dataset_val.append(LOOK_dataset('kitti', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
                 elif 'look' in path_txt:
                     path_data = self.data_args['path_data']
-                    dataset_train.append(LOOK_dataset_('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-                    dataset_val.append(LOOK_dataset_('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device))
-            
-            return dataset_train, dataset_val
-                 
+                    dataset_train.append(LOOK_dataset_('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device, self.look_args['data']))
+                    dataset_val.append(LOOK_dataset_('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device, self.look_args['data']))
+            return dataset_train, dataset_val           
         else:
             path_txt = os.path.join(self.data_args['path_txt'], 'splits_'+data_type.lower())
             #path_txt = os.path.join(self.data_args['path_txt'], 'splits_look')
@@ -285,20 +271,6 @@ class Parser():
                 path_data = self.data_args['path_data']
                 dataset_train = PIE_Dataset(path_data, self.model_type_, 'train', self.pose, split_strategy, self.data_transform, path_txt, self.device)
                 dataset_val = PIE_Dataset(path_data, self.model_type_, 'val', self.pose, split_strategy, self.data_transform, path_txt, self.device)
-            elif data_type == 'Kitti':
-                path_data = self.data_args['path_data']
-                dataset_train = LOOK_dataset('kitti', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-                dataset_val = LOOK_dataset('kitti', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-                #dataset_train = Kitti_dataset('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-                #dataset_val = Kitti_dataset('val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-            elif data_type == 'Nu':
-                path_data = self.data_args['path_data']
-                dataset_train = LOOK_dataset('nu', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-                dataset_val = LOOK_dataset('nu', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-            elif data_type == 'Jack':
-                path_data = self.data_args['path_data']
-                dataset_train = LOOK_dataset('jack', 'train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-                dataset_val = LOOK_dataset('jack', 'val', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
             else:
                 path_data = self.data_args['path_data']
                 dataset_train = LOOK_dataset_('train', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device, self.look_args['data'])
@@ -317,13 +289,6 @@ class Parser():
             dataset_test = JAAD_Dataset(path_data, self.model_type_, 'test', self.pose, split_strategy, self.data_transform, path_txt, self.device)
         elif data_type == 'PIE':
             dataset_test = PIE_Dataset(path_data, self.model_type_, 'test', self.pose, split_strategy, self.data_transform, path_txt, self.device)
-        elif data_type == 'Kitti':
-            #dataset_test = Kitti_dataset('test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-            dataset_test = LOOK_dataset('kitti', 'test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-        elif data_type == 'Jack':
-            dataset_test = LOOK_dataset('jack', 'test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
-        elif data_type == 'Nu':
-            dataset_test = LOOK_dataset('nu', 'test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device)
         else:
             dataset_test = LOOK_dataset_('test', self.model_type_, path_txt, path_data, self.pose, self.data_transform, self.device, self.look_args['data'])
         return dataset_test
@@ -417,26 +382,6 @@ class Evaluator():
         """
         data_to_evaluate = self.parser.eval_params['eval_on']
         data_test = self.parser.get_data_test(data_to_evaluate)
-        """data_loader_test = DataLoader(data_test, 1, shuffle=False)
-        if data_to_evaluate not in ['JAAD', 'NU']:
-            acc = 0
-            ap = 0
-
-            output_all = torch.Tensor([]).type(torch.float).to(self.parser.device)
-            labels_all = torch.Tensor([]).to(self.parser.device)
-            for x_batch, y_batch in data_loader_test:
-
-                y_batch = y_batch.to(self.parser.device)
-                output = self.parser.model(x_batch)
-
-                pred_label = torch.round(output)
-
-                labels_all = torch.cat((labels_all.detach().cpu(), y_batch.detach().cpu().view(-1)), dim=0)
-                output_all = torch.cat((output_all.detach().cpu(), output.view(-1).detach().cpu()), dim=0)
-
-            ap = average_precision(output_all, labels_all)
-            acc = binary_acc(output_all.type(torch.float).view(-1), labels_all).item()
-        else:"""
         if self.height_==False:
             ap, acc = data_test.evaluate(self.parser.model, self.parser.device, 10)
             print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
@@ -447,8 +392,6 @@ class Evaluator():
             print('Ap Far : {:.1f} | Middle 1 : {:.1f} | Middle_2 : {:.1f} | Close :{:.1f}'.format(ap_1*100, ap_2*100, ap_3*100, ap_4*100))
             #print('Ac Far : {:.1f} | Middle 1 : {:.1f} | Middle_2 : {:.1f} | Close :{:.1f}'.format(ac_1*100, ac_2*100, ac_3*100, ac_4*100))
             print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
-        
-
 
 class Trainer():
     """
@@ -585,7 +528,6 @@ class Trainer():
                 aps, accs = data.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it, heights_=False)
                 tab_ap.append(aps)
                 tab_acc.append(accs)
-            #exit(0)
             aps, accs = np.mean(tab_ap), np.mean(tab_acc)
         else:
             aps, accs = self.parser.dataset_val.evaluate(self.parser.model, self.parser.device, it=self.parser.eval_it)

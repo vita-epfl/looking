@@ -221,19 +221,9 @@ class JAAD_Dataset(Dataset):
         preds = preds.detach().cpu().numpy()
         ground_truths = ground_truths.detach().cpu().numpy()
 
-        # For JAAD the percentiles are fixed
-        #perc_1 = 65
-        #perc_2 = 165
-        #perc_3 = 365
-
-
         perc_1 = 110
         perc_2 = 160
         perc_3 = 240
-        #print(np.percentile(heights, 25))
-        #print(np.percentile(heights, 50))
-        #print(np.percentile(heights, 75))
-        #eixt(0)
 
         preds_1 = preds[heights <= perc_1]
         ground_truths_1 = ground_truths[heights <= perc_1]

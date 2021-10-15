@@ -341,17 +341,6 @@ def normalize_by_image_(X, Y, height_=False, type_='JAAD'):
             if height_ is enabled, returns the normalized arrays and an array of heights. else returns the normalized arrays
     """
     
-    """if type_ == 'JAAD':
-        image_width, image_height = 1980, 1280
-    elif type_ == 'Kitti':
-        image_width, image_height = 1238, 374
-    elif type_ == 'Jack':
-        image_width, image_height = 752, 480
-    elif type_ == 'Nu':
-        image_width, image_height = 1600, 900
-    else:
-        image_width, image_height = None, None"""
-    
     if type_ == 'JAAD':
         image_width, image_height = 1980, 1280
     elif type_ == 'Kitti':
