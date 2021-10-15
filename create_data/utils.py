@@ -302,7 +302,7 @@ class JAAD_creator():
 						bb_final = bb
 						sc = di["score"]
 				
-				if iou_max > 0.3:
+				if iou_max >= 0.3:
 					kps = convert_kps(data_json[j]["keypoints"])
 					name_head = str(name_pic).zfill(10)+'.png'
 					name_eyes = str(name_pic).zfill(10)+'_eyes.png'
@@ -745,7 +745,7 @@ class PIE_creator():
                             sc = di["score"]
                     
                     
-                    if iou_max > 0.3:
+                    if iou_max >= 0.3:
                         kps = convert_kps(data_json[j]["keypoints"])
                         name_head = str(name_pic).zfill(10)+'.png'
 
