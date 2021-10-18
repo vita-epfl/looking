@@ -345,7 +345,7 @@ def normalize_by_image_(X, Y, height_=False, type_='JAAD'):
         image_width, image_height = 1980, 1280
     elif type_ == 'Kitti':
         image_width, image_height = 1238, 374
-    elif type_ == 'JDRB':
+    elif type_ == 'JRDB':
         image_width, image_height = 752, 480
     elif type_ == 'Nuscenes':
         image_width, image_height = 1600, 900

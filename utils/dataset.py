@@ -10,6 +10,7 @@ from glob import glob
 from PIL import Image
 from utils.utils_train import *
 import cv2
+from utils.utils_eval import eval_sampling
 
 np.random.seed(0)
 
@@ -1013,7 +1014,7 @@ class PIE_Dataset(Dataset):
 
 
 class Eval_Dataset_joints(Dataset):
-    """JAAD dataset for training and inference"""
+    """Dataset class for evaluation"""
 
     def __init__(self, data_x, data_y, heights=None):
         """
@@ -1044,7 +1045,7 @@ class Eval_Dataset_joints(Dataset):
         return torch.Tensor(sample['image']), sample['label'], height
 
 class Eval_Dataset_heads(Dataset):
-    """JAAD dataset for training and inference"""
+    """Dataset class for evaluation"""
 
     def __init__(self, path_jaad, data_x, data_y, transform=None, heights=None):
         """
@@ -1087,7 +1088,7 @@ class Eval_Dataset_heads(Dataset):
         return tab_X, tab_Y
 
 class Eval_Dataset_heads_joints(Dataset):
-	"""JAAD dataset for training and inference"""
+	"""Dataset class for evaluation"""
 
 	def __init__(self, path_data, data_x, data_y, kps, transform, heights=None):
 		"""
@@ -1140,7 +1141,7 @@ class LOOK_dataset_(Dataset):
         assert self.type in ['joints', 'heads', 'heads+joints', 'eyes+joints', 'eyes']
         assert self.pose in ["head", 'full', 'body']
         assert self.split in ['train', 'test', 'val']
-        print('Eval on: ', self.data_name)
+        print('LOOK subset: ', self.data_name)
         self.file  = open(os.path.join(self.path_gt_txt,'ground_truth_look.txt'), "r")
         self.X, self.kps, self.Y = self.preprocess()
     def __len__(self):
@@ -1178,7 +1179,6 @@ class LOOK_dataset_(Dataset):
         - Y : An array containing the labels
         - kps : A tensor containing all the joints for the corresponding set
         """
-        output = []
         X = []
         Y = []
         kps = []
@@ -1210,8 +1210,7 @@ class LOOK_dataset_(Dataset):
                     kps.append(tensor)
                     self.heights.append(height)
                     Y.append(int(line_s[-1])) # append the label
-                else:
-                    
+                else:                
                     if self.data_name == line_s[1]:
                         if self.type != 'eyes+joints':
                             if self.type == 'eyes':
@@ -1296,7 +1295,7 @@ class LOOK_dataset_(Dataset):
             positive_samples = np.array(tab_X)[idx_Y1]
             positive_samples_labels = np.array(tab_Y)[idx_Y1]
             N_pos = len(idx_Y1)
-            print(N_pos)
+            print('Number of positive samples: ', N_pos)
             aps = []
             accs = []
             aps1 = []
@@ -1314,8 +1313,8 @@ class LOOK_dataset_(Dataset):
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
                 
                 acc = 0
-                out_lab = torch.Tensor([]).type(torch.float)
-                test_lab = torch.Tensor([])
+                total_output_tensor = torch.Tensor([]).type(torch.float)
+                total_labels_tensor = torch.Tensor([])
                 if heights_:
                     heights = np.array(self.heights)[np.concatenate((idx_Y1, idx_Y0[:N_pos]))]
 
@@ -1330,22 +1329,20 @@ class LOOK_dataset_(Dataset):
                         x_test, y_test = x_test.to(device), y_test.to(device)
                         if heights_:
                             heights.extend(height.detach().numpy().tolist())
-                        output = model(x_test)
-                        out_pred = output
+                        predicted_output = model(x_test)
                         
                         le = x_test.shape[0]
-                        #out_pred = torch.zeros([le, 1]).to(device)
-                        pred_label = torch.round(out_pred)
+                        pred_label = torch.round(predicted_output)
 
                         acc += le*binary_acc(pred_label.type(torch.float), y_test.type(torch.float).view(-1,1)).item()
-                        test_lab = torch.cat((test_lab.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
-                        out_lab = torch.cat((out_lab.detach().cpu(), out_pred.view(-1).detach().cpu()), dim=0)
+                        total_labels_tensor = torch.cat((total_labels_tensor.detach().cpu(), y_test.type(torch.float).view(-1).detach().cpu()), dim=0)
+                        total_output_tensor = torch.cat((total_output_tensor.detach().cpu(), predicted_output.view(-1).detach().cpu()), dim=0)
                     acc /= len(new_data)
-                ap = average_precision(out_lab, test_lab)
+                ap = average_precision(total_output_tensor, total_labels_tensor)
                 accs.append(acc)
                 aps.append(ap)
                 if heights_:
-                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, out_lab, test_lab)
+                    ap_1, ap_2, ap_3, ap_4, distance = self.eval_ablation(heights, total_output_tensor, total_labels_tensor)
                     aps1.append(ap_1)
                     aps2.append(ap_2)
                     aps3.append(ap_3)
@@ -1361,7 +1358,7 @@ class LOOK_dataset_(Dataset):
             positive_samples = np.array(tab_X)[idx_Y1]
             positive_samples_labels = np.array(tab_Y)[idx_Y1]
             N_pos = len(idx_Y1)
-            print(N_pos)
+            print('Number of positive samples: ', N_pos)
             aps = []
             accs = []
             aps1 = []
@@ -1471,9 +1468,6 @@ class LOOK_dataset_(Dataset):
                         out_lab = torch.cat((out_lab.detach().cpu(), output.view(-1).detach().cpu()), dim=0)
 
                 acc /= len(new_data)
-                #print(out_lab)
-                #print(test_lab)
-                #exit(0)
                 ap = average_precision(out_lab, test_lab)
                 #print(ap)
                 accs.append(acc)

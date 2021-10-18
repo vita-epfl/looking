@@ -18,9 +18,6 @@ class Parser():
         self.data_args = config['Dataset']
         self.multi_args = config['Multi_Dataset']
         self.jaad_args = config['JAAD_dataset']
-        self.kitti_args = config['Kitti_dataset']
-        self.nu_args = config['Nuscenes_dataset']
-        self.jack_args = config['JackRabbot_dataset']
         self.pie_args = config['PIE_dataset']
         self.look_args = config['LOOK']
         use_cuda = torch.cuda.is_available()
@@ -148,17 +145,12 @@ class Parser():
                     exit(0)
             fusion_type = self.general['fusion_type']
             if backbone == 'resnet18':
-                #model = LookingNet_early_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
-                #model = LookingNet_late_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
                 if fusion_type == 'early':
                     model = LookingNet_early_fusion_18_concat(path_backbone, path_model_joints, self.device, fine_tune)
-                    #model = LookingNet_early_fusion_18_new(path_backbone, path_model_joints, self.device, fine_tune)
                 else:
                     model = LookingNet_late_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
-                #LookingNet_early_fusion_18_new
             else:
                 if fusion_type == 'early':
-                    #model = LookingNet_early_fusion_50_new(path_backbone, path_model_joints, self.device, fine_tune)
                     model = LookingNet_early_fusion_50_fine_tune(path_backbone, path_model_joints, self.device, fine_tune)
                 else:
                     model = LookingNet_late_fusion_50(path_backbone, path_model_joints, self.device, fine_tune)
@@ -340,7 +332,7 @@ class Parser():
             if 'JAAD' in self.data_args['name']:
                 additional_features += '{}'.format(self.data_args['split'])
             if 'LOOK' in self.data_args['name']:
-                additional_features += 'data_'+self.look_args['data']
+                additional_features += self.look_args['trained_on']
             if self.model_type['type'] == 'heads' and self.fine_tune == True:
                 additional_features += '_fine_tune'
 
@@ -371,10 +363,6 @@ class Evaluator():
             print('ERROR : Model file doesnt exists, please train your model first or review your parameters')
             exit(0)
         self.height_ = self.parser.eval_params.getboolean('height')
-    def evaluate_distance(self):
-        ap, acc, ap_1, ap_2, ap_3 = data_test.evaluate(self.parser.model, self.parser.device, 10, True)
-        print('Far : {} | Middle : {} | Close :{}'.format(ap_1, ap_2, ap_3))
-        print('Evaluation on {} | acc:{:.1f} | ap:{:.1f}'.format(data_to_evaluate, acc, ap*100))
 
     def evaluate(self):
         """
