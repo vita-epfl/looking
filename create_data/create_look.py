@@ -26,6 +26,8 @@ path_images = args.pimg
 folders = ['Nuscenes', 'JRDB', 'Kitti']
 
 IOU_THRESHOLD = 0.3
+IOU_THRESHOLD_TEST = 0.5
+
 
 def init_job():
     """
@@ -210,8 +212,8 @@ def get_indice_max_iou(di_pifpaf, array_bboxes):
     if len(array_bboxes) != 0:
         ious = np.array([bb_intersection_over_union(bbox_pifpaf, b) for b in array_bboxes])
         if np.max(ious) >= IOU_THRESHOLD:
-            return np.where(ious == np.max(ious))[0][0]
-    return -1
+            return np.where(ious == np.max(ious))[0][0], np.max(ious)
+    return -1, None
 
 txt_final_file, file = init_job()
 di_annotations, stats_data = parse_annotation(file)
@@ -219,13 +221,14 @@ di_annotations, stats_data = parse_annotation(file)
 
 def main():
     """
-
+    Main function of the matching script
     """
     i = 0
     counts_data = {}
     for j, keys in tqdm(enumerate(di_annotations)):
         name_data = keys.split('/')[1]
-        path_keypoints = keys.replace('LOOK', 'LOOK_keypoints')+'.predictions.json'
+        path_keypoints = keys.replace('LOOK/', '')+'.predictions.json'
+        
         file_keypoints = open(os.path.join(path_look_keypoints, path_keypoints), 'r')
         pifpaf_di = json.load(file_keypoints)
 
@@ -233,10 +236,10 @@ def main():
         looking_labels = di_annotations[keys]['labels']
         splits = di_annotations[keys]['splits']
 
-        img = Image.open(os.path.join(path_images, keys))
+        img = Image.open(os.path.join(path_images, keys.replace('LOOK/', '')))
 
         for pifpaf_instances in pifpaf_di:
-            index_max_iou = get_indice_max_iou(pifpaf_instances, bboxes_anno)
+            index_max_iou, iou = get_indice_max_iou(pifpaf_instances, bboxes_anno)
 
             if index_max_iou != -1:
                 label = looking_labels[index_max_iou]
@@ -257,19 +260,20 @@ def main():
                     else:
                         split = splits[index_max_iou]
 
-                    bbox_final_without_enlarge = convert_bb(pifpaf_instances['bbox'])
-                    converted_kps = convert(pifpaf_instances['keypoints'])
-                    di = {"X":converted_kps}
-                    json.dump(di, open(out_name, "w"))
-					
-                    head = crop(np.asarray(img), convert_bb(enlarge_bbox(pifpaf_instances['bbox'])))
-                    Image.fromarray(head).convert('RGB').save(os.path.join(path_output_files, out_name+'.png'))
 
-                    eyes = crop_eyes(np.asarray(img), converted_kps)
-                    Image.fromarray(eyes).convert('RGB').save(os.path.join(path_output_files,out_name+'_eyes.png'))
+                    if (split == 'test' and iou >= IOU_THRESHOLD_TEST) or (split!='test'):
+                        bbox_final_without_enlarge = convert_bb(pifpaf_instances['bbox'])
+                        converted_kps = convert(pifpaf_instances['keypoints'])
+                        di = {"X":converted_kps}
+                        json.dump(di, open(out_name, "w"))
+                        
+                        head = crop(np.asarray(img), convert_bb(enlarge_bbox(pifpaf_instances['bbox'])))
+                        Image.fromarray(head).convert('RGB').save(os.path.join(path_output_files, out_name+'.png'))
 
-                    line = ','.join([os.path.join(path_images, keys), name_data, split, out_name, str(bbox_final_without_enlarge[0]), str(bbox_final_without_enlarge[1]), str(bbox_final_without_enlarge[2]),str(bbox_final_without_enlarge[-1]), str(label)+'\n'])
-                    txt_final_file.write(line)
-                    i += 1
+                        eyes = crop_eyes(np.asarray(img), converted_kps)
+                        Image.fromarray(eyes).convert('RGB').save(os.path.join(path_output_files,out_name+'_eyes.png'))
 
+                        line = ','.join([os.path.join(path_images, keys), name_data, split, out_name, str(bbox_final_without_enlarge[0]), str(bbox_final_without_enlarge[1]), str(bbox_final_without_enlarge[2]),str(bbox_final_without_enlarge[-1]), str(label)+'\n'])
+                        txt_final_file.write(line)
+                        i += 1
 main()
