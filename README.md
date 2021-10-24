@@ -8,7 +8,7 @@ Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-d
 
 Use ```python>=3.6.9```. Run ```pip3 install -r requirements.txt```
 
-## Create the datasets
+## Build the datasets
 
 Please follow the instructions on the folder ``` create_data/```.
 
@@ -46,12 +46,34 @@ You have one config file to modify. **Do not change the variables name**
 
 | Parameter                 |Description   |
 | :------------------------ |:-------------|
-| ```name```  | Name of the dataset to train on, choice between [```JAAD```, ```Kitti```, ```Nu```, ```JackRabbot```] |
+| ```name```  | Name of the dataset to train on, choice between [```JAAD```, ```LOOK```, ```PIE```] |
 | ```path_data``` | Path of the dataset folder of the selected dataset. Please refer to ```create_data/``` folder |
-| ```split``` | Splitting strategy, applicable only if [```JAAD````] selected above. Choice between [```scenes```, ```instances```] |
-| ```path_txt``` | path to the ground truth txt file, this parameter shouldn't be modified if the dataset has been created correctly |
+| ```split``` | Splitting strategy, applicable only if [```JAAD````] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
+| ```path_txt``` | path to the ground truth txt files, this parameter shouldn't be modified if the dataset has been created correctly. Default: ```./create_data``` |
+
+**Multi-Dataset parameters**: 
+| Parameter                 |Description   |
+| :------------------------ |:-------------|
+| ```train_datasets```  | Name of the datasets to train on separated by a comma **wihtout a space**. Examples: ```JAAD,PIE```, ```LOOK,JAAD```, ```LOOK,PIE,JAAD```] |
+| ```weighted``` | Enable the weighted sampling while training. Choice between [```yes```, ```no```] |
+
+After changing your configuration file, run:
+
+```python train.py --file [PATH_TO_CONFIG_FILE]```
+
+A sample config file can be found at ```config_example.ini```
 
 ## Evaluate your trained models
 
+Here you need to specify 2 things. The dataset **you have trained your model** and the dataset **you want to evaluate your model**.
+
+
+
 ## Predictor
 
+Get predictions from our pretrained model using any image with the predictor. You need to specify the following arguments:
+
+| Parameter                 |Description   |
+| :------------------------ |:-------------|
+| ```--glob``` | Glob expression to be used. Example: ```.png``` |
+| ```--images```  | Path to the input images. If glob is enabled you need the path to the directory where you have the query images |
