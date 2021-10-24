@@ -14,6 +14,10 @@ Get directly the ground truth annotation file from [here](https://drive.google.c
 
 You can download all the images directly from this [link](https://drive.google.com/file/d/1OfsIIY9ljhCkZfLqL8n_n--X8oNBPfpj/view?usp=sharing).
 
+#### 1.1.2. Manual download
+
+Follow the instructions provided at the [benchmark website](https://looking-epfl.github.io/)
+
 ### 1.2. Getting the keypoints
 
 After extracting the raw images, run ```run_pifpaf.py``` with the following arguments
@@ -131,3 +135,5 @@ python split.py --txt_out $PATH_JAAD_GT_OUT
 | ```--txt_out``` | Path to the output text file. Default: ```./split_jaad```. Preferably not to change |
 
 Alternatively you can run ```sh create_jaad.sh``` after changing the variables name in the file. This script will automate the process, even the keypoints will be downloaded directly from the web.
+
+## 3.1. Create the PIE dataset
