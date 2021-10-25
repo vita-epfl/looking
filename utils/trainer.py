@@ -273,8 +273,6 @@ class Parser():
     def get_data_test(self, data_type):
         split_strategy = self.eval_params['split']
         path_txt = os.path.join(self.data_args['path_txt'], 'splits_'+data_type.lower())
-        #path_txt = os.path.join(self.data_args['path_txt'], 'splits_look')
-        print(path_txt)
         dataset_test = []
         path_data = self.eval_params['path_data_eval']
         if data_type == 'JAAD':
@@ -485,8 +483,7 @@ class Trainer():
                     x_ticks.append(i)
             ax.set_xticks(x_ticks) # <--- set the ticks first
             ax.set_xticklabels([str((i+1)*5) for i in range(int(self.parser.epochs/5))], rotation=0)
-            ax.tick_params(bottom=False) 
-            #ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 6)
+            ax.tick_params(bottom=False)
             plt.xlabel("Number of Epochs")
             plt.tight_layout()
             plt.savefig(self.parser.out_grad)
@@ -494,9 +491,6 @@ class Trainer():
 
             ax = sns.heatmap(grads_magnitude, linewidth=0.5, yticklabels=y_labels, xticklabels=list(range(1, self.parser.epochs+1)), vmin=0, vmax=1)
             ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize = 6)
-            #ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize = 6)
-            #ax.set(xticklabels=[])
-            #ax.tick_params(bottom=False) 
             ax.set_xticks(x_ticks) # <--- set the ticks first
             ax.set_xticklabels([str((i+1)*5) for i in range(int(self.parser.epochs/5))],rotation=0)
             ax.tick_params(bottom=False) 
