@@ -8,12 +8,16 @@ Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-d
   * [Requirements](#requirements)
   * [Build the datasets](#build-the-datasets)
   * [Train your models](#train-your-models)
+    + [**General parameters for training**:](#--general-parameters-for-training---)
+    + [**Model parameters** :](#--model-parameters----)
+    + [**Dataset parameters** :](#--dataset-parameters----)
+    + [**Multi-Dataset parameters**:](#--multi-dataset-parameters---)
+    + [**LOOK-Dataset parameters**:](#--look-dataset-parameters---)
   * [Evaluate your trained models](#evaluate-your-trained-models)
     + [General parameters for evaluation](#general-parameters-for-evaluation)
     + [Evaluate on LOOK / Use a trained model on LOOK](#evaluate-on-look---use-a-trained-model-on-look)
     + [Evaluate on JAAD or PIE](#evaluate-on-jaad-or-pie)
-  * [Get the predictions from an image](#predictor)
-
+  * [Predictor](#predictor)
 
 ## Requirements
 
@@ -27,7 +31,7 @@ Please follow the instructions on the folder ``` create_data/```.
 
 You have one config file to modify. **Do not change the variables name**
 
-**General parameters for training**:
+### General parameters for training:
 
 | Parameter                 |Description   |
 | :------------------------ |:-------------|
@@ -44,7 +48,7 @@ You have one config file to modify. **Do not change the variables name**
 | ```eval_it``` | Number of iterations for negative sampling on the validation set |
 | ```multi_dataset``` | Enables the mutli dataset training configuration. Choice between  [```yes```, ```no```].|
 
-**Model parameters** :
+### Model parameters :
 
 | Parameter                 |Description   |
 | :------------------------ |:-------------|
@@ -53,7 +57,9 @@ You have one config file to modify. **Do not change the variables name**
 | ```fine_tune``` | Enable finetuning. Applicable only if [```heads```, ```heads+joints```] selected above |
 | ```trained_on``` | Applicable only if ```heads+joints``` selected. Must be the name of the dataset where we trained the heads model. |
 
-**Dataset parameters** : This section has to be modified only if you train your model on a single-dataset configuration. For a multi dataset configuration the parameters in the ```Multi_dataset``` parameters will be considered.
+### Dataset parameters :
+
+This section has to be modified only if you train your model on a single-dataset configuration. For a multi dataset configuration the parameters in the ```Multi_dataset``` parameters will be considered.
 
 | Parameter                 |Description   |
 | :------------------------ |:-------------|
@@ -62,13 +68,13 @@ You have one config file to modify. **Do not change the variables name**
 | ```split``` | Splitting strategy, applicable only if [```JAAD```] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
 | ```path_txt``` | path to the ground truth txt files, this parameter shouldn't be modified if the dataset has been created correctly. Default: ```./create_data``` |
 
-**Multi-Dataset parameters**: 
+### Multi-Dataset parameters: 
 | Parameter                 |Description   |
 | :------------------------ |:-------------|
 | ```train_datasets```  | Name of the datasets to train on separated by a comma **wihtout a space**. Examples: ```JAAD,PIE```, ```LOOK,JAAD```, ```LOOK,PIE,JAAD```] |
 | ```weighted``` | Enable the weighted sampling while training. Choice between [```yes```, ```no```] |
 
-**LOOK-Dataset parameters**: 
+### LOOK-Dataset parameters: 
 | Parameter                 |Description   |
 | :------------------------ |:-------------|
 | ```data```  | Name of subset to train the model on. Choice between [```all```, ```Kitti```, ```JRDB```, ```Nuscenes```] |
