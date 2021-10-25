@@ -122,7 +122,7 @@ If you want to evaluate your model on JAAD or PIE, you should modify the ```JAAD
 
 ## Predictor
 
-![alt text](https://github.com/vita-epfl/looking/blob/main/images/kitti.gif)
+![alt text](https://github.com/vita-epfl/looking/blob/main/images/kitti.gif =1238x375)
 
 Get predictions from our pretrained model using any image with the predictor. You need to specify the following arguments:
 
