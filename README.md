@@ -1,6 +1,6 @@
 # Do pedestrians pay attention? Eye contact detection for autonomous driving - Official repository
 
-![alt text](https://github.com/vita-epfl/looking/blob/experiments_final/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png)
+![alt text](https://github.com/vita-epfl/looking/blob/main/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png)
 
 Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-daytime.html . Results obtained with the model trained on JackRabbot, Nuscenes, JAAD and Kitti. The model file is available at ```models/predictor``` and can be reused for testing with the predictor. 
 
@@ -122,7 +122,7 @@ If you want to evaluate your model on JAAD or PIE, you should modify the ```JAAD
 
 ## Predictor
 
-![alt text](https://github.com/vita-epfl/looking/blob/experiments_final/images/kitti.gif)
+![alt text](https://github.com/vita-epfl/looking/blob/main/images/kitti.gif)
 
 Get predictions from our pretrained model using any image with the predictor. You need to specify the following arguments:
 
