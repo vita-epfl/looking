@@ -2,6 +2,31 @@
 
 Please follow carefully the instructions below to configure and build the datasets
 
+## Table of Contents
+  * [1. Create the LOOK dataset](#1-create-the-look-dataset)
+    + [0.1. Get the ground truth annotation file](#01-get-the-ground-truth-annotation-file)
+    + [1.1. Getting the raw images](#11-getting-the-raw-images)
+      - [0.1.1. Fast setup](#011-fast-setup)
+      - [1.1.1. Fast download](#111-fast-download)
+      - [1.1.2. Manual download](#112-manual-download)
+    + [1.2. Getting the keypoints](#12-getting-the-keypoints)
+      - [1.2.1 Fast download](#121-fast-download)
+      - [1.2.2 Run Pifpaf on the raw images](#122-run-pifpaf-on-the-raw-images)
+    + [1.3. Building the LOOK dataset](#13-building-the-look-dataset)
+  * [2. Create the JAAD dataset](#2-create-the-jaad-dataset)
+    + [2.0 Easy Download and building](#20-easy-download-and-building)
+    + [2.1. Get the keypoints](#21-get-the-keypoints)
+      - [2.1.1 If you want to download our keypoints:](#211-if-you-want-to-download-our-keypoints-)
+      - [2.1.2 If you want to run Pifpaf keypoints detector by yourself](#212-if-you-want-to-run-pifpaf-keypoints-detector-by-yourself)
+      - [2.1.3 If you want to run another keypoints detector by yourself](#213-if-you-want-to-run-another-keypoints-detector-by-yourself)
+    + [2.2. Build the JAAD dataset](#22-build-the-jaad-dataset)
+  * [3. Create the PIE dataset](#3-create-the-pie-dataset)
+    + [3.1. Get the keypoints](#31-get-the-keypoints)
+      - [3.1.1. Easy download](#311-easy-download)
+      - [3.1.2. Run Pifpaf on PIE dataset](#312-run-pifpaf-on-pie-dataset)
+      - [3.1.3. Run another keypoints detector](#313-run-another-keypoints-detector)
+    + [3.2. Build the PIE dataset](#32-build-the-pie-dataset)
+
 ## 1. Create the LOOK dataset
 
 ### 0.1. Get the ground truth annotation file
