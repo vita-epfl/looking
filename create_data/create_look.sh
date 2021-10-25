@@ -1,11 +1,16 @@
 #!/bin/sh
+ID_ANNOTATION='1nXYHkfcl_velTE8JJsHpyUdPRZEFG1QP'
 ID_LOOK='1WH6fKrXW0AbbTkvOELinxHOfZPOFuLMv'
 ID_KEYPOINTS='1L1ChkEw9PQb1eEub3InkvHlgkdQzbdjn'
 BASE_PATH=$(pwd)
-PATH_OUTPUT_DATA="~/data/LOOK/"
-PATH_OUTPUT_DATA_ALL="~/data/LOOK/LOOK_all"
+
+PATH_OUTPUT_DATA="/home/younesbelkada/data/LOOK/"
+PATH_OUTPUT_DATA_ALL="/home/younesbelkada/data/LOOK/LOOK_all"
+
 PATH_GT_OUT="./splits_look"
 PATH_GT_FILE="./annotations.csv"
+
+gdown --id $ID_ANNOTATION
 
 mkdir -p $PATH_OUTPUT_DATA
 mkdir -p $PATH_OUTPUT_DATA_ALL
