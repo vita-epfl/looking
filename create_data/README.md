@@ -20,6 +20,12 @@ Follow the instructions provided at the [benchmark website](https://looking-epfl
 
 ### 1.2. Getting the keypoints
 
+#### 1.2.1 Fast download
+
+Download the our keypoints directly from [here](https://drive.google.com/file/d/1L1ChkEw9PQb1eEub3InkvHlgkdQzbdjn/view?usp=sharing) for a fast download.  
+
+#### 1.2.2 Run Pifpaf on the raw images
+
 After extracting the raw images, run ```run_pifpaf.py``` with the following arguments
 
 | Parameter                 |Description   |
@@ -161,4 +167,4 @@ Once we have the keypoints and the raw images, we need to build the dataset. Run
 | ```--path_pie```  | Path to the PIE official repository |
 | ```--path_keypoints``` | Path to the keypoints files |
 | ```--path_output_files``` | Path to the output files where the keypoints and crops will be stored  |
-| ```--txt_out``` | Path to the output text file. Default: ```./split_pie```. Preferably not to change |
+| ```--txt_out``` | Path to the output text file. Variable name to use: ```./split_pie```. |
