@@ -1,7 +1,6 @@
 import configparser
 from utils.dataset import *
 from utils.network import *
-from utils.losses import *
 from utils.utils_predict import *
 import os, errno
 import seaborn as sns
@@ -52,7 +51,7 @@ class Predictor():
     
     def get_model(self):
         model = LookingModel(INPUT_SIZE)
-        if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_BCELoss_full_scenes.p')):
+        if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')):
             """
             DOWNLOAD(LOOKING_MODEL, os.path.join(self.path_model, 'Looking_Model.zip'), quiet=False)
             with ZipFile(os.path.join(self.path_model, 'Looking_Model.zip'), 'r') as zipObj:

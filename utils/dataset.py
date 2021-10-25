@@ -10,7 +10,6 @@ from glob import glob
 from PIL import Image
 from utils.utils_train import *
 import cv2
-from utils.utils_eval import eval_sampling
 
 np.random.seed(0)
 
