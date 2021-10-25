@@ -122,10 +122,6 @@ If you want to evaluate your model on JAAD or PIE, you should modify the ```JAAD
 
 ## Predictor
 
-<a href="https://drive.google.com/uc?export=view&id=1etCYquAr8ARfECTG9h40FwtEPYV-q4xL"><img src="https://drive.google.com/uc?export=view&id=1etCYquAr8ARfECTG9h40FwtEPYV-q4xL" style="width: 650px; max-width: 100%; height: auto" title="Click to enlarge picture" />
-
-![alt text](https://drive.google.com/uc?export=view&id=1etCYquAr8ARfECTG9h40FwtEPYV-q4xL)
-
 Get predictions from our pretrained model using any image with the predictor. You need to specify the following arguments:
 
 | Parameter                 |Description   |
