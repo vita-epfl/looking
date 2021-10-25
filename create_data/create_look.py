@@ -11,7 +11,7 @@ import errno
 parser = argparse.ArgumentParser(description='Script to build the LOOK dataset')
 parser.add_argument('--path_gt', dest='pgt', type=str, help='path to the annotation file', default="./annotations.csv")
 parser.add_argument('--path_out_txt', dest='pot', type=str, help='path to the output txt files', default="./splits_look")
-parser.add_argument('--path_output_files', dest='pof', type=str, help='path to the input images', default="/data/younes-data/LOOK/LOOK_all")
+parser.add_argument('--path_output_files', dest='pof', type=str, help='path to the output images', default="/data/younes-data/LOOK/LOOK_all")
 parser.add_argument('--mode', dest='mo', type=str, help='dataset mode', default="all")
 parser.add_argument('--path_keypoints', dest='pkps', type=str, help='path to the pifpaf files', default="/data/younes-data")
 parser.add_argument('--path_images', dest='pimg', type=str, help='path to the image files', default="/data/younes-data/LOOK")

@@ -7,6 +7,15 @@ import errno
 from glob import glob
 from PIL import Image, ImageFile
 import numpy as np
+import argparse
+
+parser = argparse.ArgumentParser(description='Script to build the PIE dataset')
+parser.add_argument('--path_pie', dest='ppie', type=str, help='path to the PIE dataset', default="./PIE")
+parser.add_argument('--path_out_txt', dest='pot', type=str, help='path to the output txt files', default="./splits_pie")
+parser.add_argument('--path_output_files', dest='pof', type=str, help='path to the output images', default="/data/younes-data/PIE")
+parser.add_argument('--path_keypoints', dest='pkps', type=str, help='path to the pifpaf files', default="/data/younes-data")
+
+args = parser.parse_args()
 
 np.random.seed(0)
 
@@ -155,6 +164,13 @@ def bb_intersection_over_union(boxA, boxB):
 	# return the intersection over union value
 	return iou
 
+def create_directory(dir_name):
+	try:
+		os.makedirs(dir_name)
+	except OSError as e:
+		if e.errno != errno.EEXIST:
+			raise
+
 def crop_jaad(img, bbox):
 	for i in range(len(bbox)):
 		if bbox[i] < 0:
@@ -266,10 +282,16 @@ class PIE_creator():
                         file_out.write(line)
         file_out.close()
 
-path_pie = '/work/vita/datasets/PIE'
+path_pie = args.ppie
+path_output_txt = args.pot
+path_output_files = args.pof
+path_keypoints = args.pkps
+
+create_directory(path_output_txt)
+create_directory(path_output_files)
+
 pie_loader = PIE_loader(path_pie)
 data = pie_loader.generate()
 
-
-creator = PIE_creator('./', '/work/vita/younes/data/PIE', './output_pifpaf_pie', '/work/vita/datasets/PIE/images')
+creator = PIE_creator(path_output_txt, path_output_files, path_keypoints, path_pie)
 creator.create(data)
