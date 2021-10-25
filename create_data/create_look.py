@@ -206,10 +206,6 @@ def get_indice_max_iou(di_pifpaf, array_bboxes):
             return np.where(ious == np.max(ious))[0][0], np.max(ious)
     return -1, None
 
-txt_final_file, file = init_job()
-di_annotations, stats_data = parse_annotation(file)
-
-
 def main():
     """
     Main function of the matching script
@@ -277,5 +273,8 @@ if __name__ == '__main__':
     path_output_files = args.pof
     path_images = args.pimg
     folders = ['Nuscenes', 'JRDB', 'Kitti']
+
+    txt_final_file, file = init_job()
+    di_annotations, stats_data = parse_annotation(file)
 
     main()
