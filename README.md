@@ -48,7 +48,7 @@ You have one config file to modify. **Do not change the variables name**
 | :------------------------ |:-------------|
 | ```name```  | Name of the dataset to train on, choice between [```JAAD```, ```LOOK```, ```PIE```] |
 | ```path_data``` | Path of the dataset folder of the selected dataset. Please refer to ```create_data/``` folder |
-| ```split``` | Splitting strategy, applicable only if [```JAAD````] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
+| ```split``` | Splitting strategy, applicable only if [```JAAD```] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
 | ```path_txt``` | path to the ground truth txt files, this parameter shouldn't be modified if the dataset has been created correctly. Default: ```./create_data``` |
 
 **Multi-Dataset parameters**: 
@@ -82,7 +82,7 @@ Take a look at the ```Eval``` section. Here are the details for each variable:
 | :------------------------ |:-------------|
 | ```eval_on```  | Name of the datasets to evaluate. Choice between [```JAAD```, ```LOOK```, ```PIE```] |
 | ```height``` | Enable the ablation study on the heights of the pedestrians (see the paper for more details). Choice between [```yes```, ```no```] |
-| ```split``` | Splitting strategy, applicable only if [```JAAD````] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
+| ```split``` | Splitting strategy, applicable only if [```JAAD```] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
 | ```path_data_eval``` | Path where the built data is stored. |
 
 
@@ -100,7 +100,7 @@ If you want to evaluate your model on JAAD or PIE, you should modify the ```JAAD
 | Parameter                 |Description   |
 | :------------------------ |:-------------|
 | ```path_data```  | Path where the built data is stored |
-| ```split``` | Splitting strategy, applicable only if [```JAAD````] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
+| ```split``` | Splitting strategy, applicable only if [```JAAD```] selected above. Choice between [```scenes```, ```instances```]. Otherwise you can put anything, it will be ignored. |
 | ```path_txt``` | path to the ground truth txt files, this parameter shouldn't be modified if the dataset has been created correctly. Default: ```./create_data``` |
 
 ## Predictor
