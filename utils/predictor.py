@@ -51,7 +51,7 @@ class Predictor():
     
     def get_model(self):
         model = LookingModel(INPUT_SIZE)
-        if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_JAAD.p')):
+        if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')):
             """
             DOWNLOAD(LOOKING_MODEL, os.path.join(self.path_model, 'Looking_Model.zip'), quiet=False)
             with ZipFile(os.path.join(self.path_model, 'Looking_Model.zip'), 'r') as zipObj:

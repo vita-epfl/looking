@@ -24,7 +24,20 @@ class SquarePad:
 		return F.pad(image, padding, 0, 'constant')
 
 class LookingModel(nn.Module):
-    def __init__(self, input_size, p_dropout=0.2, output_size=1, linear_size=256, num_stage=3, bce=False):
+    """
+    Class definition for the Looking Model.
+    """
+    def __init__(self, input_size, p_dropout=0.2, output_size=1, linear_size=256, num_stage=3):
+        """[summary]
+
+        Args:
+            input_size (int): Input size for the model. If the whole pose needs to be used, the value should be 51.
+            p_dropout (float, optional): Dropout rate in the linear blocks. Defaults to 0.2.
+            output_size (int, optional): Output number of nodes. Defaults to 1.
+            linear_size (int, optional): Size of the fully connected layers in the Linear blocks. Defaults to 256.
+            num_stage (int, optional): Number of stages to use in the Linear Block. Defaults to 3.
+            bce (bool, optional): Make use of the BCE Loss. Defaults to False.
+        """
         super(LookingModel, self).__init__()
 
         self.input_size = input_size
@@ -32,7 +45,6 @@ class LookingModel(nn.Module):
         self.linear_size = linear_size
         self.p_dropout = p_dropout
         self.num_stage = num_stage
-        self.bce = bce
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(self.p_dropout)
 
@@ -83,7 +95,15 @@ class LookingModel(nn.Module):
 
 
 class Linear(nn.Module):
+    """
+    Class definition of the Linear block
+    """
     def __init__(self, linear_size=256, p_dropout=0.2):
+        """
+        Args:
+            linear_size (int, optional): Size of the FC layers inside the block. Defaults to 256.
+            p_dropout (float, optional): Dropout rate. Defaults to 0.2.
+        """
         super(Linear, self).__init__()
         ###
 
@@ -125,7 +145,15 @@ class Linear(nn.Module):
         return out
 
 class AlexNet_head(nn.Module):
+    """
+    Class definition of the AlexNet crops model (Rasouli et al.).
+    """
     def __init__(self, device, fine_tune=True):
+        """
+        Args:
+            device (torch device): PyTorch device 
+            fine_tune (bool, optional): Use the finetuned model. Defaults to True.
+        """
         super(AlexNet_head, self).__init__()
         net = models.alexnet(pretrained=fine_tune).to(device)
         net.classifier  = nn.Sequential(
@@ -150,6 +178,11 @@ class AlexNet_head(nn.Module):
 
 class ResNet18_head(nn.Module):
     def __init__(self, device, fine_tune=True):
+        """
+        Args:
+            device (torch device): PyTorch device 
+            fine_tune (bool, optional): Use the finetuned model. Defaults to True.
+        """
         super(ResNet18_head, self).__init__()
         self.net = models.resnet18(pretrained=True)
         self.net.fc  = nn.Sequential(
@@ -168,6 +201,11 @@ class ResNet18_head(nn.Module):
 
 class ResNet50_head(nn.Module):
     def __init__(self, device, fine_tune=True):
+        """
+        Args:
+            device (torch device): PyTorch device 
+            fine_tune (bool, optional): Use the finetuned model. Defaults to True.
+        """
         super(ResNet50_head, self).__init__()
         net = models.resnext50_32x4d(pretrained=True)
         net.fc  = nn.Sequential(
@@ -260,7 +298,17 @@ class LookingNet_late_fusion_50_bb(nn.Module):
         return self.final(out_final)
 
 class LookingNet_late_fusion_18(nn.Module):
+    """
+        Class definition for the combined Looking Model. Late fusion architecture with Resnet18 backbone. 
+    """
     def __init__(self, PATH, PATH_look, device, fine_tune=True):
+        """
+        Args:
+            PATH (str): Path to the pretrained ResNet18 heads model. Applicable only if fine-tune is enabled
+            PATH_look (str): Path to the pretrained Looking joints model. Applicable only if fine-tune is enabled
+            device (PyTorch device): PyTorch device
+            fine_tune (bool, optional): Enable fine tune. Defaults to True.
+        """
         super(LookingNet_late_fusion_18, self).__init__()
         self.backbone = ResNet18_head(device)
         if fine_tune:
@@ -313,97 +361,19 @@ class LookingNet_late_fusion_18(nn.Module):
         out_final = torch.cat((self.encoder_head(layer_resnet), self.relu(layer_look)), 1).type(torch.float)
         return self.final(out_final)
 
-class LookingNet_early_fusion_50_new(nn.Module):
-    def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_50_new, self).__init__()
-        self.backbone = ResNet50_head(device)
-        if fine_tune:
-            self.backbone.load_state_dict(torch.load(PATH))
-            for m in self.backbone.net.parameters():
-                m.requires_grad = False
-            self.backbone.eval()
-
-        self.looking_model = LookingModel(51)
-        if fine_tune:
-            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
-            for m in self.looking_model.parameters():
-                m.requires_grad = False
-            self.looking_model.eval()
-
-
-
-        self.encoder_head = nn.Sequential(
-            nn.Linear(2048, 256, bias=False),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True)
-        )
-
-
-    def forward(self, x):
-        head, keypoint = x
-        activation = {}
-        def get_activation(name):
-            def hook(model, input, output):
-                activation[name] = output.detach().squeeze()
-            return hook
-        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
-        _ = self.backbone(head)
-
-        layer_resnet = activation["avgpool"]
-        encoded_head = self.encoder_head(layer_resnet)
-
-        output_first_stage = self.looking_model.forward_first_stage(keypoint)
-        y = self.looking_model.forward_second_stage(output_first_stage+encoded_head)
-        return y
-
-
-class LookingNet_early_fusion_18_new(nn.Module):
-    def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_18_new, self).__init__()
-        self.backbone = ResNet18_head(device)
-        if fine_tune:
-            self.backbone.load_state_dict(torch.load(PATH))
-            for m in self.backbone.net.parameters():
-                m.requires_grad = False
-            self.backbone.eval()
-
-        self.looking_model = LookingModel(51)
-        if fine_tune:
-            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
-            for m in self.looking_model.parameters():
-                m.requires_grad = False
-            self.looking_model.eval()
-
-
-
-        self.encoder_head = nn.Sequential(
-            nn.Linear(512, 256, bias=False),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True)
-        )
-
-
-    def forward(self, x):
-        head, keypoint = x
-        activation = {}
-        def get_activation(name):
-            def hook(model, input, output):
-                activation[name] = output.detach().squeeze()
-            return hook
-        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
-        _ = self.backbone(head)
-
-        layer_resnet = activation["avgpool"]
-        encoded_head = self.encoder_head(layer_resnet)
-
-        output_first_stage = self.looking_model.forward_first_stage(keypoint)
-        y = self.looking_model.forward_second_stage(output_first_stage+encoded_head)
-        return y
 
 class LookingNet_late_fusion_50(nn.Module):
+    """
+        Class definition for the combined Looking Model. Late fusion architecture with ResNext50 backbone. 
+    """
     def __init__(self, PATH, PATH_look, device, fine_tune=True):
+        """
+        Args:
+            PATH (str): Path to the pretrained ResNext50 heads model. Applicable only if fine-tune is enabled
+            PATH_look (str): Path to the pretrained Looking joints model. Applicable only if fine-tune is enabled
+            device (PyTorch device): PyTorch device
+            fine_tune (bool, optional): Enable fine tune. Defaults to True.
+        """
         super(LookingNet_late_fusion_50, self).__init__()
         self.backbone = ResNet50_head(device)
         if fine_tune:
@@ -454,43 +424,20 @@ class LookingNet_late_fusion_50(nn.Module):
         layer_resnet = activation["avgpool"]
 
         out_final = torch.cat((self.encoder_head(layer_resnet), self.relu(layer_look)), 1).type(torch.float)
-        #out_final = torch.cat((self.encoder_head(layer_resnet), layer_look), 1).type(torch.float)
         return self.final(out_final)
 
 class LookingNet_early_fusion_eyes(nn.Module):
+    """
+        Class definition for the combined Looking Model. Early fusion architecture with the eyes crops. 
+    """
     def __init__(self, PATH_look, device, fine_tune=True):
+        """
+        Args:
+            PATH_look (str): Path to the pretrained Looking joints model. Applicable only if fine-tune is enabled
+            device (PyTorch device): PyTorch device
+            fine_tune (bool, optional): Enable fine tune. Defaults to True.
+        """
         super(LookingNet_early_fusion_eyes, self).__init__()
-        self.looking_model = LookingModel(51)
-        print("Fine tune : " , fine_tune)
-        if fine_tune:
-            self.looking_model.load_state_dict(torch.load(PATH_look, map_location=torch.device(device)))
-            for m in self.looking_model.parameters():
-                m.requires_grad = False
-            self.looking_model.eval()
-
-
-
-        self.encoder_eyes = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(900, 256, bias=False),
-            nn.BatchNorm1d(256),
-            nn.Dropout(0.4),
-            nn.ReLU(inplace=True)
-        )
-
-
-    def forward(self, x):
-        
-        eyes, keypoint = x
-        encoded_eyes = self.encoder_eyes(eyes)
-
-        output_first_stage = self.looking_model.forward_first_stage(keypoint)
-        y = self.looking_model.forward_second_stage(output_first_stage+encoded_eyes)
-        return y
-
-class LookingNet_early_fusion_eyes_fine_tune(nn.Module):
-    def __init__(self, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_eyes_fine_tune, self).__init__()
         self.looking_model = LookingModel(51)
         print("Fine tune : " , fine_tune)
         if fine_tune:
@@ -517,7 +464,6 @@ class LookingNet_early_fusion_eyes_fine_tune(nn.Module):
 
         output_first_stage = self.looking_model.forward_first_stage(keypoint)
         y = self.looking_module.forward(output_first_stage+encoded_eyes)
-        #y = self.looking_model.forward_second_stage(output_first_stage+encoded_eyes)
         return y
 
 class Looking_early_module(nn.Module):
@@ -546,9 +492,19 @@ class Looking_early_module(nn.Module):
         return y
 
 
-class LookingNet_early_fusion_18_concat(nn.Module):
+class LookingNet_early_fusion_18(nn.Module):
+    """
+        Class definition for the combined Looking Model. Early fusion architecture with ResNet18 backbone. 
+    """
     def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_18_concat, self).__init__()
+        """
+        Args:
+            PATH (str): Path to the pretrained ResNet18 heads model. Applicable only if fine-tune is enabled
+            PATH_look (str): Path to the pretrained Looking joints model. Applicable only if fine-tune is enabled
+            device (PyTorch device): PyTorch device
+            fine_tune (bool, optional): Enable fine tune. Defaults to True.
+        """
+        super(LookingNet_early_fusion_18, self).__init__()
         self.backbone = ResNet18_head(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH, map_location=torch.device(device)))
@@ -594,9 +550,19 @@ class LookingNet_early_fusion_18_concat(nn.Module):
         y = self.looking_module.forward(output_first_stage+encoded_head)
         return y
 
-class LookingNet_early_fusion_50_fine_tune(nn.Module):
+class LookingNet_early_fusion_50(nn.Module):
+    """
+        Class definition for the combined Looking Model. Early fusion architecture with ResNext50 backbone. 
+    """
     def __init__(self, PATH, PATH_look, device, fine_tune=True):
-        super(LookingNet_early_fusion_50_fine_tune, self).__init__()
+        """
+        Args:
+            PATH (str): Path to the pretrained ResNext50 heads model. Applicable only if fine-tune is enabled
+            PATH_look (str): Path to the pretrained Looking joints model. Applicable only if fine-tune is enabled
+            device (PyTorch device): PyTorch device
+            fine_tune (bool, optional): Enable fine tune. Defaults to True.
+        """
+        super(LookingNet_early_fusion_50, self).__init__()
         self.backbone = ResNet50_head(device)
         if fine_tune:
             self.backbone.load_state_dict(torch.load(PATH))

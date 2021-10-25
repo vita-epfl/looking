@@ -47,12 +47,10 @@ class Parser():
             raise "Not Implemented - Please define your specific loss function or use the default one"
             exit(0)
 
-        
-        
         model_type = self.model_type['type']
         pose = self.general['pose']
         self.grad_map = None
-        assert model_type in ['joints', 'heads', 'heads+joints', 'bb+joints', 'bb', 'eyes+joints', 'eyes']
+        assert model_type in ['joints', 'heads', 'heads+joints', 'eyes+joints', 'eyes']
         assert pose in ['head', 'body', 'full']
         if model_type == 'joints':
             self.grad_map = self.general.getboolean('grad_map')
@@ -63,8 +61,6 @@ class Parser():
             else:
                 INPUT_SIZE = 51
             model = LookingModel(INPUT_SIZE, self.dropout).to(self.device)
-        elif model_type == 'bb':
-            model = LookingModel(4, self.dropout).to(self.device)
         elif model_type == 'eyes':
             self.data_transform = transforms.Compose([
                         transforms.Resize((10,30)),
@@ -146,51 +142,14 @@ class Parser():
             fusion_type = self.general['fusion_type']
             if backbone == 'resnet18':
                 if fusion_type == 'early':
-                    model = LookingNet_early_fusion_18_concat(path_backbone, path_model_joints, self.device, fine_tune)
+                    model = LookingNet_early_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
                 else:
                     model = LookingNet_late_fusion_18(path_backbone, path_model_joints, self.device, fine_tune)
             else:
                 if fusion_type == 'early':
-                    model = LookingNet_early_fusion_50_fine_tune(path_backbone, path_model_joints, self.device, fine_tune)
+                    model = LookingNet_early_fusion_50(path_backbone, path_model_joints, self.device, fine_tune)
                 else:
                     model = LookingNet_late_fusion_50(path_backbone, path_model_joints, self.device, fine_tune)
-        elif model_type == 'bb+joints':
-            backbone = self.model_type['backbone']
-            fine_tune = self.model_type.getboolean('fine_tune')
-            self.data_transform = transforms.Compose([
-                        SquarePad(),
-                        transforms.ToTensor(),
-                    transforms.ToPILImage(),
-                        transforms.Resize((224,224)),
-                    transforms.ToTensor(),
-                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                            std=[0.229, 0.224, 0.225])
-            ])
-            assert backbone in ['resnet18', 'resnet50']
-            if self.model_type['trained_on'] == 'JAAD':
-                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.data_args['split']])+'.p'
-                if backbone == 'resnet18':
-                    name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
-                else:
-                    name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, self.data_args['split']])+'.p'
-            else:
-                name_model_joints = '_'.join(['LookingModel', criterion.__class__.__name__, self.general['pose'], ''])+'.p'
-                if backbone == 'resnet18':
-                    name_model_backbone = '_'.join(['ResNet18_head', criterion.__class__.__name__, ''])+'.p'
-                else:
-                    name_model_backbone = '_'.join(['ResNet50_head', criterion.__class__.__name__, ''])+'.p'
-            path_output_model_backbone = os.path.join(self.general['path'], self.model_type['trained_on'], 'Heads')
-            path_backbone = os.path.join(path_output_model_backbone, name_model_backbone)
-
-            #exit(0)
-            if fine_tune:
-                if not os.path.isfile(path_backbone):
-                    print('ERROR: Heads model not trained, please train your heads model first')
-                    exit(0)
-            if backbone == 'resnet18':
-                model = LookingNet_late_fusion_18_bb(path_backbone, self.device, fine_tune)
-            else:
-                model = LookingNet_late_fusion_50_bb(path_backbone, self.device, fine_tune)
         else:
             fine_tune = self.model_type.getboolean('fine_tune')
             self.data_transform = transforms.Compose([
@@ -209,7 +168,7 @@ class Parser():
                     print('ERROR: Joints model not trained, please train your joints model first')
                     exit(0)
             fusion_type = self.general['fusion_type']
-            model = LookingNet_early_fusion_eyes_fine_tune(path_model_joints, self.device, fine_tune)
+            model = LookingNet_early_fusion_eyes(path_model_joints, self.device, fine_tune)
         self.model_type_ = model_type
         self.pose = pose
         self.lr = float(self.general['learning_rate'])
