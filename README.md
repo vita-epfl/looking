@@ -4,12 +4,17 @@
 
 Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-daytime.html . Results obtained with the model trained on JackRabbot, Nuscenes, JAAD and Kitti. The model file is available at ```models/predictor``` and can be reused for testing with the predictor. 
 
-##### Table of Contents  
-[Headers](#headers)  
-[Emphasis](#emphasis)  
-...snip...    
-<a name="headers"/>
-## Headers
+- [Table of Contents]()
+  * [Requirements](#requirements)
+  * [Build the datasets](#build-the-datasets)
+  * [Train your models](#train-your-models)
+  * [Evaluate your trained models](#evaluate-your-trained-models)
+    + [General parameters for evaluation](#general-parameters-for-evaluation)
+    + [Evaluate on LOOK / Use a trained model on LOOK](#evaluate-on-look---use-a-trained-model-on-look)
+    + [Evaluate on JAAD or PIE](#evaluate-on-jaad-or-pie)
+  * [Predictor](#predictor)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 ## Requirements
 
