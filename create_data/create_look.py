@@ -16,15 +16,6 @@ parser.add_argument('--mode', dest='mo', type=str, help='dataset mode', default=
 parser.add_argument('--path_keypoints', dest='pkps', type=str, help='path to the pifpaf files', default="/data/younes-data")
 parser.add_argument('--path_images', dest='pimg', type=str, help='path to the image files', default="/data/younes-data/LOOK")
 
-args = parser.parse_args()
-
-out_txt = args.pot
-anno_file = args.pgt
-path_look_keypoints = args.pkps
-path_output_files = args.pof
-path_images = args.pimg
-folders = ['Nuscenes', 'JRDB', 'Kitti']
-
 IOU_THRESHOLD = 0.3
 IOU_THRESHOLD_TEST = 0.5
 
@@ -276,4 +267,15 @@ def main():
                         line = ','.join([os.path.join(path_images, keys), name_data, split, out_name, str(bbox_final_without_enlarge[0]), str(bbox_final_without_enlarge[1]), str(bbox_final_without_enlarge[2]),str(bbox_final_without_enlarge[-1]), str(label)+'\n'])
                         txt_final_file.write(line)
                         i += 1
-main()
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+
+    out_txt = args.pot
+    anno_file = args.pgt
+    path_look_keypoints = args.pkps
+    path_output_files = args.pof
+    path_images = args.pimg
+    folders = ['Nuscenes', 'JRDB', 'Kitti']
+
+    main()
