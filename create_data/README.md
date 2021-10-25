@@ -10,6 +10,11 @@ Get directly the ground truth annotation file from [here](https://drive.google.c
 
 ### 1.1. Getting the raw images
 
+#### 0.1.1. Fast setup
+
+You can download the images, the keypoints and build the LOOK dataset by modifying in the file ```create_look.sh``` the variables ```PATH_OUTPUT_DATA``` and  ```PATH_OUTPUT_DATA_ALL``` that corresponds respectively to the path where you will store the raw images and raw keypoints, and the path to save the processed LOOK dataset. 
+Run ```sh create_look.sh``` afterwards and you are done (You can skip the whole section).
+
 #### 1.1.1. Fast download
 
 You can download all the images directly from this [link](https://drive.google.com/file/d/1OfsIIY9ljhCkZfLqL8n_n--X8oNBPfpj/view?usp=sharing).
