@@ -124,6 +124,8 @@ If you want to evaluate your model on JAAD or PIE, you should modify the ```JAAD
 
 ![alt text](https://github.com/vita-epfl/looking/blob/main/images/kitti.gif =1238x375)
 
+<img src="https://github.com/vita-epfl/looking/blob/main/images/kitti.gif" data-canonical-src="https://github.com/vita-epfl/looking/blob/main/images/kitti.gif" width="1238" height="375" />
+
 Get predictions from our pretrained model using any image with the predictor. You need to specify the following arguments:
 
 | Parameter                 |Description   |
