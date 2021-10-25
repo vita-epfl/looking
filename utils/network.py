@@ -260,43 +260,6 @@ class LookingNet_late_fusion_18_bb(nn.Module):
         out_final = torch.cat((layer_resnet, layer_look), 1).type(torch.float)
         return self.final(out_final)
 
-class LookingNet_late_fusion_50_bb(nn.Module):
-    def __init__(self, PATH, device, fine_tune=True):
-        super(LookingNet_late_fusion_50_bb, self).__init__()
-        self.backbone = ResNet50_head(device)
-        if fine_tune:
-            self.backbone.load_state_dict(torch.load(PATH))
-            for m in self.backbone.net.parameters():
-                m.requires_grad = False
-            self.backbone.eval()
-
-        self.encoder_bb = nn.Sequential(
-            nn.Linear(4, 2),
-            nn.ReLU(True)
-        )
-
-        self.final = nn.Sequential(
-            nn.Linear(2050, 1),
-            nn.Sigmoid()
-        )
-
-
-    def forward(self, x):
-        head, keypoint = x
-        activation = {}
-        def get_activation(name):
-            def hook(model, input, output):
-                activation[name] = output.detach().squeeze()
-            return hook
-        self.backbone.net.avgpool.register_forward_hook(get_activation('avgpool'))
-        _ = self.backbone(head)
-
-        layer_resnet = activation["avgpool"]
-        layer_look = self.encoder_bb(keypoint)
-
-        out_final = torch.cat((layer_resnet, layer_look), 1).type(torch.float)
-        return self.final(out_final)
-
 class LookingNet_late_fusion_18(nn.Module):
     """
         Class definition for the combined Looking Model. Late fusion architecture with Resnet18 backbone. 
@@ -607,7 +570,15 @@ class LookingNet_early_fusion_50(nn.Module):
         return y
 
 class EyesModel(nn.Module):
+    """
+        Class definition for the Eyes model. It consists of a bunch of FC layers that takes as an input the flattened
+        representation of the eyes crops.
+    """
     def __init__(self, device):
+        """
+        Args:
+            device (PyTorch device): PyTorch device
+        """
         super(EyesModel, self).__init__()
 
         self.encoder_eyes = nn.Sequential(
