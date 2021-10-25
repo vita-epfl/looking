@@ -4,8 +4,7 @@
 
 Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-daytime.html . Results obtained with the model trained on JackRabbot, Nuscenes, JAAD and Kitti. The model file is available at ```models/predictor``` and can be reused for testing with the predictor. 
 
-<center>
-- Table of Contents
+## Table of Contents
   * [Requirements](#requirements)
   * [Build the datasets](#build-the-datasets)
   * [Train your models](#train-your-models)
@@ -13,8 +12,8 @@ Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-d
     + [General parameters for evaluation](#general-parameters-for-evaluation)
     + [Evaluate on LOOK / Use a trained model on LOOK](#evaluate-on-look---use-a-trained-model-on-look)
     + [Evaluate on JAAD or PIE](#evaluate-on-jaad-or-pie)
-  * [Predictor](#predictor)
-</center>
+  * [Get the predictions from an image](#predictor)
+
 
 ## Requirements
 
