@@ -12,6 +12,8 @@ Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-d
 - [Create the datasets for training and evaluation](#create-the-datasets-for-training-and-evaluation)
 - [Training your models on LOOK / JAAD / PIE](#training-your-models-on-look---jaad---pie)
 - [Evaluate your trained models](#evaluate-your-trained-models)
+- [Annotate new images](#annoatate-new-images)
+
 
 ## Requirements
 
@@ -62,3 +64,7 @@ After changing your configuration file, run:
 ```python evaluate.py --file [PATH_TO_CONFIG_FILE]```
 
 A sample config file can be found at ```config_example.ini```
+
+## Annotate new images
+
+Check out the folder ```annotator``` in order to run our annotator to annotate new instances for the task.
