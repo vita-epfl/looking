@@ -145,16 +145,6 @@ def draw_skeleton(img, kps, color, skeleton=COCO_PERSON_SKELETON):
         c1, c2 = connection
         #print(X[c1])
         img = cv2.line(img,(int(X[c2]),int(Y[c2])),(int(X[c1]),int(Y[c1])), color,linewidth)
-        #exit(0)
-        """
-        c = matplotlib.cm.get_cmap('tab20')(ci / len(self.skeleton))
-                if np.all(v[connection] > self.dashed_threshold):
-                    ax.plot(x[connection], y[connection],
-                            linewidth=self.linewidth, color=c,
-                            linestyle='dashed', dash_capstyle='round')
-                if np.all(v[connection] > self.solid_threshold):
-                    ax.plot(x[connection], y[connection],
-                            linewidth=self.linewidth, color=c, solid_capstyle='round')"""
     head = COCO_HEAD[0]
     c1, c2 = head
     #radius = abs(int(X[c1])- int(X[c2]))

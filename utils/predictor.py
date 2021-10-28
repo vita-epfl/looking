@@ -81,7 +81,7 @@ class Predictor():
             out_labels = []
         return out_labels
     
-    def render_image(self, image, bbox, keypoints, pred_labels, image_name):
+    def render_image(self, image, bbox, keypoints, pred_labels, image_name, transparency, eyecontact_thresh):
         open_cv_image = np.array(image) 
         open_cv_image = open_cv_image[:, :, ::-1].copy()
         
@@ -93,17 +93,20 @@ class Predictor():
         mask = np.zeros(open_cv_image.shape, dtype=np.uint8)
         for i, label in enumerate(pred_labels):
 
-            if label > 0.5:
+            if label > eyecontact_thresh:
                 color = (0,255,0)
             else:
                 color = (0,0,255)
             mask = draw_skeleton(mask, keypoints[i], color)
         mask = cv2.erode(mask,(7,7),iterations = 1)
         mask = cv2.GaussianBlur(mask,(3,3),0)
-        open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, 0.4, 1.0)
+        open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, transparency, 1.0)
         cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.pedictions.png'), open_cv_image)
 
     def predict(self, args):
+        transparency = args.transparency
+        eyecontact_thresh = args.looking_threshold
+        
         if args.glob:
             array_im = glob(os.path.join(args.images[0], '*'+args.glob))
         else:
@@ -111,7 +114,7 @@ class Predictor():
         
         data = datasets.ImageList(array_im, preprocess=self.preprocess)
         loader = torch.utils.data.DataLoader(data, batch_size=1, pin_memory=False, collate_fn=openpifpaf.datasets.collate_images_anns_meta)
-
+        
         for images_batch, _, meta_batch in loader:
             pred_batch = self.processor.batch(self.net, images_batch, device=self.device)
             for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
@@ -127,6 +130,6 @@ class Predictor():
             im_size = (cpu_image.size[0], cpu_image.size[1])
             boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
             pred_labels = self.predict_look(boxes, keypoints, im_size)
-            self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name)
+            self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name, transparency, eyecontact_thresh)
 
     
