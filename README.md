@@ -4,24 +4,18 @@
 
 Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-daytime.html . Results obtained with the model trained on JackRabbot, Nuscenes, JAAD and Kitti. The model file is available at ```models/predictor``` and can be reused for testing with the predictor. 
 
-## Table of Contents
-  * [Requirements](#requirements)
-  * [Build the datasets](#build-the-datasets)
-  * [Train your models](#train-your-models)
-    + [General parameters for training](#--general-parameters-for-training---)
-    + [Model parameters](#--model-parameters----)
-    + [Dataset parameters](#--dataset-parameters----)
-    + [Multi-Dataset parameters](#--multi-dataset-parameters---)
-    + [LOOK-Dataset parameters](#--look-dataset-parameters---)
-  * [Evaluate your trained models](#evaluate-your-trained-models)
-    + [General parameters for evaluation](#general-parameters-for-evaluation)
-    + [Evaluate on LOOK / Use a trained model on LOOK](#evaluate-on-look---use-a-trained-model-on-look)
-    + [Evaluate on JAAD or PIE](#evaluate-on-jaad-or-pie)
-  * [Predictor](#predictor)
+## Table of contents
+
+- [Requirements](#requirements)
+- [Predictor](#predictor)
+  * [Example command](#example-command-)
+- [Create the datasets for training and evaluation](#create-the-datasets-for-training-and-evaluation)
+- [Training your models on LOOK / JAAD / PIE](#training-your-models-on-look---jaad---pie)
+- [Evaluate your trained models](#evaluate-your-trained-models)
 
 ## Requirements
 
-Use ```python>=3.6.9```. Run ```pip3 install -r requirements.txt```
+Use ```3.6.9 <= python < 3.9```. Run ```pip3 install -r requirements.txt``` to get the dependencies
 
 ## Predictor
 
