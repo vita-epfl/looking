@@ -39,11 +39,11 @@ If you want to reproduce the result of the top image, run:
 
 #### If you want to run the predictor on a GPU:
 ```
-python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime.jpg --looking_threshold 0.25
+python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime-3.jpg --looking_threshold 0.25
 ```
 #### If you want to run the predictor on a CPU:
 ```
-python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime.jpg --looking_threshold 0.25 --device cpu --disable-cuda
+python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime-3.jpg --looking_threshold 0.25 --device cpu --disable-cuda
 ```
 
 ## Create the datasets for training and evaluation
