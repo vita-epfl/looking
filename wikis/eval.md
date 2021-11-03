@@ -1,6 +1,9 @@
 # Evaluate your trained models
 
-Here you need to specify 2 things. The dataset **you have trained your model** and the dataset **you want to evaluate your model**.
+In order to conduct correctly the evaluation process, you need to specify: 
++ The dataset **you have trained your model** 
++ The dataset **you want to evaluate your model**.
+
 
 The dataset you have trained your model should be specified on the ```General```, ```Model_type``` and ```Dataset``` sections. If you have trained a model with some specific parameters (heads model, fine tuned, backbone, etc.) you should use the same parameters you have used to train your model.
 
