@@ -3,7 +3,12 @@ from utils.predictor import *
 parser = argparse.ArgumentParser(prog='python3 predict', usage='%(prog)s [options] images', description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--version', action='version',version='Looking Model {version}'.format(version=0.1))
 parser.add_argument('--images', nargs='*',help='input images')
+parser.add_argument('--transparency', default=0.4, type=float, help='transparency of the overlayed poses')
+parser.add_argument('--looking_threshold', default=0.5, type=float, help='eye contact threshold')
 parser.add_argument('--glob', help='glob expression for input images (for many images)')
+
+# Pifpaf args
+
 parser.add_argument('-o', '--image-output', default=None, nargs='?', const=True, help='Whether to output an image, with the option to specify the output path or directory')
 parser.add_argument('--json-output', default=None, nargs='?', const=True,help='Whether to output a json file, with the option to specify the output path or directory')
 parser.add_argument('--batch-size', default=1, type=int, help='processing batch size')
