@@ -302,6 +302,7 @@ class Parser():
                 self.out_grad = self.path_model[:-2]+'_grads.png'
  
     def load_model_for_eval(self):
+        print(self.path_model)
         self.model.load_state_dict(torch.load(self.path_model))
         self.model = self.model.to(self.device)
         self.model.eval()
@@ -320,6 +321,7 @@ class Evaluator():
             print('ERROR : Model file doesnt exists, please train your model first or review your parameters')
             exit(0)
         self.height_ = self.parser.eval_params.getboolean('height')
+        print('heights: ', self.height_)
 
     def evaluate(self):
         """

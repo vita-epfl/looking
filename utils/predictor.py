@@ -43,25 +43,39 @@ class Predictor():
             os.makedirs(self.path_model)
         except OSError as e:
             if e.errno != errno.EEXIST:
-                raise 
+                raise
+        self.mode = args.mode
         self.model = self.get_model()
         self.path_out = './output'
         self.path_out = filecreation(self.path_out)
 
     
     def get_model(self):
-        model = LookingModel(INPUT_SIZE)
-        if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')):
-            """
-            DOWNLOAD(LOOKING_MODEL, os.path.join(self.path_model, 'Looking_Model.zip'), quiet=False)
-            with ZipFile(os.path.join(self.path_model, 'Looking_Model.zip'), 'r') as zipObj:
-                # Extract all the contents of zip file in current directory
-                zipObj.extractall()
-            exit(0)"""
-            raise NotImplementedError
-
-        model.load_state_dict(torch.load(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')))
-        return model.eval()
+        if self.mode == 'joints':
+            model = LookingModel(INPUT_SIZE)
+            if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')):
+                """
+                DOWNLOAD(LOOKING_MODEL, os.path.join(self.path_model, 'Looking_Model.zip'), quiet=False)
+                with ZipFile(os.path.join(self.path_model, 'Looking_Model.zip'), 'r') as zipObj:
+                    # Extract all the contents of zip file in current directory
+                    zipObj.extractall()
+                exit(0)"""
+                raise NotImplementedError
+            model.load_state_dict(torch.load(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')))
+            model.eval()
+        else:
+            model = AlexNet_head(self.device)
+            if not os.path.isfile(os.path.join(self.path_model, 'AlexNet_LOOK.p')):
+                """
+                DOWNLOAD(LOOKING_MODEL, os.path.join(self.path_model, 'Looking_Model.zip'), quiet=False)
+                with ZipFile(os.path.join(self.path_model, 'Looking_Model.zip'), 'r') as zipObj:
+                    # Extract all the contents of zip file in current directory
+                    zipObj.extractall()
+                exit(0)"""
+                raise NotImplementedError
+            model.load_state_dict(torch.load(os.path.join(self.path_model, 'AlexNet_LOOK.p')))
+            model.eval()
+        return model
 
     def predict_look(self, boxes, keypoints, im_size):
         label_look = []
@@ -77,6 +91,26 @@ class Predictor():
                 final_keypoints.append(kps_final_normalized)
             tensor_kps = torch.Tensor([final_keypoints])#
             out_labels = self.model(tensor_kps.squeeze(0)).detach().cpu().numpy().reshape(-1)
+        else:
+            out_labels = []
+        return out_labels
+    
+    def predict_look_alexnet(self, boxes, image):
+        out_labels = []
+        data_transform = transforms.Compose([
+                        SquarePad(),
+                        transforms.Resize((227,227)),
+                    transforms.ToTensor(),
+                        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                            std=[0.229, 0.224, 0.225])])
+        if len(boxes) != 0:
+            for i in range(len(boxes)):
+                bbox = boxes[i]
+                x1, y1, x2, y2, _ = bbox
+                w, h = abs(x2-x1), abs(y2-y1)
+                head_image = Image.fromarray(np.array(image)[int(y1):int(y1+(h/3)), int(x1):int(x2), :])
+                head_tensor = data_transform(head_image).unsqueeze(0).to(self.device)
+                out_labels.append(self.model(head_tensor).detach().cpu().numpy().reshape(-1))
         else:
             out_labels = []
         return out_labels
@@ -100,6 +134,8 @@ class Predictor():
             mask = draw_skeleton(mask, keypoints[i], color)
         mask = cv2.erode(mask,(7,7),iterations = 1)
         mask = cv2.GaussianBlur(mask,(3,3),0)
+        #open_cv_image = cv2.addWeighted(open_cv_image, 0.5, np.ones(open_cv_image.shape, dtype=np.uint8)*255, 0.5, 1.0)
+        #open_cv_image = cv2.addWeighted(open_cv_image, 0.5, np.zeros(open_cv_image.shape, dtype=np.uint8), 0.5, 1.0)
         open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, transparency, 1.0)
         cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.pedictions.png'), open_cv_image)
 
@@ -129,7 +165,10 @@ class Predictor():
             im_name = os.path.basename(meta['file_name'])
             im_size = (cpu_image.size[0], cpu_image.size[1])
             boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
-            pred_labels = self.predict_look(boxes, keypoints, im_size)
+            if self.mode == 'joints':
+                pred_labels = self.predict_look(boxes, keypoints, im_size)
+            else:
+                pred_labels = self.predict_look_alexnet(boxes, cpu_image)
             self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name, transparency, eyecontact_thresh)
 
     

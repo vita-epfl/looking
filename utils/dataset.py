@@ -532,13 +532,30 @@ class PIE_Dataset(Dataset):
         label = self.Y[idx]
 
         if self.type == 'joints':
-            sample = {'input':self.X[idx].to(self.device) ,'label':label}
+            joints = np.array(json.load(open(self.X[idx]))["X"])
+            X = joints[:17]
+            Y = joints[17:34]
+            X_new, Y_new, _ = normalize_by_image_(X, Y, height_=True)
+            if self.pose == "head":
+                X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+                tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+            elif self.pose == 'body':
+                X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+                tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+            else:
+                tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+            sample = {'input':torch.Tensor(tensor).to(self.device) ,'label':label}
         elif self.type in ['heads', 'eyes']:
             sample = {'input': Image.open(os.path.join(self.path_data,self.X[idx])), 'label':label}
             if self.transform:
                 sample['input'] = self.transform(sample['input']).to(self.device)
         else:
-            sample_ = {'image': Image.open(os.path.join(self.path_data,self.X[idx])), 'keypoints':self.kps[idx] ,'label':label}
+            joints = np.array(json.load(open(self.kps[idx]+'.json')))["X"]
+            X = joints[:17]
+            Y = joints[17:34]
+            X_new, Y_new, _ = normalize_by_image_(X, Y, height_=True)
+            tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+            sample_ = {'image': Image.open(os.path.join(self.path_data,self.X[idx])), 'keypoints':torch.tensor(tensor) ,'label':label}
             if self.transform:
                 sample_['image'] = self.transform(sample_['image'])
             sample = {'input':(sample_['image'].to(self.device), sample_['keypoints'].to(self.device)), 'label':sample_['label']}
@@ -557,10 +574,13 @@ class PIE_Dataset(Dataset):
         if self.split == 'test':
             if self.type == 'joints':
                 tab_Y = []
+                tab_X = []
                 kps = []
                 for line in self.txt:
                     line = line[:-1]
                     line_s = line.split(",")
+                    tab_X.append(os.path.join(self.path_data, line_s[-2]+'.json'))
+                    """
                     joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
                     X = joints[:17]
                     Y = joints[17:34]
@@ -573,10 +593,11 @@ class PIE_Dataset(Dataset):
                         tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
                     else:
                         tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-                    kps.append(tensor)
+                    kps.append(tensor)"""
                     tab_Y.append(int(line_s[-1]))
-                    self.heights.append(height)
-                return torch.tensor(kps), tab_Y
+                    #self.heights.append(height)
+                #return torch.tensor(kps), tab_Y
+                return tab_X, tab_Y
             elif self.type in ['heads', 'eyes']:
                 tab_X = []
                 tab_Y = []
@@ -602,16 +623,16 @@ class PIE_Dataset(Dataset):
                         tab_X.append(line_s[-2]) # append the image / joints file name
                     else:
                         tab_X.append(line_s[-2][:-4]+'_eyes.png')
-                    joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
+                    #joints = np.array(json.load(open(os.path.join(self.path_data, line_s[-2]+'.json')))["X"])
                     #print(joints)
-                    X = joints[:17]
-                    Y = joints[17:34]
-                    X_new, Y_new, height = normalize_by_image_(X, Y, height_=True)
-                    tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
-                    kps.append(tensor) 
+                    #X = joints[:17]
+                    #Y = joints[17:34]
+                    #X_new, Y_new, height = normalize_by_image_(X, Y, height_=True)
+                    #tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+                    kps.append(os.path.join(self.path_data, line_s[-2]+'.json')) 
                     tab_Y.append(int(line_s[-1]))
-                    self.heights.append(height)
-                return tab_X, torch.tensor(kps), tab_Y
+                    self.heights.append(0)
+                return tab_X, kps, tab_Y
         else:
             if self.type == 'joints':
                 tab_X = []
@@ -619,12 +640,13 @@ class PIE_Dataset(Dataset):
                 for line in self.txt:
                     line = line[:-1]
                     line_s = line.split(",")
-                    tab_X.append(line_s[-2])
+                    tab_X.append(os.path.join(self.path_data, line_s[-2]+'.json'))
                     tab_Y.append(int(line_s[-1]))
                 indices = self.balance(tab_X)
                 tab_X = np.array(tab_X)[indices]
                 tab_Y = np.array(tab_Y)[indices]
-                kps = []
+
+                """kps = []
                 for im in tab_X:
                     joints = np.array(json.load(open(os.path.join(self.path_data, im+'.json')))["X"])
                     X = joints[:17]
@@ -639,8 +661,8 @@ class PIE_Dataset(Dataset):
                     else:
                         tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
                     kps.append(tensor)
-                    self.heights.append(height)
-                return torch.tensor(kps), tab_Y
+                    self.heights.append(height)"""
+                return tab_X, tab_Y
             elif self.type == 'heads':
                 tab_X = []
                 tab_Y = []
@@ -728,7 +750,8 @@ class PIE_Dataset(Dataset):
         model.eval()
         if self.type == 'joints':
             
-            tab_X, tab_Y = self.X.cpu().detach().numpy(), self.Y
+            #tab_X, tab_Y = self.X.cpu().detach().numpy(), self.Y
+            tab_X, tab_Y = self.X, self.Y
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
             positive_samples = np.array(tab_X)[idx_Y1]
@@ -760,7 +783,7 @@ class PIE_Dataset(Dataset):
                 else:
                     heights = None
 
-                dataset_test_joints = Eval_Dataset_joints(total_samples, total_labels, heights)
+                dataset_test_joints = Eval_Dataset_joints_pie(total_samples, total_labels, self.pose, heights)
                 data_loader = torch.utils.data.DataLoader(dataset_test_joints, batch_size=16, shuffle=False)
                 acc = 0
                 predicted_labels = torch.Tensor([]).type(torch.float)
@@ -829,7 +852,7 @@ class PIE_Dataset(Dataset):
                 total_samples = np.concatenate((positive_samples, neg_samples)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
                 new_data = Eval_Dataset_heads(self.path_data, total_samples, total_labels, self.transform)
-                data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=False)
+                data_loader = torch.utils.data.DataLoader(new_data, batch_size=768, shuffle=False)
 
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
@@ -884,7 +907,7 @@ class PIE_Dataset(Dataset):
             model.eval()
             model = model.to(device)
             #print("Starting evalutation ..")
-            tab_X, tab_Y, kps = self.X, self.Y, self.kps.cpu().detach().numpy()
+            tab_X, tab_Y, kps = self.X, self.Y, self.kps
             idx_Y1 = np.where(np.array(tab_Y) == 1)[0]
             idx_Y0 = np.where(np.array(tab_Y) == 0)[0]
 
@@ -916,8 +939,8 @@ class PIE_Dataset(Dataset):
                 total_samples_kps = np.concatenate((positive_samples_kps, neg_samples_kps)).tolist()
                 total_labels = np.concatenate((positive_samples_labels, neg_samples_labels)).tolist()
                 
-                new_data = Eval_Dataset_heads_joints(self.path_data, total_samples, total_labels, total_samples_kps, self.transform)
-                data_loader = torch.utils.data.DataLoader(new_data, batch_size=16, shuffle=False)
+                new_data = Eval_Dataset_heads_joints_pie(self.path_data, total_samples, total_labels, total_samples_kps, self.transform)
+                data_loader = torch.utils.data.DataLoader(new_data, batch_size=512, shuffle=False)
                 
                 acc = 0
                 out_lab = torch.Tensor([]).type(torch.float)
@@ -965,6 +988,52 @@ class PIE_Dataset(Dataset):
                 return np.mean(aps), np.mean(accs), np.mean(aps1), np.mean(aps2), np.mean(aps3), np.mean(aps4), np.array(distances)
             return np.mean(aps), np.mean(accs)
 
+class Eval_Dataset_joints_pie(Dataset):
+    """Dataset class for evaluation"""
+
+    def __init__(self, data_x, data_y, pose=None, heights=None):
+        """
+        Args:
+            split : train, val and test
+            type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
+            transform : data tranformation to be applied
+        """
+        self.data = None
+        #self.path_jaad = path_jaad
+        self.pose = pose
+        self.data_x = data_x
+        self.data_y = data_y
+        
+        self.heights = heights
+
+    def __len__(self):
+        return len(self.data_y)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        label = self.data_y[idx]
+        #print(self.data_x[idx])
+        joints = np.array(json.load(open(self.data_x[idx], 'r'))["X"])
+        X = joints[:17]
+        Y = joints[17:34]
+        X_new, Y_new, _ = normalize_by_image_(X, Y, height_=True)
+        if self.pose == "head":
+            X_new, Y_new, C_new = extract_head(X_new, Y_new, joints[34:])
+            tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+        elif self.pose == 'body':
+            X_new, Y_new, C_new = extract_body(X_new, Y_new, joints[34:])
+            tensor = np.concatenate((X_new, Y_new, C_new)).tolist()
+        else:
+            tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+
+        sample = {'image': tensor, 'label':label}
+        if self.heights is not None:
+            #height = self.heights[idx]
+            height = [0]
+        else:
+            height = [0]
+        return torch.Tensor(sample['image']), sample['label'], height
 
 class Eval_Dataset_joints(Dataset):
     """Dataset class for evaluation"""
@@ -1073,6 +1142,46 @@ class Eval_Dataset_heads_joints(Dataset):
 		else:
 			height = []
 		return sample['image'], torch.tensor(sample['keypoints']), sample['label'], height
+
+class Eval_Dataset_heads_joints_pie(Dataset):
+	"""Dataset class for evaluation"""
+
+	def __init__(self, path_data, data_x, data_y, kps, transform, heights=None):
+		"""
+		Args:
+			split : train, val and test
+			type_ : type of dataset splitting (original splitting, video splitting, pedestrian splitting)
+			transform : data tranformation to be applied 
+		"""
+		self.data = None
+		self.path_data = path_data
+		self.data_x = data_x
+		self.data_y = data_y
+		self.kps = kps
+		self.transform = transform
+		self.heights = heights
+
+	def __len__(self):
+		return len(self.data_y)
+
+	def __getitem__(self, idx):
+		if torch.is_tensor(idx):
+			idx = idx.tolist()
+		label = self.data_y[idx]
+		joints = np.array(json.load(open(self.kps[idx], 'r'))["X"])
+		X = joints[:17]
+		Y = joints[17:34]
+		X_new, Y_new, _ = normalize_by_image_(X, Y, height_=True)
+		tensor = np.concatenate((X_new, Y_new, joints[34:])).tolist()
+		sample = {'keypoints': tensor, 'image':Image.open(os.path.join(self.path_data, self.data_x[idx])),'label':label}
+		if self.transform:
+			sample['image'] = self.transform(sample['image'])
+		if self.heights is not None:
+			height = self.heights[idx]
+		else:
+			height = []
+		return sample['image'], torch.tensor(sample['keypoints']), sample['label'], height
+
 
 class LOOK_dataset_(Dataset):
     """

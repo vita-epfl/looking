@@ -373,7 +373,6 @@ class LookingNet_early_fusion_eyes(nn.Module):
             self.looking_model.eval()
 
 
-
         self.encoder_eyes = nn.Sequential(
             nn.Flatten(),
             nn.Linear(900, 256, bias=False),
