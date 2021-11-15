@@ -48,7 +48,7 @@ python predict.py --images images/people-walking-on-pedestrian-lane-during-dayti
 
 ## Create the datasets for training and evaluation
 
-Please follow the instructions on the folder ``` create_data/```.
+Please follow the instructions on the folder [create_data](https://github.com/vita-epfl/looking/tree/main/create_data).
 
 ## Training your models on LOOK / JAAD / PIE
 
@@ -72,4 +72,4 @@ A sample config file can be found at ```config_example.ini```
 
 ## Annotate new images
 
-Check out the folder ```annotator``` in order to run our annotator to annotate new instances for the task.
+Check out the folder [annotator](https://github.com/vita-epfl/looking/tree/main/annotator) in order to run our annotator to annotate new instances for the task.
