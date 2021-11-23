@@ -1,11 +1,14 @@
-from datetime import datetime
+
 import cv2
 import openpifpaf
-import openpifpaf.datasets as datasets
 import os
+
+import openpifpaf
 import numpy as np
-from openpifpaf.predict import processor_factory, preprocess_factory
-from openpifpaf import decoder, network, visualizer, show, logger
+from datetime import datetime
+from openpifpaf import datasets
+from openpifpaf import decoder, network, visualizer, show, logger, Predictor
+from openpifpaf.predict import out_name
 
 """COCO_PERSON_SKELETON = [
         [16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13],
@@ -165,19 +168,43 @@ def run_and_kps(img, kps, label):
     #img = cv2.addWeighted(img, 1.0, blk, 0.55, 1)
     return blk
 
+#def load_pifpaf(args):
+#    args.figure_width = 10
+#    args.dpi_factor = 1.0
+#    args.keypoint_threshold_rel = 0.0
+#    args.instance_threshold = 0.2
+#    args.keypoint_threshold = 0
+#    args.force_complete_pose = True
+
+#    decoder.configure(args)
+#    network.Factory.configure(args)
+#    show.configure(args)
+#    visualizer.configure(args)
+
+    #processor, net = processor_factory(args)
+    #preprocess = preprocess_factory(args)
+    #return net, processor, preprocess
+
 def load_pifpaf(args):
+    pifpaf_model = args.checkpoint_
+
     args.figure_width = 10
     args.dpi_factor = 1.0
+    args.batch_size = 1
+
+
     args.keypoint_threshold_rel = 0.0
     args.instance_threshold = 0.2
     args.keypoint_threshold = 0
+
     args.force_complete_pose = True
 
+
+    # Configure
     decoder.configure(args)
     network.Factory.configure(args)
+    Predictor.configure(args)
     show.configure(args)
     visualizer.configure(args)
 
-    processor, net = processor_factory(args)
-    preprocess = preprocess_factory(args)
-    return net, processor, preprocess
+    return Predictor(checkpoint=pifpaf_model)

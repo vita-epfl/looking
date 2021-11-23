@@ -171,7 +171,7 @@ class AlexNet_head(nn.Module):
                 param.requires_grad = False
             for param in net.classifier.parameters():
                 param.requires_grad = True
-        print('Fine Tune : ', fine_tune)
+            print('Fine Tune : ', fine_tune)
         self.net = net
     def forward(self, x):
         return self.net(x)

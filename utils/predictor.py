@@ -1,7 +1,4 @@
 import configparser
-from utils.dataset import *
-from utils.network import *
-from utils.utils_predict import *
 import os, errno
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -10,12 +7,21 @@ import argparse
 import PIL
 from zipfile import ZipFile
 from glob import glob
+from tqdm import tqdm
 import openpifpaf.datasets as datasets
+import time
 
+from utils.dataset import *
+from utils.network import *
+from utils.utils_predict import *
+
+from PIL import Image, ImageFile
 
 DOWNLOAD = None
 INPUT_SIZE=51
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 print('OpenPifPaf version', openpifpaf.__version__)
 print('PyTorch version', torch.__version__)
@@ -37,7 +43,8 @@ class Predictor():
         args.device = self.device
         print('device : {}'.format(self.device))
         self.path_images = args.images
-        self.net, self.processor, self.preprocess = load_pifpaf(args)
+        #self.net, self.processor, self.preprocess = load_pifpaf(args)
+        self.predictor_ = load_pifpaf(args)
         self.path_model = './models/predictor'
         try:
             os.makedirs(self.path_model)
@@ -45,9 +52,14 @@ class Predictor():
             if e.errno != errno.EEXIST:
                 raise
         self.mode = args.mode
-        self.model = self.get_model()
+        self.model = self.get_model().to(self.device)
         self.path_out = './output'
         self.path_out = filecreation(self.path_out)
+        self.track_time = args.time
+        if self.track_time:
+            self.pifpaf_time = []
+            self.inference_time = []
+            self.total_time = []
 
     
     def get_model(self):
@@ -77,25 +89,52 @@ class Predictor():
             model.eval()
         return model
 
-    def predict_look(self, boxes, keypoints, im_size):
+    def predict_look(self, boxes, keypoints, im_size, batch_wise=True):
         label_look = []
         final_keypoints = []
-        if len(boxes) != 0:
-            for i in range(len(boxes)):
-                kps = keypoints[i]
-                kps_final = np.array([kps[0], kps[1], kps[2]]).flatten().tolist()
-                X, Y = kps_final[:17], kps_final[17:34]
-                X, Y = normalize_by_image_(X, Y, im_size)
-                #X, Y = normalize(X, Y, divide=True, height_=False)
-                kps_final_normalized = np.array([X, Y, kps_final[34:]]).flatten().tolist()
-                final_keypoints.append(kps_final_normalized)
-            tensor_kps = torch.Tensor([final_keypoints])#
-            out_labels = self.model(tensor_kps.squeeze(0)).detach().cpu().numpy().reshape(-1)
+        if batch_wise:
+            if len(boxes) != 0:
+                for i in range(len(boxes)):
+                    kps = keypoints[i]
+                    kps_final = np.array([kps[0], kps[1], kps[2]]).flatten().tolist()
+                    X, Y = kps_final[:17], kps_final[17:34]
+                    X, Y = normalize_by_image_(X, Y, im_size)
+                    #X, Y = normalize(X, Y, divide=True, height_=False)
+                    kps_final_normalized = np.array([X, Y, kps_final[34:]]).flatten().tolist()
+                    final_keypoints.append(kps_final_normalized)
+                tensor_kps = torch.Tensor([final_keypoints]).to(self.device)
+                if self.track_time:
+                    start = time.time()
+                    out_labels = self.model(tensor_kps.squeeze(0)).detach().cpu().numpy().reshape(-1)
+                    end = time.time()
+                    self.inference_time.append(end-start)
+                else:
+                    out_labels = self.model(tensor_kps.squeeze(0)).detach().cpu().numpy().reshape(-1)
+            else:
+                out_labels = []
         else:
-            out_labels = []
+            if len(boxes) != 0:
+                for i in range(len(boxes)):
+                    kps = keypoints[i]
+                    kps_final = np.array([kps[0], kps[1], kps[2]]).flatten().tolist()
+                    X, Y = kps_final[:17], kps_final[17:34]
+                    X, Y = normalize_by_image_(X, Y, im_size)
+                    #X, Y = normalize(X, Y, divide=True, height_=False)
+                    kps_final_normalized = np.array([X, Y, kps_final[34:]]).flatten().tolist()
+                    #final_keypoints.append(kps_final_normalized)
+                    tensor_kps = torch.Tensor(kps_final_normalized).to(self.device)
+                    if self.track_time:
+                        start = time.time()
+                        out_labels = self.model(tensor_kps.unsqueeze(0)).detach().cpu().numpy().reshape(-1)
+                        end = time.time()
+                        self.inference_time.append(end-start)
+                    else:
+                        out_labels = self.model(tensor_kps.unsqueeze(0)).detach().cpu().numpy().reshape(-1)
+            else:
+                out_labels = []
         return out_labels
     
-    def predict_look_alexnet(self, boxes, image):
+    def predict_look_alexnet(self, boxes, image, batch_wise=True):
         out_labels = []
         data_transform = transforms.Compose([
                         SquarePad(),
@@ -104,13 +143,39 @@ class Predictor():
                         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                             std=[0.229, 0.224, 0.225])])
         if len(boxes) != 0:
-            for i in range(len(boxes)):
-                bbox = boxes[i]
-                x1, y1, x2, y2, _ = bbox
-                w, h = abs(x2-x1), abs(y2-y1)
-                head_image = Image.fromarray(np.array(image)[int(y1):int(y1+(h/3)), int(x1):int(x2), :])
-                head_tensor = data_transform(head_image).unsqueeze(0).to(self.device)
-                out_labels.append(self.model(head_tensor).detach().cpu().numpy().reshape(-1))
+            if batch_wise:
+                heads = []
+                for i in range(len(boxes)):
+                    bbox = boxes[i]
+                    x1, y1, x2, y2, _ = bbox
+                    w, h = abs(x2-x1), abs(y2-y1)
+                    head_image = Image.fromarray(np.array(image)[int(y1):int(y1+(h/3)), int(x1):int(x2), :])
+                    head_tensor = data_transform(head_image)
+                    heads.append(head_tensor.detach().cpu().numpy())
+                if self.track_time:
+                    start = time.time()
+                    out_labels = self.model(torch.Tensor([heads]).squeeze(0).to(self.device)).detach().cpu().numpy().reshape(-1)
+                    end = time.time()
+                    self.inference_time.append(end-start)
+            else:
+                out_labels = []
+                for i in range(len(boxes)):
+                    bbox = boxes[i]
+                    x1, y1, x2, y2, _ = bbox
+                    w, h = abs(x2-x1), abs(y2-y1)
+                    head_image = Image.fromarray(np.array(image)[int(y1):int(y1+(h/3)), int(x1):int(x2), :])
+                    head_tensor = data_transform(head_image)
+                    #heads.append(head_tensor.detach().cpu().numpy())
+                    if self.track_time:
+                        start = time.time()
+                        looking_label = self.model(torch.Tensor(head_tensor).unsqueeze(0).to(self.device)).detach().cpu().numpy().reshape(-1)[0]
+                        end = time.time()
+                        self.inference_time.append(end-start)
+                    else:
+                        looking_label = self.model(torch.Tensor(head_tensor).unsqueeze(0).to(self.device)).detach().cpu().numpy().reshape(-1)[0]
+                    out_labels.append(looking_label)
+                #if self.track_time:
+                #    out_labels = self.model(torch.Tensor([heads]).squeeze(0).to(self.device)).detach().cpu().numpy().reshape(-1)
         else:
             out_labels = []
         return out_labels
@@ -139,6 +204,7 @@ class Predictor():
         open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, transparency, 1.0)
         cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.pedictions.png'), open_cv_image)
 
+
     def predict(self, args):
         transparency = args.transparency
         eyecontact_thresh = args.looking_threshold
@@ -146,29 +212,37 @@ class Predictor():
         if args.glob:
             array_im = glob(os.path.join(args.images[0], '*'+args.glob))
         else:
-            array_im = args.images
-        
-        data = datasets.ImageList(array_im, preprocess=self.preprocess)
-        loader = torch.utils.data.DataLoader(data, batch_size=1, pin_memory=False, collate_fn=openpifpaf.datasets.collate_images_anns_meta)
-        
-        for images_batch, _, meta_batch in loader:
-            pred_batch = self.processor.batch(self.net, images_batch, device=self.device)
-            for idx, (pred, meta) in enumerate(zip(pred_batch, meta_batch)):
-                pred = [ann.inverse_transform(meta) for ann in pred]
-                with open(meta_batch[0]['file_name'], 'rb') as f:
-                    cpu_image = PIL.Image.open(f).convert('RGB')
-                    pifpaf_outs = {
-                        'pred': pred,
-                        'left': [ann.json_data() for ann in pred],
-                        'image': cpu_image}
-                break
-            im_name = os.path.basename(meta['file_name'])
+            array_im = [args.images]
+        loader = self.predictor_.images(array_im)
+        start_pifpaf = time.time()
+        for pred_batch, _, meta_batch in tqdm(loader):
+            if self.track_time:
+                end_pifpaf = time.time()
+                self.pifpaf_time.append(end_pifpaf-start_pifpaf)
+            cpu_image = PIL.Image.open(open(meta_batch['file_name'], 'rb')).convert('RGB')
+            pifpaf_outs = {
+            'json_data': [ann.json_data() for ann in pred_batch],
+            'image': cpu_image}
+            #end = time.time()
+            
+            im_name = os.path.basename(meta_batch['file_name'])
             im_size = (cpu_image.size[0], cpu_image.size[1])
-            boxes, keypoints = preprocess_pifpaf(pifpaf_outs['left'], im_size, enlarge_boxes=False)
+            boxes, keypoints = preprocess_pifpaf(pifpaf_outs['json_data'], im_size, enlarge_boxes=False)
             if self.mode == 'joints':
                 pred_labels = self.predict_look(boxes, keypoints, im_size)
             else:
                 pred_labels = self.predict_look_alexnet(boxes, cpu_image)
-            self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name, transparency, eyecontact_thresh)
-
+            if self.track_time:
+                end_process = time.time()
+                self.total_time.append(end_process - start_pifpaf)
+            
+            
+            if self.track_time:
+                start_pifpaf = time.time()
+            else:
+                self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name, transparency, eyecontact_thresh)
+        if self.track_time and len(self.pifpaf_time) != 0 and len(self.inference_time) != 0:
+            print('Av. pifpaf time : {} ms. ± {} ms'.format(np.mean(self.pifpaf_time)*1000, np.std(self.pifpaf_time)*1000))
+            print('Av. inference time : {} ms. ± {} ms'.format(np.mean(self.inference_time)*1000, np.std(self.inference_time)*1000))
+            print('Av. total time : {} ms. ± {} ms'.format(np.mean(self.total_time)*1000, np.std(self.total_time)*1000))
     

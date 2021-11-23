@@ -1,11 +1,13 @@
 import configparser
-from utils.dataset import *
-from utils.network import *
 import os, errno
+import copy
+
 import seaborn as sns
 import matplotlib.pyplot as plt
-import copy
 from torch.utils.data.sampler import WeightedRandomSampler
+
+from utils.dataset import *
+from utils.network import *
 
 class Parser():
     """

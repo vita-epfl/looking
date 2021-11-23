@@ -1,15 +1,18 @@
 from __future__ import print_function, division
 import os
-import torch
-from skimage import io, transform
-import numpy as np
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
 import json
+import torch
+import cv2
+
+import numpy as np
 from glob import glob
 from PIL import Image
+
+from skimage import io, transform
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, utils
+
 from utils.utils_train import *
-import cv2
 
 np.random.seed(0)
 

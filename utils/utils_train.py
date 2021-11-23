@@ -1,11 +1,12 @@
+import torch
+import cv2
+import json
 
 import numpy as np
 from math import floor
-import torch
-import cv2
+
 from sklearn.metrics import average_precision_score
 from sklearn.metrics import confusion_matrix
-import json
 
 ### Visualisation functions
 

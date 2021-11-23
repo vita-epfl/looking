@@ -1,5 +1,6 @@
 import configparser
 import argparse
+
 from utils.trainer import *
 
 parser_command = argparse.ArgumentParser(description='Training the model')
