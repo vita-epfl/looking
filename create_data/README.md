@@ -36,8 +36,9 @@ Please follow carefully the instructions below to configure and build the datase
 
 ### 1.0. Automatic build and setup
 
-You can download the images, the keypoints and build the LOOK dataset by modifying in the file ```create_look.sh``` the variables ```PATH_OUTPUT_DATA``` and  ```PATH_OUTPUT_DATA_ALL``` that corresponds respectively to the path where you will store the raw images and raw keypoints, and the path to save the processed LOOK dataset. 
-Run ```sh create_look.sh``` afterwards and you are done (You can skip the whole section).
+Not available!
+
+<> (You can download the images, the keypoints and build the LOOK dataset by modifying in the file ```create_look.sh``` the variables ```PATH_OUTPUT_DATA``` and  ```PATH_OUTPUT_DATA_ALL``` that corresponds respectively to the path where you will store the raw images and raw keypoints, and the path to save the processed LOOK dataset. Run ```sh create_look.sh``` afterwards and you are done (You can skip the whole section).)
 
 ### 1.1. Manual setup
 
