@@ -5,7 +5,6 @@ Please follow carefully the instructions below to configure and build the datase
 ## Table of Contents
 
 - [1. Create the LOOK dataset](#1-create-the-look-dataset)
-  * [1.0. Automatic build and setup](#10-automatic-build-and-setup)
   * [1.1. Manual setup](#11-manual-setup)
     + [1.1.1. Get the ground truth annotation file](#111-get-the-ground-truth-annotation-file)
     + [1.1.2. Getting the raw images](#112-getting-the-raw-images)
@@ -33,12 +32,6 @@ Please follow carefully the instructions below to configure and build the datase
 
 
 ## 1. Create the LOOK dataset
-
-### 1.0. Automatic build and setup
-
-Not available!
-
-<> (You can download the images, the keypoints and build the LOOK dataset by modifying in the file ```create_look.sh``` the variables ```PATH_OUTPUT_DATA``` and  ```PATH_OUTPUT_DATA_ALL``` that corresponds respectively to the path where you will store the raw images and raw keypoints, and the path to save the processed LOOK dataset. Run ```sh create_look.sh``` afterwards and you are done (You can skip the whole section).)
 
 ### 1.1. Manual setup
 
