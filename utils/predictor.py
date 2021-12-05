@@ -212,18 +212,18 @@ class Predictor():
         if args.glob:
             array_im = glob(os.path.join(args.images[0], '*'+args.glob))
         else:
-            array_im = [args.images]
+            array_im = args.images
         loader = self.predictor_.images(array_im)
         start_pifpaf = time.time()
-        for pred_batch, _, meta_batch in tqdm(loader):
+        for i, (pred_batch, _, meta_batch) in enumerate(tqdm(loader)):
             if self.track_time:
                 end_pifpaf = time.time()
                 self.pifpaf_time.append(end_pifpaf-start_pifpaf)
             cpu_image = PIL.Image.open(open(meta_batch['file_name'], 'rb')).convert('RGB')
             pifpaf_outs = {
             'json_data': [ann.json_data() for ann in pred_batch],
-            'image': cpu_image}
-            #end = time.time()
+            'image': cpu_image
+            }
             
             im_name = os.path.basename(meta_batch['file_name'])
             im_size = (cpu_image.size[0], cpu_image.size[1])
@@ -236,11 +236,15 @@ class Predictor():
                 end_process = time.time()
                 self.total_time.append(end_process - start_pifpaf)
             
-            
+            #break
             if self.track_time:
                 start_pifpaf = time.time()
             else:
                 self.render_image(pifpaf_outs['image'], boxes, keypoints, pred_labels, im_name, transparency, eyecontact_thresh)
+
+            #if i > 20:
+            #    break
+        
         if self.track_time and len(self.pifpaf_time) != 0 and len(self.inference_time) != 0:
             print('Av. pifpaf time : {} ms. ± {} ms'.format(np.mean(self.pifpaf_time)*1000, np.std(self.pifpaf_time)*1000))
             print('Av. inference time : {} ms. ± {} ms'.format(np.mean(self.inference_time)*1000, np.std(self.inference_time)*1000))

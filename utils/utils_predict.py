@@ -187,7 +187,7 @@ def run_and_kps(img, kps, label):
 
 def load_pifpaf(args):
     pifpaf_model = args.checkpoint_
-
+    print(pifpaf_model)
     args.figure_width = 10
     args.dpi_factor = 1.0
     args.batch_size = 1

@@ -43,7 +43,7 @@ python predict.py --images images/people-walking-on-pedestrian-lane-during-dayti
 ```
 #### If you want to run the predictor on a CPU:
 ```
-python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime-3.jpg --looking_threshold 0.25 --device cpu --disable-cuda
+python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime-3.jpg --device cpu --disable-cuda
 ```
 
 ## Create the datasets for training and evaluation
