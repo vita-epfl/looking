@@ -43,7 +43,7 @@ Get directly the ground truth annotation file from [here](https://drive.google.c
 
 ##### 1.1.2.1. Fast download
 
-You can download all the images directly from this [link](https://drive.google.com/file/d/1OfsIIY9ljhCkZfLqL8n_n--X8oNBPfpj/view?usp=sharing).
+You can download all the images directly from this [link](https://drive.google.com/file/d/1WH6fKrXW0AbbTkvOELinxHOfZPOFuLMv/view?usp=sharing).
 
 ##### 1.1.2.2. Manual download
 
