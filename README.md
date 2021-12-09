@@ -48,7 +48,7 @@ If you want to reproduce the result of the top image, run:
 
 #### If you want to run the predictor on a GPU:
 ```
-python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime-3.jpg --looking_threshold 0.25
+python predict.py --images images/people-walking-on-pedestrian-lane-during-daytime-3.jpg
 ```
 #### If you want to run the predictor on a CPU:
 ```
