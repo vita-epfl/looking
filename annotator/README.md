@@ -23,9 +23,6 @@ To install the tool, just run the following :
 pip3 install -r requirements.txt
 ```
 
-## Load the dataset
-
-If you want to contribute to the benchmark to enhance the training set, you can download challenging pictures here : https://drive.google.com/drive/folders/1rJXOAbsVpwafi6Eo7syVosr6QVXEP0j2?usp=sharing
 
 ## Usage
 
