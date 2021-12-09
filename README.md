@@ -1,8 +1,16 @@
-# Do pedestrians pay attention? Eye contact detection for autonomous driving - Official repository
+# Do pedestrians pay attention? Eye contact detection for autonomous driving
+
+Official implementation of the paper [Do pedestrians pay attention? Eye contact detection for autonomous driving](https://arxiv.org/abs/2112.04212)
 
 ![alt text](https://github.com/vita-epfl/looking/blob/main/images/people-walking-on-pedestrian-lane-during-daytime.pedictions.png)
 
 Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-daytime.html . Results obtained with the model trained on JackRabbot, Nuscenes, JAAD and Kitti. The model file is available at ```models/predictor``` and can be reused for testing with the predictor. 
+
+## Abstract 
+
+> In urban or crowded environments, humans rely on eye contact for fast and efficient communication with nearby people. Autonomous agents also need to detect eye contact to interact with pedestrians and safely navigate around them. In this paper, we focus on eye contact detection in the wild, i.e., real-world scenarios for autonomous vehicles with no control over the environment or the distance of pedestrians. We introduce a model that leverages semantic keypoints to detect eye contact and show that this high-level representation (i) achieves state-of-the-art results on the publicly-available dataset JAAD, and (ii) conveys better generalization properties than leveraging raw images in an end-to-end network. To study domain adaptation, we create LOOK: a large-scale dataset for eye contact detection in the wild, which focuses on diverse and unconstrained scenarios for real-world generalization. The source code and the LOOK dataset are publicly shared towards an open science mission. 
+
+
 
 ## Table of contents
 
@@ -13,6 +21,7 @@ Image taken from : https://jooinn.com/people-walking-on-pedestrian-lane-during-d
 - [Training your models on LOOK / JAAD / PIE](#training-your-models-on-look---jaad---pie)
 - [Evaluate your trained models](#evaluate-your-trained-models)
 - [Annotate new images](#annotate-new-images)
+- [Cite our work](#cite-our-work)
 
 
 ## Requirements
@@ -73,3 +82,18 @@ A sample config file can be found at ```config_example.ini```
 ## Annotate new images
 
 Check out the folder [annotator](https://github.com/vita-epfl/looking/tree/main/annotator) in order to run our annotator to annotate new instances for the task.
+
+## Cite our work
+
+If you use our work for your research please cite us :) 
+
+```
+@misc{belkada2021pedestrians,
+      title={Do Pedestrians Pay Attention? Eye Contact Detection in the Wild}, 
+      author={Younes Belkada and Lorenzo Bertoni and Romain Caristan and Taylor Mordan and Alexandre Alahi},
+      year={2021},
+      eprint={2112.04212},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
