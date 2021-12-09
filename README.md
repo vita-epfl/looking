@@ -83,6 +83,10 @@ A sample config file can be found at ```config_example.ini```
 
 Check out the folder [annotator](https://github.com/vita-epfl/looking/tree/main/annotator) in order to run our annotator to annotate new instances for the task.
 
+## Credits
+
+Credits to (OpenPifPaf)[https://openpifpaf.github.io/intro.html] for the pose detection part, and (JRDB)[https://jrdb.stanford.edu/], [Nuscenes](https://www.nuscenes.org/) and [Kitti](http://www.cvlibs.net/datasets/kitti/) datasets for the images.
+
 ## Cite our work
 
 If you use our work for your research please cite us :) 
