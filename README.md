@@ -85,7 +85,7 @@ Check out the folder [annotator](https://github.com/vita-epfl/looking/tree/main/
 
 ## Credits
 
-Credits to (OpenPifPaf)[https://openpifpaf.github.io/intro.html] for the pose detection part, and (JRDB)[https://jrdb.stanford.edu/], [Nuscenes](https://www.nuscenes.org/) and [Kitti](http://www.cvlibs.net/datasets/kitti/) datasets for the images.
+Credits to [OpenPifPaf](https://openpifpaf.github.io/intro.html) for the pose detection part, and [JRDB](https://jrdb.stanford.edu/), [Nuscenes](https://www.nuscenes.org/) and [Kitti](http://www.cvlibs.net/datasets/kitti/) datasets for the images.
 
 ## Cite our work
 
