@@ -6,10 +6,7 @@ Please follow carefully the instructions below to configure and build the datase
 
 - [1. Create the LOOK dataset](#1-create-the-look-dataset)
   * [1.1. Manual setup](#11-manual-setup)
-    + [1.1.1. Get the ground truth annotation file](#111-get-the-ground-truth-annotation-file)
-    + [1.1.2. Getting the raw images](#112-getting-the-raw-images)
-      - [1.1.2.1. Fast download](#1121-fast-download)
-      - [1.1.2.2. Manual download](#1122-manual-download)
+    + [1.1.1. Get the ground truth annotation file and images](#111-get-the-ground-truth-annotation-file-and-images)
     + [1.1.2. Getting the keypoints](#112-getting-the-keypoints)
       - [1.1.2.1 Fast download](#1121-fast-download)
       - [1.1.2.2 Run Pifpaf on the raw images](#1122-run-pifpaf-on-the-raw-images)
