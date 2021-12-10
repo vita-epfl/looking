@@ -35,19 +35,9 @@ Please follow carefully the instructions below to configure and build the datase
 
 ### 1.1. Manual setup
 
-#### 1.1.1. Get the ground truth annotation file
+#### 1.1.1. Get the ground truth annotation file and images
 
-Get directly the ground truth annotation file from [here](https://drive.google.com/file/d/1JUQgtIhXiPc-hAv7Fr6eu3No66VpyayM/view?usp=sharing) and download it in the current directory.
-
-#### 1.1.2. Getting the raw images
-
-##### 1.1.2.1. Fast download
-
-You can download all the images directly from this [link](https://drive.google.com/file/d/1WH6fKrXW0AbbTkvOELinxHOfZPOFuLMv/view?usp=sharing).
-
-##### 1.1.2.2. Manual download
-
-Follow the instructions provided at the [benchmark website](https://looking-epfl.github.io/)
+Please follow the instructions on our [benchmark website](https://looking-vita-epfl.github.io/dataset/).
 
 #### 1.1.2. Getting the keypoints
 
