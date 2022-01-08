@@ -2,28 +2,25 @@
 
 ## Do not modify
 
-ID_ANNOTATION='1nXYHkfcl_velTE8JJsHpyUdPRZEFG1QP'
-ID_LOOK='1WH6fKrXW0AbbTkvOELinxHOfZPOFuLMv'
 ID_KEYPOINTS='1L1ChkEw9PQb1eEub3InkvHlgkdQzbdjn'
+ID_ANNOTATION='1SmT-D5E3_CCbAj7BUtvb5GOF2CNsNLhD'
 BASE_PATH=$(pwd)
 PATH_GT_OUT="./splits_look"
-PATH_GT_FILE="./annotations.csv"
+PATH_GT_FILE="./annotations_LOOK.csv"
 
-##
+## To Modify
+# Path to the donwloaded LOOK dataset
+PATH_IMAGES="LOOK_dataset"
 
-PATH_OUTPUT_DATA="/home/younesbelkada/data/LOOK/"
-PATH_OUTPUT_DATA_ALL="/home/younesbelkada/data/LOOK/LOOK_all"
+# Aboslute path to the processed dataset
+PATH_OUTPUT_DATA="output_images"
 
-
+echo "Downloading LOOK annotations ..."
 gdown --id $ID_ANNOTATION
 
 mkdir -p $PATH_OUTPUT_DATA
-mkdir -p $PATH_OUTPUT_DATA_ALL
-
 cd $PATH_OUTPUT_DATA
-echo "Downloading LOOK images ..."
-gdown --id $ID_LOOK
-unzip LOOK_dataset.zip
+
 
 echo "Downloading LOOK keypoints ..."
 gdown --id $ID_KEYPOINTS
@@ -31,4 +28,4 @@ tar -xvf LOOK_keypoints.tar.gz
 
 cd $BASE_PATH
 echo "Building the LOOK dataset ..."
-python create_look.py --path_gt $PATH_GT_FILE --path_out_txt $PATH_GT_OUT --path_output_files $PATH_OUTPUT_DATA_ALL --path_keypoints "${PATH_OUTPUT_DATA}/LOOK_keypoints" --path_images "${PATH_OUTPUT_DATA}/LOOK"
+python3 create_look.py --path_gt $PATH_GT_FILE --path_out_txt $PATH_GT_OUT --path_output_files $PATH_OUTPUT_DATA --path_keypoints "${PATH_OUTPUT_DATA}/LOOK_keypoints" --path_images "${PATH_IMAGES}/LOOK"

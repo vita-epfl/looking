@@ -232,6 +232,7 @@ def main():
                 label = looking_labels[index_max_iou]
                 if label != -1:
                     out_name = os.path.join(path_output_files, name_data, str(i).zfill(10)+'.json')
+
                     bbox = bboxes_anno[index_max_iou]
                     if name_data not in counts_data:
                         counts_data[name_data] = 1
@@ -255,10 +256,10 @@ def main():
                         json.dump(di, open(out_name, "w"))
                         
                         head = crop(np.asarray(img), convert_bb(enlarge_bbox(pifpaf_instances['bbox'])))
-                        Image.fromarray(head).convert('RGB').save(os.path.join(path_output_files, out_name+'.png'))
+                        Image.fromarray(head).convert('RGB').save(os.path.join(out_name+'.png'))
 
                         eyes = crop_eyes(np.asarray(img), converted_kps)
-                        Image.fromarray(eyes).convert('RGB').save(os.path.join(path_output_files,out_name+'_eyes.png'))
+                        Image.fromarray(eyes).convert('RGB').save(os.path.join(out_name+'_eyes.png'))
 
                         line = ','.join([os.path.join(path_images, keys), name_data, split, out_name, str(bbox_final_without_enlarge[0]), str(bbox_final_without_enlarge[1]), str(bbox_final_without_enlarge[2]),str(bbox_final_without_enlarge[-1]), str(label)+'\n'])
                         txt_final_file.write(line)

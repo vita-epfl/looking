@@ -5,6 +5,7 @@ Please follow carefully the instructions below to configure and build the datase
 ## Table of Contents
 
 - [1. Create the LOOK dataset](#1-create-the-look-dataset)
+  * [1.0. Automatic Download](#10-automatic-download)
   * [1.1. Manual setup](#11-manual-setup)
     + [1.1.1. Get the ground truth annotation file and images](#111-get-the-ground-truth-annotation-file-and-images)
     + [1.1.2. Getting the keypoints](#112-getting-the-keypoints)
@@ -29,6 +30,10 @@ Please follow carefully the instructions below to configure and build the datase
 
 
 ## 1. Create the LOOK dataset
+
+### 1.0. Automatic Download
+
+Please carefully follow the instructions on our [benchmark website](https://looking-vita-epfl.github.io/dataset/) to download the ground file and images automatically. 
 
 ### 1.1. Manual setup
 
@@ -66,6 +71,8 @@ After extracting the raw images and downloading the ground truth file, run ```cr
 | ```--path_output_files``` | Path to the output files where the keypoints and crops will be stored  |
 | ```--path_keypoints``` | Path to the keypoints file obtained with PifPaf |
 | ```--path_images``` | Path to the LOOK raw images |
+
+Alternatively, you can modify the script ```create_look.sh``` with the relevant variables and run ```sh create_look.sh```.
 
 
 ## 2. Create the JAAD dataset 
