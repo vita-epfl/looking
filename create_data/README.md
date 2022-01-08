@@ -11,7 +11,7 @@ Please follow carefully the instructions below to configure and build the datase
     + [1.1.2. Getting the keypoints](#112-getting-the-keypoints)
       - [1.1.2.1 Fast download](#1121-fast-download)
       - [1.1.2.2 Run Pifpaf on the raw images](#1122-run-pifpaf-on-the-raw-images)
-    + [1.1.3. Building the LOOK dataset](#113-building-the-look-dataset)
+  * [1.2. Building the LOOK dataset](#12-building-the-look-dataset)
 - [2. Create the JAAD dataset](#2-create-the-jaad-dataset)
   * [2.0 Easy Download and building](#20-easy-download-and-building)
   * [2.1. Get the keypoints](#21-get-the-keypoints)
@@ -60,7 +60,7 @@ After extracting the raw images, run ```run_pifpaf.py``` with the following argu
 
 This may take some time depending on your machine configuration, running this script on a GPU is recommanded.
 
-#### 1.1.3. Building the LOOK dataset
+### 1.2. Building the LOOK dataset
 
 After extracting the raw images and downloading the ground truth file, run ```create_look.py``` with the following arguments:
 
