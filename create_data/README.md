@@ -70,9 +70,9 @@ After extracting the raw images and downloading the ground truth file, run ```cr
 | ```--path_out_txt``` | Path to the output text file. Default ```./splits_look```. Preferably not to change. |
 | ```--path_output_files``` | Path to the output files where the keypoints and crops will be stored  |
 | ```--path_keypoints``` | Path to the keypoints file obtained with PifPaf |
-| ```--path_images``` | Path to the LOOK raw images |
+| ```--path_images``` | Path to the LOOK raw images - Do not use relative paths |
 
-Alternatively, you can modify the script ```create_look.sh``` with the relevant variables and run ```sh create_look.sh```.
+Alternatively, you can modify the script ```create_look.sh``` with the relevant variables (without using relative paths) and run ```sh create_look.sh```.
 
 
 ## 2. Create the JAAD dataset 
