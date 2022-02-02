@@ -65,6 +65,7 @@ class Predictor():
     def get_model(self):
         if self.mode == 'joints':
             model = LookingModel(INPUT_SIZE)
+            print(self.device)
             if not os.path.isfile(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')):
                 """
                 DOWNLOAD(LOOKING_MODEL, os.path.join(self.path_model, 'Looking_Model.zip'), quiet=False)
@@ -73,7 +74,7 @@ class Predictor():
                     zipObj.extractall()
                 exit(0)"""
                 raise NotImplementedError
-            model.load_state_dict(torch.load(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p')))
+            model.load_state_dict(torch.load(os.path.join(self.path_model, 'LookingModel_LOOK+PIE.p'), map_location=self.device))
             model.eval()
         else:
             model = AlexNet_head(self.device)
@@ -202,7 +203,7 @@ class Predictor():
         #open_cv_image = cv2.addWeighted(open_cv_image, 0.5, np.ones(open_cv_image.shape, dtype=np.uint8)*255, 0.5, 1.0)
         #open_cv_image = cv2.addWeighted(open_cv_image, 0.5, np.zeros(open_cv_image.shape, dtype=np.uint8), 0.5, 1.0)
         open_cv_image = cv2.addWeighted(open_cv_image, 1, mask, transparency, 1.0)
-        cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.pedictions.png'), open_cv_image)
+        cv2.imwrite(os.path.join(self.path_out, image_name[:-4]+'.predictions.png'), open_cv_image)
 
 
     def predict(self, args):
