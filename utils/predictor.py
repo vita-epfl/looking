@@ -53,8 +53,11 @@ class Predictor():
                 raise
         self.mode = args.mode
         self.model = self.get_model().to(self.device)
-        self.path_out = './output'
-        self.path_out = filecreation(self.path_out)
+        if args.image_output is None:
+            self.path_out = './output'
+            self.path_out = filecreation(self.path_out)
+        else:
+            self.path_out = args.image_output
         self.track_time = args.time
         if self.track_time:
             self.pifpaf_time = []
